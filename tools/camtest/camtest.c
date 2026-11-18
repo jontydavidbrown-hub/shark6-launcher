@@ -3,7 +3,7 @@
 //
 //   adb push shark6-camtest /data/local/tmp/ && adb shell chmod 755 /data/local/tmp/shark6-camtest
 //   adb shell /data/local/tmp/shark6-camtest            (cameras 8,9,5,4 by default)
-//   adb pull /data/local/tmp/shark6-cams
+//   adb pull /sdcard/Download/shark6-cams
 //
 // Read-only: it only opens camera streams, never changes car settings.
 // Struct layouts and IDs follow the public notes on DiLink 5 (SA8155P) camera access.
@@ -28,7 +28,7 @@
 #define BYTES (STRIDE * H)
 #define NBUF 5
 #define FMT_UYVY 0x7080102u
-#define OUT_DIR "/data/local/tmp/shark6-cams"
+#define OUT_DIR "/sdcard/Download/shark6-cams"
 
 typedef struct {
     uint32_t width, height, stride, size;
@@ -87,7 +87,7 @@ static unsigned char clamp(int v) { return v < 0 ? 0 : v > 255 ? 255 : (unsigned
 // Half-size RGB still (960x650) from a UYVY frame.
 static int save_ppm(const char *path, const uint8_t *src) {
     FILE *f = fopen(path, "wb");
-    if (!f) return -1;
+    if (!f) { printf("   can't write %s: %s\n", path, strerror(errno)); return -1; }
     fprintf(f, "P6\n%d %d\n255\n", W / 2, H / 2);
     unsigned char *row = malloc(W / 2 * 3);
     for (int y = 0; y < H; y += 2) {
@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
     printf("qcarcam_initialize -> %d\n", rc);
     if (rc != 0) return 1;
 
-    mkdir(OUT_DIR, 0777);
+    if (mkdir(OUT_DIR, 0777) != 0 && errno != EEXIST) printf("mkdir %s: %s\n", OUT_DIR, strerror(errno));
     int ion = open("/dev/ion", O_RDONLY | O_CLOEXEC);
     printf("/dev/ion: %s\n", ion >= 0 ? "open" : strerror(errno));
 
@@ -179,7 +179,10 @@ int main(int argc, char **argv) {
                         if (fds[fi.idx] >= 0) ioctl(fds[fi.idx], DMA_BUF_IOCTL_SYNC, &s);
                         char path[96];
                         snprintf(path, sizeof(path), OUT_DIR "/cam%d.ppm", id);
-                        save_ppm(path, ptr[fi.idx]);
+                        if (save_ppm(path, ptr[fi.idx]) != 0) {
+                            snprintf(path, sizeof(path), "/data/local/tmp/cam%d.ppm", id);
+                            if (save_ppm(path, ptr[fi.idx]) != 0) { cc_release_frame(h, fi.idx); continue; }
+                        }
                         s.flags = DMA_BUF_SYNC_END | DMA_BUF_SYNC_READ;
                         if (fds[fi.idx] >= 0) ioctl(fds[fi.idx], DMA_BUF_IOCTL_SYNC, &s);
                         printf("   saved %s (seq %u)\n", path, fi.seq);
