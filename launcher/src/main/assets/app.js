@@ -394,11 +394,11 @@ class Home extends Component {
     </div>
 
     
-    <section aria-label="Range" class="gy-10" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 18px 24px; display: flex; flex-direction: column; align-items: center;  min-height: 0; min-width: 0; overflow: hidden;">
+    <section aria-label="Range" class="gy-10" style="padding: 4px 24px 18px; display: flex; flex-direction: column; align-items: center;  min-height: 0; min-width: 0; overflow: hidden;">
       <div style="align-self: stretch; height: 36px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center;">
         <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">RANGE</span>
       </div>
-      <div style="position: relative; width: 380px; height: 380px; flex-shrink: 0; margin: 30px 0 -54px;">
+      <div style="position: relative; width: 380px; height: 380px; flex-shrink: 0; margin: 6px 0 -54px;">
         <svg width="380" height="380" viewBox="0 0 320 320" aria-hidden="true">
           <circle cx="160" cy="160" r="136" fill="none" stroke="#262626" stroke-width="18" stroke-dasharray="641 1000" transform="rotate(135 160 160)"></circle>
           <circle cx="160" cy="160" r="136" fill="none" stroke=${v.accent} stroke-width="18" stroke-dasharray=${v.rangeDash} transform="rotate(135 160 160)"></circle>
@@ -417,19 +417,19 @@ class Home extends Component {
     </section>
 
     
-    <section aria-label="Speed" class="gy-10" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 18px 24px; display: flex; flex-direction: column; align-items: center;  min-height: 0; min-width: 0; overflow: hidden;">
+    <section aria-label="Speed" class="gy-10" style="padding: 4px 24px 18px; display: flex; flex-direction: column; align-items: center;  min-height: 0; min-width: 0; overflow: hidden;">
       <div style="align-self: stretch; position: relative; height: 36px; display: flex; align-items: center;">
         <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">SPEED</span>
         <div class="gx-22" style="position: absolute; top: 0; left: 0; right: 0; height: 36px; display: flex; justify-content: center; align-items: center;  font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 34px; line-height: 1; pointer-events: none;">
           <span style="color: ${v.gearP};">P</span><span style="color: ${v.gearR};">R</span><span style="color: ${v.gearN};">N</span><span style="color: ${v.gearD};">D</span>
         </div>
       </div>
-      <div style="position: relative; width: 400px; height: 375px; flex-shrink: 0; margin: 34px 0 -53px;">
+      <div style="position: relative; width: 400px; height: 375px; flex-shrink: 0; margin: 10px 0 -53px;">
         <svg width="400" height="375" viewBox="0 0 320 300" aria-hidden="true" style="position: absolute; top: 0; right: 0; bottom: 0; left: 0;">
           <circle cx="160" cy="165" r="140" fill="none" stroke="#1C1C1C" stroke-width="10" stroke-dasharray="586 2000" transform="rotate(150 160 165)"></circle>
           <circle cx="160" cy="165" r="140" fill="none" stroke=${v.accent} stroke-width="10" stroke-dasharray=${v.speedDash} transform="rotate(150 160 165)"></circle>
           <circle cx="160" cy="165" r="125" fill="none" stroke="#2A2A2A" stroke-width="6" stroke-dasharray="1.4 11.69" transform="rotate(150 160 165)"></circle>
-          <circle cx="160" cy="165" r="125" fill="none" stroke="#111111" stroke-width="8" stroke-dasharray="0 523.6 261.8 2000" transform="rotate(150 160 165)"></circle>
+          <circle cx="160" cy="165" r="125" fill="none" stroke="#050505" stroke-width="8" stroke-dasharray="0 523.6 261.8 2000" transform="rotate(150 160 165)"></circle>
         </svg>
         <div style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
           <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 104px; line-height: 1;">${v.speed}</span>
