@@ -7,10 +7,14 @@ def rep(old,new,count=1):
     m=m.replace(old,new,count)
 # --- live-data edits ---
 # drop our status strip (BYD's header shows time + outside temp) and its grid row
-i=m.index('  <!-- STATUS STRIP -->'); j=m.index('  <!-- RANGE (large) -->'); m=m[:i]+m[j:]
-rep('width: 1600px; height: 900px; box-sizing: border-box; padding: 24px 28px 28px;','width: 1600px; height: 838px; box-sizing: border-box; padding: 20px 28px 28px;')
-rep('grid-template-rows: 44px minmax(0, 1fr) 184px;','grid-template-rows: minmax(0, 1fr) 184px;')
-rep('<span style="font-size: 12px; color: #A6A6A6; border: 1px solid #333; border-radius: 4px; padding: 2px 8px;">SAMPLE DATA</span>',
+def opt(old,new):
+    global m
+    m=m.replace(old,new,1)
+if '  <!-- STATUS STRIP -->' in m:
+    i=m.index('  <!-- STATUS STRIP -->'); j=m.index('  <!-- RANGE (large) -->'); m=m[:i]+m[j:]
+opt('width: 1600px; height: 900px; box-sizing: border-box; padding: 24px 28px 28px;','width: 1600px; height: 838px; box-sizing: border-box; padding: 20px 28px 28px;')
+opt('grid-template-rows: 44px minmax(0, 1fr) 184px;','grid-template-rows: minmax(0, 1fr) 184px;')
+opt('<span style="font-size: 12px; color: #A6A6A6; border: 1px solid #333; border-radius: 4px; padding: 2px 8px;">SAMPLE DATA</span>',
     '<span style="font-size: 12px; color: {{liveColor}}; border: 1px solid #333; border-radius: 4px; padding: 2px 8px;">{{liveLabel}}</span>')
 rep('<span style="color: #4A4A4A;">P</span><span style="color: #4A4A4A;">R</span><span style="color: #4A4A4A;">N</span><span style="color: {{accent}};">D</span>',
     '<span style="color: {{gearP}};">P</span><span style="color: {{gearR}};">R</span><span style="color: {{gearN}};">N</span><span style="color: {{gearD}};">D</span>')

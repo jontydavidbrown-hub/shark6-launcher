@@ -137,6 +137,8 @@ final class CarData {
             put(o, "tripKwh", num("statistic", "getCurrentTripElec"), 0, 100000);
             put(o, "tripFuel", num("statistic", "getCurrentTripFuel"), 0, 100000);
             put(o, "odo", num("statistic", "getTotalMileageValue"), 0, 10000000);
+            put(o, "avgElec", num("statistic", "getTotalElecConPHMValue"), 0, 100);
+            put(o, "avgFuel", num("statistic", "getTotalFuelConPHMValue"), 0, 40);
             // Driving
             put(o, "speed", num("speed", "getCurrentSpeed"), 0, 300);
             put(o, "gear", num("gearbox", "getGearboxAutoModeLevel"), 1, 6);

@@ -20,29 +20,16 @@ button{font-family:inherit;cursor:pointer}
 .s6-range::-moz-range-thumb{width:44px;height:44px;border-radius:6px;background:#F2F2F2;border:0}
 </style>
 </helmet>
-<div style="width: 1600px; height: 900px; box-sizing: border-box; padding: 24px 28px 28px; background: #050505; color: #F2F2F2; font-family: Barlow, system-ui, sans-serif; position: relative; display: grid; grid-template-columns: 400px 400px minmax(0, 1fr) 340px; grid-template-rows: 44px minmax(0, 1fr) 184px; gap: 18px;">
-
-  <!-- STATUS STRIP -->
-  <div style="grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 22px; letter-spacing: 0.06em;">
-    <div style="display: flex; align-items: center; gap: 14px;">
-      <div style="width: 26px; height: 8px; background: {{accent}}; transform: skewX(-24deg);"></div>
-      <span style="font-style: italic; font-weight: 700; font-size: 26px;">SHARK 6</span>
-      <button type="button" onClick="{{replayBoot}}" style="margin-left: 8px; border: 1px solid #333; background: transparent; color: #A6A6A6; border-radius: 4px; padding: 0 12px; height: 36px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 16px; letter-spacing: 0.06em;">REPLAY STARTUP</button>
-    </div>
-    <div style="display: flex; gap: 28px; color: #A6A6A6;">
-      <span>27° OUTSIDE</span>
-      <span style="color: #F2F2F2;">1:56 PM</span>
-    </div>
-  </div>
+<div style="width: 1600px; height: 838px; box-sizing: border-box; padding: 20px 28px 28px; background: #050505; color: #F2F2F2; font-family: Barlow, system-ui, sans-serif; position: relative; display: grid; grid-template-columns: 400px 400px minmax(0, 1fr) 340px; grid-template-rows: minmax(0, 1fr) 184px; gap: 18px;">
 
   <!-- RANGE (large) -->
   <section aria-label="Range" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 18px 24px; display: flex; flex-direction: column; align-items: center; gap: 10px; min-height: 0;">
     <div style="align-self: stretch; display: flex; justify-content: space-between; align-items: center;">
       <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: {{accent}};">RANGE</span>
-      <span style="font-size: 12px; color: #A6A6A6; border: 1px solid #333; border-radius: 4px; padding: 2px 8px;">SAMPLE DATA</span>
+      <button type="button" onClick="{{replayBoot}}" aria-label="Replay startup animation" style="font-size: 12px; color: {{liveColor}}; background: transparent; border: 1px solid #333; border-radius: 4px; padding: 2px 8px;">{{liveLabel}}</button>
     </div>
-    <div style="position: relative; width: 300px; height: 300px; flex-shrink: 0;">
-      <svg width="300" height="300" viewBox="0 0 320 320" aria-hidden="true">
+    <div style="position: relative; width: 380px; height: 380px; flex-shrink: 0; margin: -10px 0 -24px;">
+      <svg width="380" height="380" viewBox="0 0 320 320" aria-hidden="true">
         <circle cx="160" cy="160" r="136" fill="none" stroke="#262626" stroke-width="18" stroke-dasharray="641 1000" transform="rotate(135 160 160)"></circle>
         <circle cx="160" cy="160" r="136" fill="none" stroke="{{accent}}" stroke-width="18" stroke-dasharray="{{rangeDash}}" transform="rotate(135 160 160)"></circle>
         <circle cx="160" cy="160" r="110" fill="none" stroke="#262626" stroke-width="8" stroke-dasharray="518 1000" transform="rotate(135 160 160)"></circle>
@@ -53,10 +40,11 @@ button{font-family:inherit;cursor:pointer}
         <span style="font-size: 16px; letter-spacing: 0.08em; color: #A6A6A6;">KM TOTAL</span>
       </div>
     </div>
-    <div style="align-self: stretch; margin-top: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+    <div style="align-self: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
       <div style="border-left: 4px solid {{accent}}; padding-left: 12px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px;">{{evRange}} KM</div><div style="font-size: 14px; color: #A6A6A6;">Electric · {{battPct}}%</div></div>
       <div style="border-left: 4px solid #F2F2F2; padding-left: 12px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px;">{{fuelRange}} KM</div><div style="font-size: 14px; color: #A6A6A6;">Fuel · {{fuelPct}}%</div></div>
     </div>
+    <div style="align-self: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border-top: 1px solid #262626; padding-top: 12px;"><div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 26px; line-height: 1.1;">{{avgElec}} <span style="font-family: Barlow, sans-serif; font-weight: 400; font-size: 13px; color: #A6A6A6;">kWh/100</span></div><div style="font-size: 13px; color: #A6A6A6;">Average electric</div></div><div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 26px; line-height: 1.1;">{{avgFuel}} <span style="font-family: Barlow, sans-serif; font-weight: 400; font-size: 13px; color: #A6A6A6;">L/100</span></div><div style="font-size: 13px; color: #A6A6A6;">Average fuel</div></div></div>
   </section>
 
   <!-- SPEED (large) -->
@@ -67,8 +55,8 @@ button{font-family:inherit;cursor:pointer}
         <span style="color: #4A4A4A;">P</span><span style="color: #4A4A4A;">R</span><span style="color: #4A4A4A;">N</span><span style="color: {{accent}};">D</span>
       </div>
     </div>
-    <div style="position: relative; width: 320px; height: 300px; flex-shrink: 0;">
-      <svg width="320" height="300" viewBox="0 0 320 300" aria-hidden="true" style="position: absolute; inset: 0;">
+    <div style="position: relative; width: 400px; height: 375px; flex-shrink: 0; margin-bottom: -8px;">
+      <svg width="400" height="375" viewBox="0 0 320 300" aria-hidden="true" style="position: absolute; inset: 0;">
         <circle cx="160" cy="165" r="140" fill="none" stroke="#1C1C1C" stroke-width="10" stroke-dasharray="586 2000" transform="rotate(150 160 165)"></circle>
         <circle cx="160" cy="165" r="140" fill="none" stroke="{{accent}}" stroke-width="10" stroke-dasharray="{{speedDash}}" transform="rotate(150 160 165)"></circle>
         <circle cx="160" cy="165" r="125" fill="none" stroke="#2A2A2A" stroke-width="6" stroke-dasharray="1.4 11.69" transform="rotate(150 160 165)"></circle>
@@ -80,13 +68,14 @@ button{font-family:inherit;cursor:pointer}
       </div>
       <div style="position: absolute; left: 0; right: 0; bottom: 4px; display: flex; justify-content: space-between; padding: 0 34px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 0.08em; color: #6B6B6B;"><span>0</span><span>180</span></div>
     </div>
-    <div style="align-self: stretch; margin-top: auto; display: flex; flex-direction: column; gap: 6px;">
+    <div style="align-self: stretch; display: flex; flex-direction: column; gap: 6px;">
       <div style="position: relative; height: 6px; background: #1C1C1C;">
         <div style="position: absolute; top: 0; bottom: 0; left: {{powerLeft}}%; width: {{powerWidth}}%; background: {{powerColor}};"></div>
         <div style="position: absolute; top: -4px; bottom: -4px; left: 50%; width: 2px; background: #4A4A4A;"></div>
       </div>
       <div style="display: flex; justify-content: space-between; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.08em; color: #A6A6A6;"><span>REGEN</span><span style="color: #F2F2F2;">{{powerLabel}}</span><span>POWER</span></div>
     </div>
+    <div style="align-self: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border-top: 1px solid #262626; padding-top: 12px;"><div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 26px; line-height: 1.1;">{{driveMode}} <span style="font-family: Barlow, sans-serif; font-weight: 400; font-size: 13px; color: #A6A6A6;"></span></div><div style="font-size: 13px; color: #A6A6A6;">Drive mode</div></div><div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 26px; line-height: 1.1;">{{outside}}° <span style="font-family: Barlow, sans-serif; font-weight: 400; font-size: 13px; color: #A6A6A6;">C</span></div><div style="font-size: 13px; color: #A6A6A6;">Outside</div></div></div>
   </section>
 
   <!-- SMALL TILES -->
@@ -370,6 +359,8 @@ class Component extends DCLogic {
         else set({ drvTemp: v });
       },
       speed: shownSpeed,
+      avgElec: (13.4 * kBars).toFixed(1), avgFuel: (6.3 * kBars).toFixed(1), driveMode: 'ECO', outside: count(22, kBars),
+      liveLabel: 'SAMPLE DATA', liveColor: '#A6A6A6',
       speedDash: Math.round(586 * shownSpeed / MAX) + ' 2000',
       powerLeft: m.kw >= 0 ? 50 : 50 - Math.abs(m.kw) / 150 * 50 * kBars,
       powerWidth: Math.abs(m.kw) / 150 * 50 * kBars,

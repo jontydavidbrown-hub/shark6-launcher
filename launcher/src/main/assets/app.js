@@ -152,6 +152,9 @@ class Home extends Component {
       battDash: Math.round(518 * battPct / 100 * kBars) + ' 1000',
       gearP: gearColor('P'), gearR: gearColor('R'), gearN: gearColor('N'), gearD: gearColor('D'),
       speed: shownSpeed,
+      avgElec: (num(c.avgElec) * kBars).toFixed(1), avgFuel: (num(c.avgFuel) * kBars).toFixed(1),
+      driveMode: (drive || '—').toUpperCase(), outside: typeof c.outside === 'number' ? Math.round(c.outside * kBars) : '—',
+      replayBoot: () => this.playBoot(),
       speedDash: Math.round(586 * Math.min(shownSpeed, MAX) / MAX) + ' 2000',
       powerLeft: regen ? 50 - span : 50, powerWidth: span,
       powerColor: regen ? '#4ADE80' : accent,
@@ -223,10 +226,10 @@ class Home extends Component {
   <section aria-label="Range" class="gy-10" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 18px 24px; display: flex; flex-direction: column; align-items: center;  min-height: 0;">
     <div style="align-self: stretch; display: flex; justify-content: space-between; align-items: center;">
       <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">RANGE</span>
-      <span style="font-size: 12px; color: ${v.liveColor}; border: 1px solid #333; border-radius: 4px; padding: 2px 8px;">${v.liveLabel}</span>
+      <button type="button" onClick=${v.replayBoot} aria-label="Replay startup animation" style="font-size: 12px; color: ${v.liveColor}; background: transparent; border: 1px solid #333; border-radius: 4px; padding: 2px 8px;">${v.liveLabel}</button>
     </div>
-    <div style="position: relative; width: 300px; height: 300px; flex-shrink: 0;">
-      <svg width="300" height="300" viewBox="0 0 320 320" aria-hidden="true">
+    <div style="position: relative; width: 380px; height: 380px; flex-shrink: 0; margin: -10px 0 -24px;">
+      <svg width="380" height="380" viewBox="0 0 320 320" aria-hidden="true">
         <circle cx="160" cy="160" r="136" fill="none" stroke="#262626" stroke-width="18" stroke-dasharray="641 1000" transform="rotate(135 160 160)"></circle>
         <circle cx="160" cy="160" r="136" fill="none" stroke=${v.accent} stroke-width="18" stroke-dasharray=${v.rangeDash} transform="rotate(135 160 160)"></circle>
         <circle cx="160" cy="160" r="110" fill="none" stroke="#262626" stroke-width="8" stroke-dasharray="518 1000" transform="rotate(135 160 160)"></circle>
@@ -237,10 +240,11 @@ class Home extends Component {
         <span style="font-size: 16px; letter-spacing: 0.08em; color: #A6A6A6;">KM TOTAL</span>
       </div>
     </div>
-    <div style="align-self: stretch; margin-top: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+    <div style="align-self: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
       <div style="border-left: 4px solid ${v.accent}; padding-left: 12px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px;">${v.evRange} KM</div><div style="font-size: 14px; color: #A6A6A6;">Electric · ${v.battPct}%</div></div>
       <div style="border-left: 4px solid #F2F2F2; padding-left: 12px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px;">${v.fuelRange} KM</div><div style="font-size: 14px; color: #A6A6A6;">Fuel · ${v.fuelPct}%</div></div>
     </div>
+    <div style="align-self: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border-top: 1px solid #262626; padding-top: 12px;"><div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 26px; line-height: 1.1;">${v.avgElec} <span style="font-family: Barlow, sans-serif; font-weight: 400; font-size: 13px; color: #A6A6A6;">kWh/100</span></div><div style="font-size: 13px; color: #A6A6A6;">Average electric</div></div><div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 26px; line-height: 1.1;">${v.avgFuel} <span style="font-family: Barlow, sans-serif; font-weight: 400; font-size: 13px; color: #A6A6A6;">L/100</span></div><div style="font-size: 13px; color: #A6A6A6;">Average fuel</div></div></div>
   </section>
 
   
@@ -251,8 +255,8 @@ class Home extends Component {
         <span style="color: ${v.gearP};">P</span><span style="color: ${v.gearR};">R</span><span style="color: ${v.gearN};">N</span><span style="color: ${v.gearD};">D</span>
       </div>
     </div>
-    <div style="position: relative; width: 320px; height: 300px; flex-shrink: 0;">
-      <svg width="320" height="300" viewBox="0 0 320 300" aria-hidden="true" style="position: absolute; top: 0; right: 0; bottom: 0; left: 0;">
+    <div style="position: relative; width: 400px; height: 375px; flex-shrink: 0; margin-bottom: -8px;">
+      <svg width="400" height="375" viewBox="0 0 320 300" aria-hidden="true" style="position: absolute; top: 0; right: 0; bottom: 0; left: 0;">
         <circle cx="160" cy="165" r="140" fill="none" stroke="#1C1C1C" stroke-width="10" stroke-dasharray="586 2000" transform="rotate(150 160 165)"></circle>
         <circle cx="160" cy="165" r="140" fill="none" stroke=${v.accent} stroke-width="10" stroke-dasharray=${v.speedDash} transform="rotate(150 160 165)"></circle>
         <circle cx="160" cy="165" r="125" fill="none" stroke="#2A2A2A" stroke-width="6" stroke-dasharray="1.4 11.69" transform="rotate(150 160 165)"></circle>
@@ -264,13 +268,14 @@ class Home extends Component {
       </div>
       <div style="position: absolute; left: 0; right: 0; bottom: 4px; display: flex; justify-content: space-between; padding: 0 34px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 0.08em; color: #6B6B6B;"><span>0</span><span>180</span></div>
     </div>
-    <div class="gy-6" style="align-self: stretch; margin-top: auto; display: flex; flex-direction: column;">
+    <div class="gy-6" style="align-self: stretch; display: flex; flex-direction: column;">
       <div style="position: relative; height: 6px; background: #1C1C1C;">
         <div style="position: absolute; top: 0; bottom: 0; left: ${v.powerLeft}%; width: ${v.powerWidth}%; background: ${v.powerColor};"></div>
         <div style="position: absolute; top: -4px; bottom: -4px; left: 50%; width: 2px; background: #4A4A4A;"></div>
       </div>
       <div style="display: flex; justify-content: space-between; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.08em; color: #A6A6A6;"><span>REGEN</span><span style="color: #F2F2F2;">${v.powerLabel}</span><span>POWER</span></div>
     </div>
+    <div style="align-self: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border-top: 1px solid #262626; padding-top: 12px;"><div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 26px; line-height: 1.1;">${v.driveMode} <span style="font-family: Barlow, sans-serif; font-weight: 400; font-size: 13px; color: #A6A6A6;"></span></div><div style="font-size: 13px; color: #A6A6A6;">Drive mode</div></div><div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 26px; line-height: 1.1;">${v.outside}° <span style="font-family: Barlow, sans-serif; font-weight: 400; font-size: 13px; color: #A6A6A6;">C</span></div><div style="font-size: 13px; color: #A6A6A6;">Outside</div></div></div>
   </section>
 
   

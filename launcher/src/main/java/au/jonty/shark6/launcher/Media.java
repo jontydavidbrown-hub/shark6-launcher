@@ -64,7 +64,10 @@ final class Media {
                 String art = art(md, title);
                 if (art != null) o.put("art", art);
             }
-            o.put("app", appName(current.getPackageName()));
+            String app = appName(current.getPackageName());
+            o.put("app", app);
+            // Some sources (BYD radio, local music) publish a session with no track title: show the app.
+            if (!o.has("title")) o.put("title", app);
             if (ps != null) {
                 boolean playing = ps.getState() == PlaybackState.STATE_PLAYING;
                 o.put("playing", playing);
