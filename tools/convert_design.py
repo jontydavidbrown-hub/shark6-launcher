@@ -51,7 +51,9 @@ def conv_for(mm):
 m=re.sub(r'<sc-for list="\{\{([\w.]+)\}\}" as="(\w+)">(.*?)</sc-for>',conv_for,m,flags=re.S)
 def conv_if(mm):
     return '${v.'+mm.group(1)+' ? html`'+mm.group(2)+'` : null}'
-m=re.sub(r'<sc-if value="\{\{([\w.]+)\}\}">(.*?)</sc-if>',conv_if,m,flags=re.S)
+# innermost first, so nested sc-if blocks pair up correctly
+while '<sc-if' in m:
+    m=re.sub(r'<sc-if value="\{\{([\w.]+)\}\}">((?:(?!<sc-if).)*?)</sc-if>',conv_if,m,flags=re.S)
 # single-binding attributes pass raw values
 m=re.sub(r'(\w[\w-]*)="\{\{(@?)([\w.]+)\}\}"',lambda x: x.group(1)+'=${'+('' if x.group(2) else 'v.')+x.group(3)+'}',m)
 m=re.sub(r'\{\{(@?)([\w.]+)\}\}',lambda x:'${'+('' if x.group(1) else 'v.')+x.group(2)+'}',m)

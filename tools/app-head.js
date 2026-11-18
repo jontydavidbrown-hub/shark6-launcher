@@ -232,6 +232,12 @@ class Home extends Component {
       sliderValue: s.slider === 'fan' ? fan : s.slider === 'pas' ? pasTemp : drvTemp,
       sliderText: s.slider === 'fan' ? String(fan) : (s.slider === 'pas' ? pasTemp : drvTemp) + '°',
       sliderMinLabel: s.slider === 'fan' ? '1 · gentle' : '17° · cool', sliderMaxLabel: s.slider === 'fan' ? 'max · 7' : 'warm · 33°',
+      sliderIsTemp: !!s.slider && s.slider !== 'fan', sliderIsFan: s.slider === 'fan',
+      coolWidth: 188, warmLeft: 220, markLeft: 214,
+      fanFill: Math.round((Math.max(1, fan) - 1) / 6 * 616),
+      thumbClass: s.slider === 'fan' || !s.slider ? '' : ((s.slider === 'pas' ? pasTemp : drvTemp) < 22 ? 's6-cool' : (s.slider === 'pas' ? pasTemp : drvTemp) > 22 ? 's6-warm' : ''),
+      sliderTextColor: s.slider === 'fan' || !s.slider ? '#F2F2F2' : ((s.slider === 'pas' ? pasTemp : drvTemp) < 22 ? '#2FB3FF' : (s.slider === 'pas' ? pasTemp : drvTemp) > 22 ? '#FF5A5F' : '#F2F2F2'),
+      sliderLeftLabel: s.slider === 'fan' ? '' : 'COOL', sliderRightLabel: s.slider === 'fan' ? '' : 'HEAT',
       onSlide: (e) => {
         const v = parseInt(e.target.value, 10), which = s.slider;
         const key = which === 'fan' ? 'fan' : which === 'pas' ? 'pasTemp' : 'drvTemp';
