@@ -82,6 +82,7 @@ public class ProbeActivity extends Activity {
             deviceInfo();
             permissions();
             homeScreen();
+            carPlay();
             List<String> classes = discoverClasses();
             for (String c : classes) {
                 if (c.endsWith("Device")) probeDevice(c);
@@ -158,6 +159,40 @@ public class ProbeActivity extends Activity {
         full.append("'Default home app' settings page exists: ").append(settingsPage).append('\n');
         summary.append("Home apps installed: ").append(list.size()).append(", current: ").append(d)
                 .append(", home-app settings page: ").append(settingsPage ? "yes" : "no").append('\n');
+    }
+
+    /** Finds the CarPlay / phone-projection app and checks whether it shares "now playing" info. */
+    private void carPlay() {
+        full.append("\n== CarPlay / media apps ==\n");
+        PackageManager pm = getPackageManager();
+        int matches = 0;
+        StringBuilder names = new StringBuilder();
+        for (android.content.pm.ApplicationInfo ai : pm.getInstalledApplications(0)) {
+            String p = ai.packageName.toLowerCase(Locale.ROOT);
+            String label = String.valueOf(pm.getApplicationLabel(ai));
+            String l = label.toLowerCase(Locale.ROOT);
+            boolean projection = p.contains("carplay") || p.contains("carlink") || p.contains("zlink")
+                    || p.contains("cplay") || p.contains("projection") || l.contains("carplay");
+            boolean nav = p.contains("navi") || p.contains("map") || l.contains("map");
+            boolean media = p.contains("music") || p.contains("media");
+            if (!(projection || nav || media)) continue;
+            Intent launch = pm.getLaunchIntentForPackage(ai.packageName);
+            boolean hasMediaService = !pm.queryIntentServices(
+                    new Intent("android.media.browse.MediaBrowserService").setPackage(ai.packageName), 0).isEmpty();
+            full.append(projection ? "[projection] " : nav ? "[maps] " : "[media] ")
+                    .append(label).append(" (").append(ai.packageName).append(")")
+                    .append(launch != null ? " launchable" : " not-launchable")
+                    .append(hasMediaService ? " shares-media" : "").append('\n');
+            if (projection) {
+                matches++;
+                names.append(label).append(launch != null ? " (can open)" : " (no launcher)")
+                        .append(hasMediaService ? " shares-media" : "").append("; ");
+            }
+        }
+        boolean listenerSettings = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS").resolveActivity(pm) != null;
+        full.append("Notification-access settings page exists: ").append(listenerSettings).append('\n');
+        summary.append("CarPlay apps: ").append(matches == 0 ? "none found by name" : names.toString()).append('\n')
+                .append("Now-playing access page: ").append(listenerSettings ? "yes" : "no").append('\n');
     }
 
     private List<String> discoverClasses() {
