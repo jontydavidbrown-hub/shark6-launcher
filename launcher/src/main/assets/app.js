@@ -52,11 +52,14 @@ class Home extends Component {
     // Live camera: Android draws the picture over #s6-cam, so tell it where that box is on screen.
     window.onCamStatus = (t) => this.setState({ camStatus: t || '' });
     this.camTimer = setInterval(() => {
-      const el = document.getElementById('s6-cam');
-      if (!el) return;
-      const r = el.getBoundingClientRect(), k = window.devicePixelRatio || 1;
-      const key = [r.left, r.top, r.width, r.height].map((v) => Math.round(v * k)).join(',');
-      if (key !== this.camKey) { this.camKey = key; try { Bridge.camRect(key); } catch (e) {} }
+      const k = window.devicePixelRatio || 1;
+      const key = ['s6-cam', 's6-cam2'].map((id) => {
+        const el = document.getElementById(id);
+        if (!el) return '0,0,0,0';
+        const r = el.getBoundingClientRect();
+        return [r.left, r.top, r.width, r.height].map((v) => Math.round(v * k)).join(',');
+      }).join(';');
+      if (key !== this.camKey) { this.camKey = key; try { Bridge.camRects(key); } catch (e) {} }
     }, 500);
     window.onCommandResult = (id, r) => this.commandResult(id, r);
     // OTA: Android tells us when a newer build is out, then reports download progress.
@@ -220,11 +223,12 @@ class Home extends Component {
       modeColor: em === 1 || em === 2 ? '#4ADE80' : '#F2F2F2',
       tyreNote: tyres.length ? (tyreLow ? 'psi · CHECK' : 'psi · all OK') : 'psi',
       ...(() => {
-        // Camera tile: tap cycles front, right, rear, left. The live picture is drawn by Android.
-        const names = ['FRONT', 'RIGHT', 'REAR', 'LEFT'];
-        const i = s.cam || 0;
-        return { camName: names[i], camImage: 'none', camStatus: s.camStatus || '',
-          camNext: () => { const n = (i + 1) % 4; this.setState({ cam: n }); try { Bridge.camShow(n); } catch (e) {} } };
+        // Two camera tiles: top switches front/rear, bottom switches left/right. Android draws the pictures.
+        const NAMES = ['FRONT', 'RIGHT', 'REAR', 'LEFT'];
+        const a = s.camA == null ? 0 : s.camA, b = s.camB == null ? 3 : s.camB, st = s.camStatus || '';
+        const pick = (view, slot, key) => { this.setState({ [key]: slot }); try { Bridge.camShow(view, slot); } catch (e) {} };
+        return { camName: NAMES[a], camImage: 'none', camStatus: st, camNext: () => pick(0, a === 0 ? 2 : 0, 'camA'),
+          cam2Name: NAMES[b], cam2Image: 'none', cam2Status: st, cam2Next: () => pick(1, b === 3 ? 1 : 3, 'camB') };
       })(),
       ...(() => {
         // Clock (BYD's header is hidden). The car poll re-renders every second, so it stays current.
@@ -366,62 +370,86 @@ class Home extends Component {
   </section>
 
   
-  <section aria-label="Range" class="gy-10" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 18px 24px; display: flex; flex-direction: column; align-items: center;  min-height: 0; min-width: 0; overflow: hidden;">
-    <div style="align-self: stretch; height: 36px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center;">
-      <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">RANGE</span>
-    </div>
-    <div style="position: relative; width: 380px; height: 380px; flex-shrink: 0; margin: 30px 0 -54px;">
-      <svg width="380" height="380" viewBox="0 0 320 320" aria-hidden="true">
-        <circle cx="160" cy="160" r="136" fill="none" stroke="#262626" stroke-width="18" stroke-dasharray="641 1000" transform="rotate(135 160 160)"></circle>
-        <circle cx="160" cy="160" r="136" fill="none" stroke=${v.accent} stroke-width="18" stroke-dasharray=${v.rangeDash} transform="rotate(135 160 160)"></circle>
-        <circle cx="160" cy="160" r="110" fill="none" stroke="#262626" stroke-width="8" stroke-dasharray="518 1000" transform="rotate(135 160 160)"></circle>
-        <circle cx="160" cy="160" r="110" fill="none" stroke="#F2F2F2" stroke-width="8" stroke-dasharray=${v.battDash} transform="rotate(135 160 160)"></circle>
-      </svg>
-      <div style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 104px; line-height: 1;">${v.totalRange}</span>
-        <span style="font-size: 24px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KM</span>
-      </div>
-    </div>
-    <div style="align-self: stretch; height: 84px; flex-shrink: 0; margin-top: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
-      <div style="border-left: 4px solid ${v.accent}; padding-left: 12px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px; line-height: 1.1; white-space: nowrap;">${v.evRange} KM</div><div style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">BATTERY ${v.battPct}%</div></div>
-      <div style="border-left: 4px solid #F2F2F2; padding-left: 12px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px; line-height: 1.1; white-space: nowrap;">${v.fuelRange} KM</div><div style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">FUEL ${v.fuelPct}%</div></div>
-    </div>
-  </section>
+  <section aria-label="Drive" style="grid-column: span 2; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: 104px minmax(0, 1fr); column-gap: 18px; row-gap: 14px; min-height: 0; min-width: 0;">
 
-  
-  <section aria-label="Speed" class="gy-10" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 18px 24px; display: flex; flex-direction: column; align-items: center;  min-height: 0; min-width: 0; overflow: hidden;">
-    <div style="align-self: stretch; position: relative; height: 36px; display: flex; align-items: center;">
-      <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">SPEED</span>
-      <div class="gx-22" style="position: absolute; top: 0; left: 0; right: 0; height: 36px; display: flex; justify-content: center; align-items: center;  font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 34px; line-height: 1; pointer-events: none;">
-        <span style="color: ${v.gearP};">P</span><span style="color: ${v.gearR};">R</span><span style="color: ${v.gearN};">N</span><span style="color: ${v.gearD};">D</span>
+    <div aria-label="Tyre pressures" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; min-width: 0; overflow: hidden;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">TYRES</span>
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.12em; color: #A6A6A6; text-transform: uppercase;">${v.tyreNote}</span>
+      </div>
+      <div style="display: flex; justify-content: space-around; align-items: flex-end;">
+        <div class="gy-4" style="display: flex; flex-direction: column; align-items: center;  min-width: 0;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.14em; color: #6B6B6B;">FL</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 34px; color: ${v.tyreFLc};">${v.tyreFL}</span></div><div class="gy-4" style="display: flex; flex-direction: column; align-items: center;  min-width: 0;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.14em; color: #6B6B6B;">FR</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 34px; color: ${v.tyreFRc};">${v.tyreFR}</span></div><div style="width: 1px; align-self: stretch; background: #262626;"></div><div class="gy-4" style="display: flex; flex-direction: column; align-items: center;  min-width: 0;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.14em; color: #6B6B6B;">RL</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 34px; color: ${v.tyreRLc};">${v.tyreRL}</span></div><div class="gy-4" style="display: flex; flex-direction: column; align-items: center;  min-width: 0;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.14em; color: #6B6B6B;">RR</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 34px; color: ${v.tyreRRc};">${v.tyreRR}</span></div>
       </div>
     </div>
-    <div style="position: relative; width: 400px; height: 375px; flex-shrink: 0; margin: 34px 0 -53px;">
-      <svg width="400" height="375" viewBox="0 0 320 300" aria-hidden="true" style="position: absolute; top: 0; right: 0; bottom: 0; left: 0;">
-        <circle cx="160" cy="165" r="140" fill="none" stroke="#1C1C1C" stroke-width="10" stroke-dasharray="586 2000" transform="rotate(150 160 165)"></circle>
-        <circle cx="160" cy="165" r="140" fill="none" stroke=${v.accent} stroke-width="10" stroke-dasharray=${v.speedDash} transform="rotate(150 160 165)"></circle>
-        <circle cx="160" cy="165" r="125" fill="none" stroke="#2A2A2A" stroke-width="6" stroke-dasharray="1.4 11.69" transform="rotate(150 160 165)"></circle>
-        <circle cx="160" cy="165" r="125" fill="none" stroke="#111111" stroke-width="8" stroke-dasharray="0 523.6 261.8 2000" transform="rotate(150 160 165)"></circle>
-      </svg>
-      <div style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 104px; line-height: 1;">${v.speed}</span>
-        <span style="font-size: 24px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KM/H</span>
+    <div aria-label="Trip ${v.tripName}. Tap to switch trip, hold to reset" onClick=${v.tripTap} onPointerDown=${v.tripHoldStart} onPointerUp=${v.tripHoldEnd} onPointerLeave=${v.tripHoldEnd} onPointerCancel=${v.tripHoldEnd} style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; min-width: 0; overflow: hidden; position: relative; cursor: pointer;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">TRIP ${v.tripName}</span>
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.12em;"><span style="color: ${v.tripAColor};">A</span><span style="color: #333333;"> · </span><span style="color: ${v.tripBColor};">B</span></span>
       </div>
-    </div>
-    <div class="gy-16" style="align-self: stretch; height: 84px; flex-shrink: 0; margin-top: auto; display: flex; flex-direction: column; justify-content: center;">
-      <div style="position: relative; height: 12px; background: #1C1C1C;">
-        <div style="position: absolute; top: 0; bottom: 0; left: ${v.powerLeft}%; width: ${v.powerWidth}%; background: ${v.powerColor};"></div>
-        <div style="position: absolute; top: -4px; bottom: -4px; left: 50%; width: 2px; background: #4A4A4A;"></div>
+      <div class="gx-28" style="display: flex; justify-content: center; align-items: baseline;">
+        <div><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 40px;">${v.tripKm}</span> <span style="font-size: 17px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KM</span></div>
+        <div><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 40px;">${v.tripKwh}</span> <span style="font-size: 17px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KWH/100</span></div>
       </div>
-      <div style="display: flex; justify-content: space-between; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 20px; letter-spacing: 0.04em; color: #A6A6A6;"><span>REGEN</span><span style="color: #F2F2F2; font-size: 36px; line-height: 1;">${v.powerLabel}</span><span>POWER</span></div>
+      <div style="position: absolute; left: 0; bottom: 0; height: 4px; width: ${v.tripHoldPct}%; background: ${v.accent}; transition: ${v.tripHoldAnim};"></div>
     </div>
-  </section>
-
-  
-  <section aria-label="Car" style="display: grid; grid-template-rows: minmax(0, 1fr) 286px; gap: 14px; min-height: 0; min-width: 0; overflow: hidden;">
 
     
-    <div aria-label="Camera: ${v.camName}. Tap for the next camera" onClick=${v.camNext} class="gy-10" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 14px 14px; display: flex; flex-direction: column;  min-height: 0; min-width: 0; overflow: hidden; cursor: pointer;">
+    <section aria-label="Range" class="gy-10" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 18px 24px; display: flex; flex-direction: column; align-items: center;  min-height: 0; min-width: 0; overflow: hidden;">
+      <div style="align-self: stretch; height: 36px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">RANGE</span>
+      </div>
+      <div style="position: relative; width: 380px; height: 380px; flex-shrink: 0; margin: 30px 0 -54px;">
+        <svg width="380" height="380" viewBox="0 0 320 320" aria-hidden="true">
+          <circle cx="160" cy="160" r="136" fill="none" stroke="#262626" stroke-width="18" stroke-dasharray="641 1000" transform="rotate(135 160 160)"></circle>
+          <circle cx="160" cy="160" r="136" fill="none" stroke=${v.accent} stroke-width="18" stroke-dasharray=${v.rangeDash} transform="rotate(135 160 160)"></circle>
+          <circle cx="160" cy="160" r="110" fill="none" stroke="#262626" stroke-width="8" stroke-dasharray="518 1000" transform="rotate(135 160 160)"></circle>
+          <circle cx="160" cy="160" r="110" fill="none" stroke="#F2F2F2" stroke-width="8" stroke-dasharray=${v.battDash} transform="rotate(135 160 160)"></circle>
+        </svg>
+        <div style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 104px; line-height: 1;">${v.totalRange}</span>
+          <span style="font-size: 24px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KM</span>
+        </div>
+      </div>
+      <div style="align-self: stretch; height: 84px; flex-shrink: 0; margin-top: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+        <div style="border-left: 4px solid ${v.accent}; padding-left: 12px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px; line-height: 1.1; white-space: nowrap;">${v.evRange} KM</div><div style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">BATTERY ${v.battPct}%</div></div>
+        <div style="border-left: 4px solid #F2F2F2; padding-left: 12px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px; line-height: 1.1; white-space: nowrap;">${v.fuelRange} KM</div><div style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">FUEL ${v.fuelPct}%</div></div>
+      </div>
+    </section>
+
+    
+    <section aria-label="Speed" class="gy-10" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 18px 24px; display: flex; flex-direction: column; align-items: center;  min-height: 0; min-width: 0; overflow: hidden;">
+      <div style="align-self: stretch; position: relative; height: 36px; display: flex; align-items: center;">
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">SPEED</span>
+        <div class="gx-22" style="position: absolute; top: 0; left: 0; right: 0; height: 36px; display: flex; justify-content: center; align-items: center;  font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 34px; line-height: 1; pointer-events: none;">
+          <span style="color: ${v.gearP};">P</span><span style="color: ${v.gearR};">R</span><span style="color: ${v.gearN};">N</span><span style="color: ${v.gearD};">D</span>
+        </div>
+      </div>
+      <div style="position: relative; width: 400px; height: 375px; flex-shrink: 0; margin: 34px 0 -53px;">
+        <svg width="400" height="375" viewBox="0 0 320 300" aria-hidden="true" style="position: absolute; top: 0; right: 0; bottom: 0; left: 0;">
+          <circle cx="160" cy="165" r="140" fill="none" stroke="#1C1C1C" stroke-width="10" stroke-dasharray="586 2000" transform="rotate(150 160 165)"></circle>
+          <circle cx="160" cy="165" r="140" fill="none" stroke=${v.accent} stroke-width="10" stroke-dasharray=${v.speedDash} transform="rotate(150 160 165)"></circle>
+          <circle cx="160" cy="165" r="125" fill="none" stroke="#2A2A2A" stroke-width="6" stroke-dasharray="1.4 11.69" transform="rotate(150 160 165)"></circle>
+          <circle cx="160" cy="165" r="125" fill="none" stroke="#111111" stroke-width="8" stroke-dasharray="0 523.6 261.8 2000" transform="rotate(150 160 165)"></circle>
+        </svg>
+        <div style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 104px; line-height: 1;">${v.speed}</span>
+          <span style="font-size: 24px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KM/H</span>
+        </div>
+      </div>
+      <div class="gy-16" style="align-self: stretch; height: 84px; flex-shrink: 0; margin-top: auto; display: flex; flex-direction: column; justify-content: center;">
+        <div style="position: relative; height: 12px; background: #1C1C1C;">
+          <div style="position: absolute; top: 0; bottom: 0; left: ${v.powerLeft}%; width: ${v.powerWidth}%; background: ${v.powerColor};"></div>
+          <div style="position: absolute; top: -4px; bottom: -4px; left: 50%; width: 2px; background: #4A4A4A;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 20px; letter-spacing: 0.04em; color: #A6A6A6;"><span>REGEN</span><span style="color: #F2F2F2; font-size: 36px; line-height: 1;">${v.powerLabel}</span><span>POWER</span></div>
+      </div>
+    </section>
+  </section>
+
+  
+  <section aria-label="Cameras" style="display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; min-height: 0; min-width: 0; overflow: hidden;">
+
+    <div aria-label="Camera: ${v.camName}. Tap to switch front and rear" onClick=${v.camNext} class="gy-10" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 14px 14px; display: flex; flex-direction: column;  min-height: 0; min-width: 0; overflow: hidden; cursor: pointer;">
       <div style="display: flex; justify-content: space-between; align-items: baseline;">
         <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">CAMERA</span>
         <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: #F2F2F2;">${v.camName}</span>
@@ -432,40 +460,14 @@ class Home extends Component {
       </div>
     </div>
 
-    <div class="gx-14" style="display: flex;  min-height: 0; min-width: 0;">
-      <div aria-label="Tyre pressures" style="background: #111111; border: 1px solid #262626; border-radius: 8px; flex: 1 1 0; padding: 12px 14px; display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden;">
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">TYRES</span>
-        <div class="gy-8" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-          <div class="gx-22" style="display: flex;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px; line-height: 1; color: ${v.tyreFLc};">${v.tyreFL}</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px; line-height: 1; color: ${v.tyreFRc};">${v.tyreFR}</span></div>
-        <svg width="60" height="128" viewBox="0 0 80 170" fill="none" aria-hidden="true" style="flex-shrink: 0; display: block;">
-          <rect x="3" y="24" width="10" height="26" rx="3" fill=${v.tyreFLc} opacity="0.85"></rect>
-          <rect x="67" y="24" width="10" height="26" rx="3" fill=${v.tyreFRc} opacity="0.85"></rect>
-          <rect x="3" y="122" width="10" height="26" rx="3" fill=${v.tyreRLc} opacity="0.85"></rect>
-          <rect x="67" y="122" width="10" height="26" rx="3" fill=${v.tyreRRc} opacity="0.85"></rect>
-          <path d="M8 52 L14 49 L14 57 Z" fill="#5A5A5A"></path>
-          <path d="M72 52 L66 49 L66 57 Z" fill="#5A5A5A"></path>
-          <path d="M14 30 C14 12 24 5 40 4 C56 5 66 12 66 30 L66 160 C66 164 63 167 59 167 L21 167 C17 167 14 164 14 160 Z" fill="#1A1A1A" stroke="#6B6B6B" stroke-width="2"></path>
-          <path d="M22 18 C30 13 50 13 58 18" stroke="#3A3A3A" stroke-width="1.5"></path>
-          <path d="M19 47 C30 40 50 40 61 47 L58 61 C47 57 33 57 22 61 Z" fill="#333333"></path>
-          <rect x="22" y="63" width="36" height="28" rx="4" fill="#242424"></rect>
-          <path d="M22 93 L58 93 L56 99 L24 99 Z" fill="#333333"></path>
-          <rect x="19" y="104" width="42" height="58" rx="2" fill="#121212" stroke="#4A4A4A" stroke-width="1.5"></rect>
-          <path d="M26 112 L26 154 M33 112 L33 154 M40 112 L40 154 M47 112 L47 154 M54 112 L54 154" stroke="#262626" stroke-width="1.5"></path>
-        </svg>
-          <div class="gx-22" style="display: flex;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px; line-height: 1; color: ${v.tyreRLc};">${v.tyreRL}</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px; line-height: 1; color: ${v.tyreRRc};">${v.tyreRR}</span></div>
-        </div>
+    <div aria-label="Camera: ${v.cam2Name}. Tap to switch side" onClick=${v.cam2Next} class="gy-10" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 14px 14px; display: flex; flex-direction: column;  min-height: 0; min-width: 0; overflow: hidden; cursor: pointer;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">CAMERA</span>
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: #F2F2F2;">${v.cam2Name}</span>
       </div>
-
-      <div aria-label="Trip ${v.tripName}. Tap to switch trip, hold to reset" onClick=${v.tripTap} onPointerDown=${v.tripHoldStart} onPointerUp=${v.tripHoldEnd} onPointerLeave=${v.tripHoldEnd} onPointerCancel=${v.tripHoldEnd} style="background: #111111; border: 1px solid #262626; border-radius: 8px; flex: 1 1 0; padding: 12px 14px; display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden; position: relative; cursor: pointer;">
-        <div style="display: flex; justify-content: space-between; align-items: baseline;">
-          <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">TRIP ${v.tripName}</span>
-          <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.12em;"><span style="color: ${v.tripAColor};">A</span><span style="color: #333333;"> · </span><span style="color: ${v.tripBColor};">B</span></span>
-        </div>
-        <div class="gy-18" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-          <div style="text-align: center;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px; line-height: 1; font-size: 40px;">${v.tripKm}</div><div style="font-size: 17px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KM</div></div>
-          <div style="text-align: center;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px; line-height: 1; font-size: 40px;">${v.tripKwh}</div><div style="font-size: 17px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KWH/100</div></div>
-        </div>
-        <div style="position: absolute; left: 0; bottom: 0; height: 4px; width: ${v.tripHoldPct}%; background: ${v.accent}; transition: ${v.tripHoldAnim};"></div>
+      <div id="s6-cam2" style="flex: 1; min-height: 0; position: relative; background: #000; border-radius: 6px; overflow: hidden;">
+        <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; padding: 0 16px; text-align: center; font-size: 17px; color: #A6A6A6;">${v.cam2Status}</div>
+        <div class="gx-6" style="position: absolute; left: 8px; bottom: 8px; display: flex; align-items: center;  background: rgba(0,0,0,0.55); border-radius: 4px; padding: 3px 8px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: ${v.accent};"></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.1em;">LIVE</span></div>
       </div>
     </div>
   </section>

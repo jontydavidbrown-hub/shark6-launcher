@@ -52,11 +52,14 @@ class Home extends Component {
     // Live camera: Android draws the picture over #s6-cam, so tell it where that box is on screen.
     window.onCamStatus = (t) => this.setState({ camStatus: t || '' });
     this.camTimer = setInterval(() => {
-      const el = document.getElementById('s6-cam');
-      if (!el) return;
-      const r = el.getBoundingClientRect(), k = window.devicePixelRatio || 1;
-      const key = [r.left, r.top, r.width, r.height].map((v) => Math.round(v * k)).join(',');
-      if (key !== this.camKey) { this.camKey = key; try { Bridge.camRect(key); } catch (e) {} }
+      const k = window.devicePixelRatio || 1;
+      const key = ['s6-cam', 's6-cam2'].map((id) => {
+        const el = document.getElementById(id);
+        if (!el) return '0,0,0,0';
+        const r = el.getBoundingClientRect();
+        return [r.left, r.top, r.width, r.height].map((v) => Math.round(v * k)).join(',');
+      }).join(';');
+      if (key !== this.camKey) { this.camKey = key; try { Bridge.camRects(key); } catch (e) {} }
     }, 500);
     window.onCommandResult = (id, r) => this.commandResult(id, r);
     // OTA: Android tells us when a newer build is out, then reports download progress.
@@ -220,11 +223,12 @@ class Home extends Component {
       modeColor: em === 1 || em === 2 ? '#4ADE80' : '#F2F2F2',
       tyreNote: tyres.length ? (tyreLow ? 'psi · CHECK' : 'psi · all OK') : 'psi',
       ...(() => {
-        // Camera tile: tap cycles front, right, rear, left. The live picture is drawn by Android.
-        const names = ['FRONT', 'RIGHT', 'REAR', 'LEFT'];
-        const i = s.cam || 0;
-        return { camName: names[i], camImage: 'none', camStatus: s.camStatus || '',
-          camNext: () => { const n = (i + 1) % 4; this.setState({ cam: n }); try { Bridge.camShow(n); } catch (e) {} } };
+        // Two camera tiles: top switches front/rear, bottom switches left/right. Android draws the pictures.
+        const NAMES = ['FRONT', 'RIGHT', 'REAR', 'LEFT'];
+        const a = s.camA == null ? 0 : s.camA, b = s.camB == null ? 3 : s.camB, st = s.camStatus || '';
+        const pick = (view, slot, key) => { this.setState({ [key]: slot }); try { Bridge.camShow(view, slot); } catch (e) {} };
+        return { camName: NAMES[a], camImage: 'none', camStatus: st, camNext: () => pick(0, a === 0 ? 2 : 0, 'camA'),
+          cam2Name: NAMES[b], cam2Image: 'none', cam2Status: st, cam2Next: () => pick(1, b === 3 ? 1 : 3, 'camB') };
       })(),
       ...(() => {
         // Clock (BYD's header is hidden). The car poll re-renders every second, so it stays current.

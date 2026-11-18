@@ -37,13 +37,14 @@ public class MainActivity extends Activity {
     private SoundPool sounds;
     private int sfxTap, sfxOn, sfxOff;
     private boolean pageReady;
-    private CamView cam;
+    private CamView cam, cam2;
+    private CamFeed feed;
     private boolean camPlaced, reversing;
 
     /** Cameras run only while the home screen is showing, has placed the camera box, and the car isn't in reverse. */
     private void updateCamera() {
-        if (cam == null) return;
-        if (resumed && camPlaced && !reversing) cam.startStream(); else cam.stopStream();
+        if (feed == null) return;
+        if (resumed && camPlaced && !reversing) feed.start(); else feed.stop();
     }
 
     @Override
@@ -68,12 +69,16 @@ public class MainActivity extends Activity {
         web.setWebViewClient(new WebViewClient() {
             @Override public void onPageFinished(WebView view, String url) { pageReady = true; }
         });
-        // Live camera picture, drawn over the page's camera box (see camRect).
-        cam = new CamView(this, t -> pushJs("window.onCamStatus && window.onCamStatus(" + JSONObject.quote(t) + ")"));
+        // Live camera pictures, drawn over the page's two camera boxes (see camRects): front and left to start.
+        cam = new CamView(this, 0);
+        cam2 = new CamView(this, 3);
         cam.setZOrderMediaOverlay(true);
+        cam2.setZOrderMediaOverlay(true);
+        feed = new CamFeed(this, t -> pushJs("window.onCamStatus && window.onCamStatus(" + JSONObject.quote(t) + ")"), cam, cam2);
         android.widget.FrameLayout root = new android.widget.FrameLayout(this);
         root.addView(web, new android.widget.FrameLayout.LayoutParams(-1, -1));
         root.addView(cam, new android.widget.FrameLayout.LayoutParams(1, 1));
+        root.addView(cam2, new android.widget.FrameLayout.LayoutParams(1, 1));
         setContentView(root);
         web.loadUrl("file:///android_asset/index.html");
 
@@ -164,12 +169,14 @@ public class MainActivity extends Activity {
         ui.removeCallbacks(updateTick);
         ui.post(updateTick);
         cam.onResume();
+        cam2.onResume();
         updateCamera();
     }
 
     @Override protected void onPause() {
         super.onPause();
         cam.onPause();
+        cam2.onPause();
         resumed = false;
         ui.removeCallbacks(updateTick);
         updateCamera();
@@ -257,20 +264,29 @@ public class MainActivity extends Activity {
             int id = "on".equals(name) ? sfxOn : "off".equals(name) ? sfxOff : sfxTap;
             sounds.play(id, 0.6f, 0.6f, 1, 0, 1f);
         }
-        /** Where the page's camera box is, in screen pixels: "left,top,width,height". */
-        @JavascriptInterface public void camRect(String r) {
-            String[] p = r.split(",");
-            if (p.length != 4) return;
+        /** Where the page's two camera boxes are, in screen pixels: "left,top,width,height;left,top,width,height". */
+        @JavascriptInterface public void camRects(String r) {
+            String[] boxes = r.split(";");
             ui.post(() -> {
-                int x = Integer.parseInt(p[0]), y = Integer.parseInt(p[1]), w = Integer.parseInt(p[2]), h = Integer.parseInt(p[3]);
-                android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(Math.max(1, w), Math.max(1, h));
-                lp.leftMargin = x; lp.topMargin = y;
-                cam.setLayoutParams(lp);
-                camPlaced = w > 10 && h > 10;
+                boolean placed = false;
+                CamView[] views = { cam, cam2 };
+                for (int i = 0; i < views.length; i++) {
+                    String[] p = i < boxes.length ? boxes[i].split(",") : new String[0];
+                    int x = 0, y = 0, w = 0, h = 0;
+                    if (p.length == 4) try {
+                        x = Integer.parseInt(p[0]); y = Integer.parseInt(p[1]); w = Integer.parseInt(p[2]); h = Integer.parseInt(p[3]);
+                    } catch (NumberFormatException ignored) { }
+                    android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(Math.max(1, w), Math.max(1, h));
+                    lp.leftMargin = x; lp.topMargin = y;
+                    views[i].setLayoutParams(lp);
+                    placed |= w > 10 && h > 10;
+                }
+                camPlaced = placed;
                 updateCamera();
             });
         }
-        @JavascriptInterface public void camShow(int slot) { cam.show(slot); }
+        /** Which camera a tile shows: view 0 = top tile, 1 = bottom; slot 0 front, 1 right, 2 rear, 3 left. */
+        @JavascriptInterface public void camShow(int view, int slot) { (view == 1 ? cam2 : cam).show(slot); }
         @JavascriptInterface public void toast(String m) { MainActivity.this.toast(m); }
         @JavascriptInterface public void installUpdate(String url) {
             new Thread(() -> Updater.install(MainActivity.this, url, new Updater.Progress() {
