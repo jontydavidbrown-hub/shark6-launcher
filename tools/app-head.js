@@ -124,7 +124,7 @@ class Home extends Component {
     this.camTimer = setInterval(() => {
       const k = window.devicePixelRatio || 1;
       // Cameras start once the welcome and the start-up animation are done, so they don't slow it down.
-      const covered = this.state.welcome || this.state.tripCard || this.state.boot < 1;
+      const covered = this.state.welcome || this.state.tripCard || this.state.diag || this.state.boot < 1;
       const key = ['s6-cam', 's6-cam2', 's6-cam3'].map((id) => {
         const el = covered ? null : document.getElementById(id);
         if (!el) return '0,0,0,0';
@@ -309,7 +309,12 @@ class Home extends Component {
       modeShort: em === 3 ? 'HEV' : em === 4 ? 'FUEL' : (em === 1 || em === 2) ? 'EV' : '—',
       modeSub: hasPower ? (regen ? 'Regen ' + Math.round(-kw) + ' kW' : engineOn ? 'Engine running' : 'Electric drive') : (em === 3 ? 'Hybrid' : em === 1 || em === 2 ? 'Electric' : ''),
       modeColor: em === 1 || em === 2 ? '#4ADE80' : '#F2F2F2',
-      diagOpen: !!s.diag, diagText: s.diag || '', diagClose: () => this.setState({ diag: null }),
+      diagOpen: !!s.diag, diagClose: () => this.setState({ diag: null }), diagStop: (e) => { if (e) e.stopPropagation(); },
+      ...(() => {
+        // First line of the Android diagnostics carries "SIDELOAD|address|pin"; the rest is shown as text.
+        const d = s.diag || '', nl = d.indexOf('\n'), head = d.startsWith('SIDELOAD|') ? d.slice(0, nl < 0 ? d.length : nl).split('|') : null;
+        return { diagText: head ? d.slice(nl + 1) : d, sideAddr: head ? head[1] : 'update the app', sidePin: head ? head[2] : '----' };
+      })(),
       diagHoldStart: () => {
         clearTimeout(this.diagT); this.diagAt = Date.now();
         this.diagT = setTimeout(() => {

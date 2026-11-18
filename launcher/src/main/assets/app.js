@@ -124,7 +124,7 @@ class Home extends Component {
     this.camTimer = setInterval(() => {
       const k = window.devicePixelRatio || 1;
       // Cameras start once the welcome and the start-up animation are done, so they don't slow it down.
-      const covered = this.state.welcome || this.state.tripCard || this.state.boot < 1;
+      const covered = this.state.welcome || this.state.tripCard || this.state.diag || this.state.boot < 1;
       const key = ['s6-cam', 's6-cam2', 's6-cam3'].map((id) => {
         const el = covered ? null : document.getElementById(id);
         if (!el) return '0,0,0,0';
@@ -309,7 +309,12 @@ class Home extends Component {
       modeShort: em === 3 ? 'HEV' : em === 4 ? 'FUEL' : (em === 1 || em === 2) ? 'EV' : '—',
       modeSub: hasPower ? (regen ? 'Regen ' + Math.round(-kw) + ' kW' : engineOn ? 'Engine running' : 'Electric drive') : (em === 3 ? 'Hybrid' : em === 1 || em === 2 ? 'Electric' : ''),
       modeColor: em === 1 || em === 2 ? '#4ADE80' : '#F2F2F2',
-      diagOpen: !!s.diag, diagText: s.diag || '', diagClose: () => this.setState({ diag: null }),
+      diagOpen: !!s.diag, diagClose: () => this.setState({ diag: null }), diagStop: (e) => { if (e) e.stopPropagation(); },
+      ...(() => {
+        // First line of the Android diagnostics carries "SIDELOAD|address|pin"; the rest is shown as text.
+        const d = s.diag || '', nl = d.indexOf('\n'), head = d.startsWith('SIDELOAD|') ? d.slice(0, nl < 0 ? d.length : nl).split('|') : null;
+        return { diagText: head ? d.slice(nl + 1) : d, sideAddr: head ? head[1] : 'update the app', sidePin: head ? head[2] : '----' };
+      })(),
       diagHoldStart: () => {
         clearTimeout(this.diagT); this.diagAt = Date.now();
         this.diagT = setTimeout(() => {
@@ -762,7 +767,7 @@ class Home extends Component {
   
   ${v.diagOpen ? html`
     <div role="dialog" aria-label="Diagnostics" onClick=${v.diagClose} style="position: absolute; top: 0; left: 0; width: 1600px; height: 900px; z-index: 90; background: rgba(0,0,0,0.88); display: flex; align-items: center; justify-content: center;">
-      <div style="width: 1100px; background: #111111; border: 1px solid #333; border-radius: 12px; padding: 24px 28px; font-family: monospace; font-size: 18px; line-height: 1.5; color: #F2F2F2; white-space: pre-wrap;">${v.diagText}</div>
+      <div onClick=${v.diagStop} style="width: 1500px; max-height: 840px; box-sizing: border-box; overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; background: #111111; border: 1px solid #333; border-radius: 12px; padding: 20px 28px; font-family: monospace; font-size: 17px; line-height: 1.45; color: #F2F2F2; white-space: pre-wrap; word-break: break-word;"><div style="font-family: 'Barlow Condensed', sans-serif; font-size: 30px; font-weight: 600; color: ${v.accent}; white-space: normal; margin-bottom: 4px;">SEND AN APP TO THE CAR</div><div style="font-family: 'Barlow Condensed', sans-serif; font-size: 26px; white-space: normal; margin-bottom: 18px;">On your phone (same Wi-Fi or hotspot), open <b>${v.sideAddr}</b> &nbsp; PIN <b>${v.sidePin}</b></div>${v.diagText}<div style="font-family: 'Barlow Condensed', sans-serif; font-size: 22px; color: #A6A6A6; margin-top: 16px; white-space: normal;">Tap outside this box to close</div></div>
     </div>
   ` : null}
   

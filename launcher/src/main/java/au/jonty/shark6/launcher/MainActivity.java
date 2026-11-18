@@ -335,14 +335,15 @@ public class MainActivity extends Activity {
             double[] f = car.fast(), t = tilt.read();
             String ver = "?";
             try { ver = getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception ignored) { }
-            return "SEND AN APP: on your phone (same Wi-Fi), open " + Sideload.address() + "\nPIN " + Sideload.PIN + "   last: " + Sideload.last + "\n\n"
+            return "SIDELOAD|" + Sideload.address() + "|" + Sideload.PIN + "\nlast app sent: " + Sideload.last + "\n"
+                    + car.powerReport() + "\n"
                     + "Shark 6 Home " + ver + "   home screen: " + homeName() + "\n" + car.openReport()
                     + "turn: " + (f == null ? "-" : (int) f[2]) + " via " + car.turnSource() + "\n"
                     + "tilt sensor: " + tilt.available() + (t == null ? "" : String.format(" pitch %.1f roll %.1f", t[0], t[1])) + "\n"
                     + "draw over apps: " + android.provider.Settings.canDrawOverlays(MainActivity.this) + "   last wake: " + Wake.lastWake + "\n"
                     + "media access: " + getSystemService(android.app.NotificationManager.class)
                             .isNotificationListenerAccessGranted(new android.content.ComponentName(MainActivity.this, MediaListener.class)) + "\n"
-                    + "reset methods: " + car.resetMethods();
+                    + "trip reset: " + car.lastTripReset;
         }
         @JavascriptInterface public void zeroTilt() { tilt.zero(); }
         @JavascriptInterface public void toast(String m) { MainActivity.this.toast(m); }

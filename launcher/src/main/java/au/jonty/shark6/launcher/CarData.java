@@ -98,18 +98,39 @@ final class CarData {
 
     String openReport() { return openLog.toString(); }
 
-    /** Diagnostics: every reset/clear-style method the car's devices offer, to find the trip reset. */
-    String resetMethods() {
-        StringBuilder b = new StringBuilder();
-        for (Map.Entry<String, Object> e : devices.entrySet()) {
-            for (Method m : e.getValue().getClass().getMethods()) {
-                String n = m.getName().toLowerCase();
-                if (n.contains("reset") || n.contains("clear") || (n.contains("mileage") && n.startsWith("set"))) {
-                    b.append(e.getKey()).append('.').append(m.getName()).append('/').append(m.getParameterTypes().length).append(' ');
-                }
+    volatile String lastTripReset = "not tried yet";
+    private volatile String powerLine = "power: not read yet";
+    String powerReport() { return powerLine; }
+
+    // Engine-device feature ids for the motors (Overdrive's BydFeatureIds, MIT). The motor device
+    // itself is a stub on the Shark ("RuntimeException: Stub!"), so power comes from these.
+    private static final int FID_FRONT_MOTOR_SPEED = 1141899272;
+    private static final int FID_REAR_MOTOR_SPEED = 621805576;
+    private static final int FID_FRONT_MOTOR_TORQUE = 1141899288;
+
+    /** BYD's generic get(int[] ids, Class type) or get(int id, int x) on a device; a number or null. */
+    private Double feature(String device, int fid, boolean dbl) {
+        Object dev = devices.get(device);
+        if (dev == null) return null;
+        try {
+            Method m = null;
+            for (Class<?> w = dev.getClass(); w != null && w != Object.class && m == null; w = w.getSuperclass()) {
+                try { m = w.getDeclaredMethod("get", int[].class, Class.class); } catch (NoSuchMethodException ignored) { }
+                if (m == null) try { m = w.getDeclaredMethod("get", int.class, int.class); } catch (NoSuchMethodException ignored) { }
             }
+            if (m == null) return null;
+            m.setAccessible(true);
+            Object v = m.getParameterTypes()[0] == int[].class
+                    ? m.invoke(dev, new int[]{fid}, dbl ? double.class : int.class)
+                    : m.invoke(dev, fid, 0);
+            if (v == null) return null;
+            if (v instanceof Number) return ((Number) v).doubleValue();
+            try { return v.getClass().getField(dbl ? "doubleValue" : "intValue").getDouble(v); } catch (Exception e) { }
+            try { return (double) v.getClass().getField("floatValue").getFloat(v); } catch (Exception e) { }
+            return null;
+        } catch (Throwable t) {
+            return null;
         }
-        return b.toString();
     }
 
     /** Call an int-argument method on a device; null if the device or method isn't there or it throws. */
@@ -217,7 +238,20 @@ final class CarData {
             }
             put(o, "opMode", dm, 1, 20);
             Double motor = num("motor", "getMotorPower");
-            if (motor == null) motor = num("engine", "getMotorPower");
+            Double engRaw = num("engine", "getEnginePower");
+            Double fRpm = feature("engine", FID_FRONT_MOTOR_SPEED, false);
+            Double rRpm = feature("engine", FID_REAR_MOTOR_SPEED, false);
+            Double fNm = feature("engine", FID_FRONT_MOTOR_TORQUE, true);
+            boolean okRpm = fRpm != null && Math.abs(fRpm) < 20000, okNm = fNm != null && Math.abs(fNm) <= 2000;
+            Double est = null;
+            if (motor == null && okRpm && okNm) {
+                // P = torque x speed. Only the front motor's torque is readable: an estimate,
+                // but its sign shows regen (negative) correctly.
+                est = fNm * fRpm / 9549.0;
+                motor = est;
+            }
+            powerLine = "power: motor dev " + num("motor", "getMotorPower") + "  engine " + engRaw
+                    + "  front " + fRpm + " rpm " + fNm + " Nm  rear " + rRpm + " rpm  est " + (est == null ? "-" : String.format(java.util.Locale.ROOT, "%.1f kW", est));
             put(o, "motorKw", motor, -400, 400);
             put(o, "engineKw", num("engine", "getEnginePower"), 0, 400);
             // Tyres: psi x10 on this car (ByType), else kPa.
@@ -317,11 +351,19 @@ final class CarData {
             case "seatVent":
                 r = call("setting", "setSeatVentilatingState", a.optInt("zone", 1), Math.max(0, Math.min(2, a.optInt("level"))) + 1);
                 break;
-            case "resetTrip":
-                // Instrument device: resetMileage(MILEAGE_ONE=1 | MILEAGE_TWO=2, MILEAGE_RESET=1).
-                r = call("instrument", "resetMileage", "B".equals(a.optString("trip")) ? 2 : 1, 1);
-                if (r == null) return "trip reset not available";
+            case "resetTrip": {
+                // statistic.getMileageNumber(0) reads trip A, so trips are 0 (A) and 1 (B).
+                // resetMileage(1, 1) did nothing on the Shark; try the 0-based index, plus the
+                // per-trip time, average speed and fuel use, which BYD resets with the trip.
+                int t = "B".equals(a.optString("trip")) ? 1 : 0;
+                Object m = call("instrument", "resetMileage", t, 1);
+                Object d = call("statistic", "resetDrivingTimeValue", t);
+                Object v = call("statistic", "resetAverageSpeed", t);
+                Object f = call("statistic", "resetTotalFuelConValue", t);
+                lastTripReset = "trip " + t + ": mileage " + m + ", time " + d + ", avg speed " + v + ", fuel " + f;
+                r = 0;
                 break;
+            }
             default:
                 return "unknown command";
         }

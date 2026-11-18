@@ -327,7 +327,7 @@ button{font-family:inherit;cursor:pointer}
   <!-- DIAGNOSTICS (hold the clock for 2 s) -->
   <sc-if value="{{diagOpen}}">
     <div role="dialog" aria-label="Diagnostics" onClick="{{diagClose}}" style="position: absolute; top: 0; left: 0; width: 1600px; height: 900px; z-index: 90; background: rgba(0,0,0,0.88); display: flex; align-items: center; justify-content: center;">
-      <div style="width: 1100px; background: #111111; border: 1px solid #333; border-radius: 12px; padding: 24px 28px; font-family: monospace; font-size: 18px; line-height: 1.5; color: #F2F2F2; white-space: pre-wrap;">{{diagText}}</div>
+      <div onClick="{{diagStop}}" style="width: 1500px; max-height: 840px; box-sizing: border-box; overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; background: #111111; border: 1px solid #333; border-radius: 12px; padding: 20px 28px; font-family: monospace; font-size: 17px; line-height: 1.45; color: #F2F2F2; white-space: pre-wrap; word-break: break-word;"><div style="font-family: 'Barlow Condensed', sans-serif; font-size: 30px; font-weight: 600; color: {{accent}}; white-space: normal; margin-bottom: 4px;">SEND AN APP TO THE CAR</div><div style="font-family: 'Barlow Condensed', sans-serif; font-size: 26px; white-space: normal; margin-bottom: 18px;">On your phone (same Wi-Fi or hotspot), open <b>{{sideAddr}}</b> &nbsp; PIN <b>{{sidePin}}</b></div>{{diagText}}<div style="font-family: 'Barlow Condensed', sans-serif; font-size: 22px; color: #A6A6A6; margin-top: 16px; white-space: normal;">Tap outside this box to close</div></div>
     </div>
   </sc-if>
   <!-- UPDATE BAR (over-the-air update offer) -->
