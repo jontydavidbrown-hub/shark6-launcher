@@ -28,7 +28,7 @@ jobs:
           "$CC" -O2 -Wall -fPIE -pie -o probe/src/main/jniLibs/arm64-v8a/libshark6camtest.so tools/camtest/camtest.c -ldl
           file probe/src/main/jniLibs/arm64-v8a/libshark6camtest.so
           mkdir -p launcher/src/main/jniLibs/arm64-v8a
-          "$CC" -O2 -Wall -fPIE -pie -o launcher/src/main/jniLibs/arm64-v8a/libshark6cam.so tools/camhelper/camhelper.c -ldl -lpthread
+          "$CC" -O2 -Wall -fPIE -pie -o launcher/src/main/jniLibs/arm64-v8a/libshark6cam.so tools/camhelper/camhelper.c -ldl
       - name: Build
         run: gradle --no-daemon :probe:assembleDebug :launcher:assembleDebug
       - name: Rename APK
