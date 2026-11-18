@@ -87,6 +87,7 @@ public class Wake extends Service {
         f.addAction(Intent.ACTION_SCREEN_OFF);
         registerReceiver(screen, f);
         ensureCanOpen(this);
+        Sideload.start(this);
     }
 
     @Override public int onStartCommand(Intent i, int flags, int id) { return START_STICKY; }

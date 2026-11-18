@@ -55,6 +55,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         Wake.start(this);
+        Sideload.start(this);
         getWindow().setStatusBarColor(Color.BLACK);
         getWindow().setNavigationBarColor(Color.BLACK);
         getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(v -> {
@@ -312,7 +313,8 @@ public class MainActivity extends Activity {
             double[] f = car.fast(), t = tilt.read();
             String ver = "?";
             try { ver = getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception ignored) { }
-            return "Shark 6 Home " + ver + "\n" + car.openReport()
+            return "SEND AN APP: on your phone (same Wi-Fi), open " + Sideload.address() + "\nPIN " + Sideload.PIN + "   last: " + Sideload.last + "\n\n"
+                    + "Shark 6 Home " + ver + "\n" + car.openReport()
                     + "turn: " + (f == null ? "-" : (int) f[2]) + " via " + car.turnSource() + "\n"
                     + "tilt sensor: " + tilt.available() + (t == null ? "" : String.format(" pitch %.1f roll %.1f", t[0], t[1])) + "\n"
                     + "draw over apps: " + android.provider.Settings.canDrawOverlays(MainActivity.this) + "\n"
