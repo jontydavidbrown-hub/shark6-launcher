@@ -310,13 +310,19 @@ class Home extends Component {
       modeColor: em === 1 || em === 2 ? '#4ADE80' : '#F2F2F2',
       diagOpen: !!s.diag, diagText: s.diag || '', diagClose: () => this.setState({ diag: null }),
       diagHoldStart: () => {
-        clearTimeout(this.diagT);
+        clearTimeout(this.diagT); this.diagAt = Date.now();
         this.diagT = setTimeout(() => {
           const raw = { opMode: c.opMode, gear: c.gear, speed: c.speed, tilt: c.tilt, rightCam: !!s.rightCam, lowCam: !!s.lowCam };
           this.setState({ diag: (call('diag') || 'no Android bridge') + '\npage: ' + JSON.stringify(raw) });
         }, 2000);
       },
-      diagHoldEnd: () => clearTimeout(this.diagT),
+      // A quick tap on the clock opens BYD's own home screen (this app is the car's home now).
+      diagHoldEnd: (e) => {
+        clearTimeout(this.diagT);
+        const tap = this.diagAt && Date.now() - this.diagAt < 600;
+        this.diagAt = 0;
+        if (tap && e && e.type === 'pointerup') { sfx('tap'); Bridge.openApp('byd'); }
+      },
       tyreNote: tyres.length ? (tyreLow ? 'psi · CHECK' : 'psi · all OK') : 'psi',
       ...(() => {
         // Right indicator camera, low-speed front camera, off-road view.

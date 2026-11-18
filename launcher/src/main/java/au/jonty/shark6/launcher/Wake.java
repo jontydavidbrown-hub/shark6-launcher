@@ -60,6 +60,14 @@ public class Wake extends Service {
                 cmd.append("cmd notification allow_listener ").append(ml.flattenToString()).append(';');
             }
         } catch (Exception ignored) { }
+        // Be the car's home screen, so every start (sleep or reboot) and the Home button land here.
+        try {
+            Intent home = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME);
+            android.content.pm.ResolveInfo r = c.getPackageManager().resolveActivity(home, PackageManager.MATCH_DEFAULT_ONLY);
+            if (r == null || r.activityInfo == null || !pkg.equals(r.activityInfo.packageName)) {
+                cmd.append("pm set-home-activity ").append(pkg).append('/').append(MainActivity.class.getName()).append(" 2>&1;");
+            }
+        } catch (Exception ignored) { }
         if (cmd.length() == 0) return;
         new Thread(() -> {
             Cameras.shell(c, cmd.toString());

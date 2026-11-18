@@ -243,6 +243,14 @@ public class MainActivity extends Activity {
         startActivity(i);
     }
 
+    private String homeName() {
+        try {
+            android.content.pm.ResolveInfo r = getPackageManager().resolveActivity(
+                    new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), android.content.pm.PackageManager.MATCH_DEFAULT_ONLY);
+            return r == null || r.activityInfo == null ? "none" : r.activityInfo.packageName;
+        } catch (Exception e) { return "?"; }
+    }
+
     private void toast(String m) { ui.post(() -> Toast.makeText(this, m, Toast.LENGTH_SHORT).show()); }
 
     /** Called from the page as window.Car.*. Every method runs on a binder thread. */
@@ -271,6 +279,20 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void openCarPlay() { ui.post(() -> launch("com.ts.carplay.app")); }
         @JavascriptInterface public void openApp(String which) {
             if ("energy".equals(which)) ui.post(() -> launch("com.byd.dlc.drivingmode"));
+            // BYD's own home screen (with its app tray), now that this app is the home screen.
+            if ("byd".equals(which)) ui.post(() -> {
+                Intent home = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME);
+                for (android.content.pm.ResolveInfo r : getPackageManager().queryIntentActivities(home, 0)) {
+                    if (r.activityInfo == null || getPackageName().equals(r.activityInfo.packageName)) continue;
+                    if ("com.android.settings".equals(r.activityInfo.packageName)) continue;
+                    try {
+                        startActivity(new Intent(home).setClassName(r.activityInfo.packageName, r.activityInfo.name)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                        return;
+                    } catch (Exception ignored) { }
+                }
+                toast("Couldn't find BYD's home screen");
+            });
             // BYD's own 360 camera view (probe 0.7: Android exposes no camera feeds to apps, so we open theirs).
             if ("cameras".equals(which)) ui.post(() -> {
                 Intent i = new Intent().setClassName("com.byd.avm", "com.byd.avm.MainActivity").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -314,7 +336,7 @@ public class MainActivity extends Activity {
             String ver = "?";
             try { ver = getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception ignored) { }
             return "SEND AN APP: on your phone (same Wi-Fi), open " + Sideload.address() + "\nPIN " + Sideload.PIN + "   last: " + Sideload.last + "\n\n"
-                    + "Shark 6 Home " + ver + "\n" + car.openReport()
+                    + "Shark 6 Home " + ver + "   home screen: " + homeName() + "\n" + car.openReport()
                     + "turn: " + (f == null ? "-" : (int) f[2]) + " via " + car.turnSource() + "\n"
                     + "tilt sensor: " + tilt.available() + (t == null ? "" : String.format(" pitch %.1f roll %.1f", t[0], t[1])) + "\n"
                     + "draw over apps: " + android.provider.Settings.canDrawOverlays(MainActivity.this) + "   last wake: " + Wake.lastWake + "\n"
