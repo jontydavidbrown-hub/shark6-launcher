@@ -306,7 +306,7 @@ class Home extends Component {
     <div style="align-self: stretch; height: 36px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center;">
       <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">RANGE</span>
     </div>
-    <div style="position: relative; width: 380px; height: 380px; flex-shrink: 0; margin: -10px 0 -14px;">
+    <div style="position: relative; width: 380px; height: 380px; flex-shrink: 0; margin: 30px 0 -54px;">
       <svg width="380" height="380" viewBox="0 0 320 320" aria-hidden="true">
         <circle cx="160" cy="160" r="136" fill="none" stroke="#262626" stroke-width="18" stroke-dasharray="641 1000" transform="rotate(135 160 160)"></circle>
         <circle cx="160" cy="160" r="136" fill="none" stroke=${v.accent} stroke-width="18" stroke-dasharray=${v.rangeDash} transform="rotate(135 160 160)"></circle>
@@ -333,7 +333,7 @@ class Home extends Component {
         <span style="color: ${v.gearP};">P</span><span style="color: ${v.gearR};">R</span><span style="color: ${v.gearN};">N</span><span style="color: ${v.gearD};">D</span>
       </div>
     </div>
-    <div style="position: relative; width: 400px; height: 375px; flex-shrink: 0; margin: -6px 0 -13px;">
+    <div style="position: relative; width: 400px; height: 375px; flex-shrink: 0; margin: 34px 0 -53px;">
       <svg width="400" height="375" viewBox="0 0 320 300" aria-hidden="true" style="position: absolute; top: 0; right: 0; bottom: 0; left: 0;">
         <circle cx="160" cy="165" r="140" fill="none" stroke="#1C1C1C" stroke-width="10" stroke-dasharray="586 2000" transform="rotate(150 160 165)"></circle>
         <circle cx="160" cy="165" r="140" fill="none" stroke=${v.accent} stroke-width="10" stroke-dasharray=${v.speedDash} transform="rotate(150 160 165)"></circle>
