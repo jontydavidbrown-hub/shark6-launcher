@@ -210,7 +210,25 @@ class Home extends Component {
       modeSub: hasPower ? (regen ? 'Regen ' + Math.round(-kw) + ' kW' : engineOn ? 'Engine running' : 'Electric drive') : (em === 3 ? 'Hybrid' : em === 1 || em === 2 ? 'Electric' : ''),
       modeColor: em === 1 || em === 2 ? '#4ADE80' : '#F2F2F2',
       tyreNote: tyres.length ? (tyreLow ? 'psi · CHECK' : 'psi · all OK') : 'psi',
-      tripKm: (tripKm * kBars).toFixed(1), tripKwh: (per100 * kBars).toFixed(1),
+      ...(() => {
+        // Trip tile: tap switches A/B, hold 1 s resets the trip shown (car's own trip meters).
+        const b = s.trip === 'B';
+        const km = b ? num(c.trip2Km) : tripKm;
+        return {
+          tripName: b ? 'B' : 'A', tripAColor: b ? '#555555' : '#F2F2F2', tripBColor: b ? '#F2F2F2' : '#555555',
+          tripKm: (km * kBars).toFixed(1), tripKwh: b ? '—' : (per100 * kBars).toFixed(1),
+          tripHoldPct: s.tripHold ? 100 : 0, tripHoldAnim: s.tripHold ? 'width 1s linear' : 'none',
+          tripTap: () => { if (this.tripDidReset) { this.tripDidReset = false; return; } this.setState({ trip: b ? 'A' : 'B' }); },
+          tripHoldStart: () => {
+            clearTimeout(this.tripT); this.tripDidReset = false; this.setState({ tripHold: true });
+            this.tripT = setTimeout(() => {
+              this.tripDidReset = true; this.setState({ tripHold: false }); sfx('off');
+              this.send('resetTrip', { trip: b ? 'B' : 'A' });
+            }, 1000);
+          },
+          tripHoldEnd: () => { clearTimeout(this.tripT); if (this.state.tripHold) this.setState({ tripHold: false }); }
+        };
+      })(),
       tripFuel: num(c.tripFuel) > 0 ? num(c.tripFuel).toFixed(1) + ' L fuel' : 'no fuel used',
       odo: Math.round(num(c.odo)).toLocaleString('en-AU'),
       openCarPlay: (e) => { if (e) e.preventDefault(); Bridge.openCarPlay(); },
@@ -398,10 +416,12 @@ class Home extends Component {
       </div>
     </div>
 
-    <div aria-label="Trip" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; min-width: 0; overflow: hidden;">
+    <div aria-label="Trip ${v.tripName}. Tap to switch trip, hold to reset" onClick=${v.tripTap} onPointerDown=${v.tripHoldStart} onPointerUp=${v.tripHoldEnd} onPointerLeave=${v.tripHoldEnd} onPointerCancel=${v.tripHoldEnd} style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; min-width: 0; overflow: hidden; position: relative; cursor: pointer;">
       <div style="display: flex; justify-content: space-between; align-items: baseline;">
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">TRIP</span>
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">TRIP ${v.tripName}</span>
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.12em;"><span style="color: ${v.tripAColor};">A</span><span style="color: #333333;"> · </span><span style="color: ${v.tripBColor};">B</span></span>
       </div>
+      <div style="position: absolute; left: 0; bottom: 0; height: 4px; width: ${v.tripHoldPct}%; background: ${v.accent}; transition: ${v.tripHoldAnim};"></div>
       <div class="gx-22" style="display: flex; justify-content: center;">
         <div><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px;">${v.tripKm}</span> <span style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KM</span></div>
         <div><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px;">${v.tripKwh}</span> <span style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KWH/100</span></div>

@@ -83,9 +83,16 @@ public class MainActivity extends Activity {
 
     }
 
-    // OTA: look for a newer build shortly after start (lets Wi-Fi/4G come up), then again whenever
-    // the home screen comes back into view, at most every 15 minutes.
-    private static final long UPDATE_EVERY_MS = 15 * 60 * 1000;
+    // OTA: look for a newer build shortly after start (lets Wi-Fi/4G come up), then every
+    // 10 minutes while the home screen is showing, and again whenever it comes back into view.
+    private static final long UPDATE_EVERY_MS = 10 * 60 * 1000;
+    private final Runnable updateTick = new Runnable() {
+        @Override public void run() {
+            if (!resumed) return;
+            maybeCheckForUpdate();
+            ui.postDelayed(this, UPDATE_EVERY_MS + 1000);
+        }
+    };
     private long lastUpdateCheck;
     private final Runnable updateCheck = () -> {
         lastUpdateCheck = System.currentTimeMillis();
@@ -135,12 +142,14 @@ public class MainActivity extends Activity {
         bg.post(poll);
         fastH.removeCallbacks(fastPoll);
         fastH.post(fastPoll);
-        maybeCheckForUpdate();
+        ui.removeCallbacks(updateTick);
+        ui.post(updateTick);
     }
 
     @Override protected void onPause() {
         super.onPause();
         resumed = false;
+        ui.removeCallbacks(updateTick);
         bg.removeCallbacks(poll);
         fastH.removeCallbacks(fastPoll);
     }
@@ -152,6 +161,18 @@ public class MainActivity extends Activity {
         web.destroy();
         sounds.release();
         super.onDestroy();
+    }
+
+    // Hide only the bottom (navigation) bar; BYD's top header stays. Swipe up from the bottom edge
+    // shows it for a moment. Re-applied whenever the window regains focus.
+    private void hideBottomBar() {
+        getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+    }
+
+    @Override public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) hideBottomBar();
     }
 
     @Override public void onBackPressed() { /* this is the home screen: nothing to go back to */ }

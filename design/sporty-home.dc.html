@@ -156,10 +156,12 @@ button{font-family:inherit;cursor:pointer}
       </div>
     </div>
 
-    <div aria-label="Trip" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; min-width: 0; overflow: hidden;">
+    <div aria-label="Trip {{tripName}}. Tap to switch trip, hold to reset" onClick="{{tripTap}}" onPointerDown="{{tripHoldStart}}" onPointerUp="{{tripHoldEnd}}" onPointerLeave="{{tripHoldEnd}}" onPointerCancel="{{tripHoldEnd}}" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; min-width: 0; overflow: hidden; position: relative; cursor: pointer;">
       <div style="display: flex; justify-content: space-between; align-items: baseline;">
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: {{accent}};">TRIP</span>
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: {{accent}};">TRIP {{tripName}}</span>
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.12em;"><span style="color: {{tripAColor}};">A</span><span style="color: #333333;"> · </span><span style="color: {{tripBColor}};">B</span></span>
       </div>
+      <div style="position: absolute; left: 0; bottom: 0; height: 4px; width: {{tripHoldPct}}%; background: {{accent}}; transition: {{tripHoldAnim}};"></div>
       <div style="display: flex; justify-content: center; gap: 22px;">
         <div><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px;">{{tripKm}}</span> <span style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KM</span></div>
         <div><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px;">{{tripKwh}}</span> <span style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KWH/100</span></div>
@@ -302,7 +304,7 @@ const FIRST_SHOT = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { drvTemp: 21, pasTemp: 21, fan: 3, ac: true, auto: false, demist: false, playing: true, drvVent: 2, pasVent: 0, drvHeat: 0, pasHeat: 0, mode: 0, synced: true, boot: 0, speed: 62, slider: null };
+    this.state = { drvTemp: 21, pasTemp: 21, fan: 3, ac: true, auto: false, demist: false, playing: true, drvVent: 2, pasVent: 0, drvHeat: 0, pasHeat: 0, mode: 0, synced: true, boot: 0, speed: 62, slider: null, trip: "A", tripA: 48.2, tripB: 1844.0, tripHold: false };
   }
   componentDidMount() {
     this.playBoot();
@@ -396,7 +398,22 @@ class Component extends DCLogic {
       battDash: Math.round(518 * battPct / 100 * kBars) + ' 1000',
       musicPct: Math.round(38 * kMusic),
       tyreFL: (36.5 * kBars).toFixed(1), tyreFR: (36.2 * kBars).toFixed(1), tyreRL: (41.6 * kBars).toFixed(1), tyreRR: (36.9 * kBars).toFixed(1),
-      tripKm: (48.2 * kBars).toFixed(1), tripKwh: (19.6 * kBars).toFixed(1), evShare: count(86, kBars), odo: count(12480, kBars),
+      ...(() => {
+        // Trip tile: tap switches A/B, hold 1 s resets the trip shown.
+        const b = s.trip === 'B';
+        const km = b ? s.tripB : s.tripA;
+        return {
+          tripName: b ? 'B' : 'A', tripAColor: b ? '#555555' : '#F2F2F2', tripBColor: b ? '#F2F2F2' : '#555555',
+          tripKm: (km * kBars).toFixed(1), tripKwh: km >= 1 ? (19.6 * kBars).toFixed(1) : '0.0',
+          tripHoldPct: s.tripHold ? 100 : 0, tripHoldAnim: s.tripHold ? 'width 1s linear' : 'none',
+          tripTap: () => { if (this.tripDidReset) { this.tripDidReset = false; return; } set({ trip: b ? 'A' : 'B' }); },
+          tripHoldStart: () => {
+            clearTimeout(this.tripT); this.tripDidReset = false; set({ tripHold: true });
+            this.tripT = setTimeout(() => { this.tripDidReset = true; const o = { tripHold: false }; o[b ? 'tripB' : 'tripA'] = 0; set(o); }, 1000);
+          },
+          tripHoldEnd: () => { clearTimeout(this.tripT); if (s.tripHold) set({ tripHold: false }); }
+        };
+      })(), evShare: count(86, kBars), odo: count(12480, kBars),
       // Temperature / fan bar: slides over the climate strip, closes after 5 s idle or a tap outside.
       openDrv: () => { set({ slider: 'drv' }); this.armClose(); }, openPas: () => { set({ slider: 'pas' }); this.armClose(); },
       openFan: () => { set({ slider: 'fan' }); this.armClose(); },

@@ -210,7 +210,25 @@ class Home extends Component {
       modeSub: hasPower ? (regen ? 'Regen ' + Math.round(-kw) + ' kW' : engineOn ? 'Engine running' : 'Electric drive') : (em === 3 ? 'Hybrid' : em === 1 || em === 2 ? 'Electric' : ''),
       modeColor: em === 1 || em === 2 ? '#4ADE80' : '#F2F2F2',
       tyreNote: tyres.length ? (tyreLow ? 'psi · CHECK' : 'psi · all OK') : 'psi',
-      tripKm: (tripKm * kBars).toFixed(1), tripKwh: (per100 * kBars).toFixed(1),
+      ...(() => {
+        // Trip tile: tap switches A/B, hold 1 s resets the trip shown (car's own trip meters).
+        const b = s.trip === 'B';
+        const km = b ? num(c.trip2Km) : tripKm;
+        return {
+          tripName: b ? 'B' : 'A', tripAColor: b ? '#555555' : '#F2F2F2', tripBColor: b ? '#F2F2F2' : '#555555',
+          tripKm: (km * kBars).toFixed(1), tripKwh: b ? '—' : (per100 * kBars).toFixed(1),
+          tripHoldPct: s.tripHold ? 100 : 0, tripHoldAnim: s.tripHold ? 'width 1s linear' : 'none',
+          tripTap: () => { if (this.tripDidReset) { this.tripDidReset = false; return; } this.setState({ trip: b ? 'A' : 'B' }); },
+          tripHoldStart: () => {
+            clearTimeout(this.tripT); this.tripDidReset = false; this.setState({ tripHold: true });
+            this.tripT = setTimeout(() => {
+              this.tripDidReset = true; this.setState({ tripHold: false }); sfx('off');
+              this.send('resetTrip', { trip: b ? 'B' : 'A' });
+            }, 1000);
+          },
+          tripHoldEnd: () => { clearTimeout(this.tripT); if (this.state.tripHold) this.setState({ tripHold: false }); }
+        };
+      })(),
       tripFuel: num(c.tripFuel) > 0 ? num(c.tripFuel).toFixed(1) + ' L fuel' : 'no fuel used',
       odo: Math.round(num(c.odo)).toLocaleString('en-AU'),
       openCarPlay: (e) => { if (e) e.preventDefault(); Bridge.openCarPlay(); },

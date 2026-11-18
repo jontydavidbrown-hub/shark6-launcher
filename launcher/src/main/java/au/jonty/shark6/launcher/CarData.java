@@ -38,6 +38,7 @@ final class CarData {
             {"gearbox", "android.hardware.bydauto.gearbox.BYDAutoGearboxDevice"},
             {"engine", "android.hardware.bydauto.engine.BYDAutoEngineDevice"},
             {"motor", "android.hardware.bydauto.motor.BYDAutoMotorDevice"},
+            {"instrument", "android.hardware.bydauto.instrument.BYDAutoInstrumentDevice"},
     };
 
     // AC constants (SharkHub's Byd object, confirmed from the car's own constants).
@@ -153,7 +154,14 @@ final class CarData {
             put(o, "speed", num("speed", "getCurrentSpeed"), 0, 300);
             put(o, "gear", num("gearbox", "getGearboxAutoModeLevel"), 1, 6);
             put(o, "energyMode", num("energy", "getEnergyMode"), 0, 10);
-            put(o, "opMode", num("energy", "getOperationMode"), 0, 10);
+            // Drive mode: setting.getDriveMode() uses 1 Normal, 2 Eco, 3 Sport, 4 Snow, 5 Mud, 6 Sand
+            // (read 3 in Sport). energy.getOperationMode() is a different scale (2 = Sport), so it misread as Eco.
+            Double dm = num("setting", "getDriveMode");
+            if (dm == null || dm < 1) {
+                Double op = num("energy", "getOperationMode"); // 1 Economy, 2 Sport, 3 Normal
+                dm = op == null ? null : op == 1 ? 2.0 : op == 2 ? 3.0 : op == 3 ? 1.0 : null;
+            }
+            put(o, "opMode", dm, 1, 6);
             put(o, "motorKw", num("motor", "getMotorPower"), -400, 400);
             put(o, "engineKw", num("engine", "getEnginePower"), 0, 400);
             // Tyres: psi x10 on this car (ByType), else kPa.
@@ -252,6 +260,11 @@ final class CarData {
                 break;
             case "seatVent":
                 r = call("setting", "setSeatVentilatingState", a.optInt("zone", 1), Math.max(0, Math.min(2, a.optInt("level"))) + 1);
+                break;
+            case "resetTrip":
+                // Instrument device: resetMileage(MILEAGE_ONE=1 | MILEAGE_TWO=2, MILEAGE_RESET=1).
+                r = call("instrument", "resetMileage", "B".equals(a.optString("trip")) ? 2 : 1, 1);
+                if (r == null) return "trip reset not available";
                 break;
             default:
                 return "unknown command";
