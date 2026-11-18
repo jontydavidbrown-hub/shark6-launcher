@@ -41,7 +41,7 @@ adb shell cmd notification allow_listener au.jonty.shark6.launcher/au.jonty.shar
 ```
 
 Errors from `pm grant` for permissions that aren't "dangerous" on this car are harmless.
-Climate and seat buttons are off until `CarData.CONTROLS_ENABLED` is switched on.
+Climate and seat buttons are live from 0.3 (`CarData.CONTROLS_ENABLED`).
 
 Vehicle SDK loading and call encodings follow SharkHub (github.com/Peacemaker105/SharkHub, MIT).
 Bundled: htm/Preact (Apache-2.0 / MIT), Barlow and Barlow Condensed (OFL-1.1), Material Symbols paths (Apache-2.0).

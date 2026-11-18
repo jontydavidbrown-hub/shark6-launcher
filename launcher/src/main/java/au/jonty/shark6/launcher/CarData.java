@@ -24,8 +24,8 @@ import dalvik.system.PathClassLoader;
 final class CarData {
     private static final String TAG = "Shark6Car";
 
-    /** Off until Jonty has seen live readings working. Then the climate and seat buttons go live. */
-    static final boolean CONTROLS_ENABLED = false;
+    /** Climate and seat buttons. Switched on after live readings were confirmed on the car (0.3). */
+    static final boolean CONTROLS_ENABLED = true;
 
     private static final String[] CLIENT_PACKAGES = {"com.byd.hvac", "com.byd.autoservice"};
     private static final String[][] DEVICES = {
@@ -42,7 +42,7 @@ final class CarData {
 
     // AC constants (SharkHub's Byd object, confirmed from the car's own constants).
     private static final int SOURCE_UI = 0, UNIT_C = 1, ON = 1, OFF = 0;
-    private static final int ZONE_DRIVER = 1, ZONE_PASSENGER = 2, ZONE_OUTSIDE = 4;
+    private static final int ZONE_BOTH = 0, ZONE_DRIVER = 1, ZONE_PASSENGER = 2, ZONE_OUTSIDE = 4;
     private static final int CTRL_AUTO = 0, CTRL_MANUAL = 1, DEFROST_FRONT = 1;
 
     private final Context ctx;
@@ -196,9 +196,21 @@ final class CarData {
         if (!CONTROLS_ENABLED) return "disabled";
         Object r;
         switch (name) {
-            case "temp":
-                r = call("ac", "setAcTemperature", a.optInt("zone", ZONE_DRIVER), a.optInt("value", 21), SOURCE_UI, UNIT_C);
+            case "temp": {
+                // As SharkHub: the passenger zone only holds its own setting with the zones split;
+                // the driver side sets both zones unless they're already split.
+                int t = Math.max(17, Math.min(33, a.optInt("value", 21)));
+                int target;
+                if (a.optInt("zone", ZONE_DRIVER) == ZONE_PASSENGER) {
+                    call("ac", "setAcTemperatureControlMode", SOURCE_UI, ON);
+                    target = ZONE_PASSENGER;
+                } else {
+                    Double split = num("ac", "getAcTemperatureControlMode");
+                    target = split != null && split.intValue() == ON ? ZONE_DRIVER : ZONE_BOTH;
+                }
+                r = call("ac", "setAcTemperature", target, t, SOURCE_UI, UNIT_C);
                 break;
+            }
             case "fan":
                 r = call("ac", "setAcWindLevel", SOURCE_UI, Math.max(1, Math.min(7, a.optInt("level", 1))));
                 break;

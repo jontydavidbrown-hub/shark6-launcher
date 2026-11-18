@@ -56,10 +56,19 @@ class Home extends Component {
     for (let i = 1; i <= n; i++) out.push({ c: level >= i ? color : '#333333' });
     return out;
   }
-  send(name, args) {
+  // Show a tapped value straight away; the car's own reading takes over again after a moment.
+  pv(key, real) {
+    const p = (this.pending || {})[key];
+    return p && p.until > Date.now() ? p.val : real;
+  }
+  send(name, args, key, val) {
+    this.pending = this.pending || {};
+    if (key) { this.pending[key] = { val, until: Date.now() + 3000 }; this.forceUpdate(); }
     const r = Bridge.command(name, JSON.stringify(args || {}));
-    if (r === 'disabled') Bridge.toast('Climate and seat controls arrive in the next build');
-    else if (r && r !== 'ok') Bridge.toast('The car said no: ' + r);
+    if (r === 'ok' || r === 'no-car') return;
+    if (key) { delete this.pending[key]; this.forceUpdate(); }
+    if (r === 'disabled') Bridge.toast('Climate and seat controls are switched off in this build');
+    else Bridge.toast('The car didn\'t accept that (' + r + ')');
   }
   seat(kind, level, zone, color, start) {
     const shown = Math.round(level * this.stage(start));
@@ -69,7 +78,12 @@ class Home extends Component {
       border: on ? '2px solid ' + color : '1px solid #333',
       icon: on ? color : '#A6A6A6',
       segs: this.segs(shown, 2, color),
-      cycle: () => this.send(kind === 'heat' ? 'seatHeat' : 'seatVent', { zone, level: (level + 1) % 3 })
+      cycle: () => {
+        const next = (level + 1) % 3, mine = (zone === 1 ? 'drv' : 'pas') + (kind === 'heat' ? 'Heat' : 'Vent');
+        const other = (zone === 1 ? 'drv' : 'pas') + (kind === 'heat' ? 'Vent' : 'Heat');
+        if (next > 0) this.pending[other] = { val: 0, until: Date.now() + 3000 };
+        this.send(kind === 'heat' ? 'seatHeat' : 'seatVent', { zone, level: next }, mine, next);
+      }
     };
   }
   renderVals() {
@@ -118,11 +132,15 @@ class Home extends Component {
     const hasMedia = !!m.title;
     const pos = num(m.pos), dur = num(m.dur);
 
-    const drvTemp = num(c.drvTemp, 21), pasTemp = num(c.pasTemp, 21), fan = num(c.fan);
-    const ac = !!c.compressor, auto = !!c.auto, demist = !!c.demist;
+    this.pending = this.pending || {};
+    const drvTemp = this.pv('drvTemp', num(c.drvTemp, 21)), pasTemp = this.pv('pasTemp', num(c.pasTemp, 21));
+    const fan = this.pv('fan', num(c.fan));
+    const ac = this.pv('ac', !!c.compressor), auto = this.pv('auto', !!c.auto), demist = this.pv('demist', !!c.demist);
     const st = (on, color) => ({ border: on ? '2px solid ' + color : '1px solid #2A2A2A', bg: on ? '#1A1A1A' : '#161616', icon: on ? color : '#A6A6A6', text: on ? '#F2F2F2' : '#A6A6A6' });
     const d = st(demist, '#FF8A00'), a = st(ac, '#2FB3FF'), u = st(auto, accent);
-    const seats = c.seats || {};
+    const cs = c.seats || {};
+    const seats = { drvHeat: this.pv('drvHeat', cs.drvHeat), drvVent: this.pv('drvVent', cs.drvVent),
+      pasHeat: this.pv('pasHeat', cs.pasHeat), pasVent: this.pv('pasVent', cs.pasVent) };
     const clampT = (v) => Math.max(17, Math.min(33, Math.round(v)));
 
     return {
@@ -157,19 +175,19 @@ class Home extends Component {
       togglePlay: () => Bridge.media(m.playing ? 'pause' : 'play'),
       prevTrack: () => Bridge.media('prev'), nextTrack: () => Bridge.media('next'),
       drvTemp: tempUp(drvTemp, kClimate), pasTemp: tempUp(pasTemp, kClimate),
-      drvUp: () => this.send('temp', { zone: 1, value: clampT(drvTemp + 1) }),
-      drvDown: () => this.send('temp', { zone: 1, value: clampT(drvTemp - 1) }),
-      pasUp: () => this.send('temp', { zone: 2, value: clampT(pasTemp + 1) }),
-      pasDown: () => this.send('temp', { zone: 2, value: clampT(pasTemp - 1) }),
+      drvUp: () => this.send('temp', { zone: 1, value: clampT(drvTemp + 1) }, 'drvTemp', clampT(drvTemp + 1)),
+      drvDown: () => this.send('temp', { zone: 1, value: clampT(drvTemp - 1) }, 'drvTemp', clampT(drvTemp - 1)),
+      pasUp: () => this.send('temp', { zone: 2, value: clampT(pasTemp + 1) }, 'pasTemp', clampT(pasTemp + 1)),
+      pasDown: () => this.send('temp', { zone: 2, value: clampT(pasTemp - 1) }, 'pasTemp', clampT(pasTemp - 1)),
       fanLabel: auto ? 'AUTO' : String(fan),
       fanSegs: this.segs(Math.round(fan * kClimate), 7, accent),
       ac, auto, demist,
       demistBorder: d.border, demistBg: d.bg, demistIcon: d.icon, demistText: d.text,
       acBorder: a.border, acBg: a.bg, acIcon: a.icon, acText: a.text,
       autoBorder: u.border, autoBg: u.bg, autoIcon: u.icon, autoText: u.text,
-      toggleAc: () => this.send('ac', { on: !ac }),
-      toggleAuto: () => this.send('auto', { on: !auto }),
-      toggleDemist: () => this.send('demist', { on: !demist }),
+      toggleAc: () => this.send('ac', { on: !ac }, 'ac', !ac),
+      toggleAuto: () => this.send('auto', { on: !auto }, 'auto', !auto),
+      toggleDemist: () => this.send('demist', { on: !demist }, 'demist', !demist),
       drvHeat: this.seat('heat', num(seats.drvHeat), 1, '#FF8A00', 0.3),
       drvVent: this.seat('vent', num(seats.drvVent), 1, '#2FB3FF', 0.3),
       pasHeat: this.seat('heat', num(seats.pasHeat), 2, '#FF8A00', 0.4),
@@ -184,9 +202,15 @@ class Home extends Component {
       sliderText: s.slider === 'fan' ? String(fan) : (s.slider === 'pas' ? pasTemp : drvTemp) + '°',
       sliderMinLabel: s.slider === 'fan' ? '1 · gentle' : '17° · cool', sliderMaxLabel: s.slider === 'fan' ? 'max · 7' : 'warm · 33°',
       onSlide: (e) => {
-        const v = parseInt(e.target.value, 10);
-        if (s.slider === 'fan') this.send('fan', { level: v });
-        else this.send('temp', { zone: s.slider === 'pas' ? 2 : 1, value: v });
+        const v = parseInt(e.target.value, 10), which = s.slider;
+        const key = which === 'fan' ? 'fan' : which === 'pas' ? 'pasTemp' : 'drvTemp';
+        this.pending[key] = { val: v, until: Date.now() + 3000 };
+        this.forceUpdate();
+        clearTimeout(this.slideTimer);
+        this.slideTimer = setTimeout(() => {
+          if (which === 'fan') this.send('fan', { level: v }, 'fan', v);
+          else this.send('temp', { zone: which === 'pas' ? 2 : 1, value: v }, key, v);
+        }, 350);
       }
     };
   }
