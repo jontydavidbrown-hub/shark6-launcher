@@ -205,8 +205,9 @@ final class CarData {
                 // Synced (zones joined): every temp tap sets both sides and the zones stay joined.
                 // Split: each side sets only its own zone. Only the SYNC button changes the mode.
                 int t = Math.max(17, Math.min(33, a.optInt("value", 21)));
-                Double split = num("ac", "getAcTemperatureControlMode");
-                boolean separate = split != null && split.intValue() == ON;
+                boolean separate;
+                if (a.has("both")) separate = !a.optBoolean("both");
+                else { Double split = num("ac", "getAcTemperatureControlMode"); separate = split != null && split.intValue() == ON; }
                 int target = !separate ? ZONE_BOTH
                         : a.optInt("zone", ZONE_DRIVER) == ZONE_PASSENGER ? ZONE_PASSENGER : ZONE_DRIVER;
                 r = call("ac", "setAcTemperature", target, t, SOURCE_UI, UNIT_C);
@@ -215,6 +216,9 @@ final class CarData {
             case "sync":
                 // Synced = zones joined (control mode off); unsynced = separate driver/passenger temps.
                 r = call("ac", "setAcTemperatureControlMode", SOURCE_UI, a.optBoolean("on") ? OFF : ON);
+                // Turning sync on: bring the passenger side to the driver's temperature too.
+                if (a.optBoolean("on") && a.has("value"))
+                    call("ac", "setAcTemperature", ZONE_BOTH, Math.max(17, Math.min(33, a.optInt("value", 21))), SOURCE_UI, UNIT_C);
                 break;
             case "fan":
                 r = call("ac", "setAcWindLevel", SOURCE_UI, Math.max(1, Math.min(7, a.optInt("level", 1))));

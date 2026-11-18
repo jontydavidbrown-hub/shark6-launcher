@@ -95,6 +95,7 @@ class Home extends Component {
       label: (kind === 'heat' ? 'HEAT ' : 'VENT ') + (on ? level : 'OFF'),
       border: 'none', bg: on ? 'rgba(255,255,255,0.07)' : '#161616',
       icon: on ? color : '#A6A6A6',
+      anim: on ? (kind === 'heat' ? 's6-heat' : 's6-spin') + (level > 1 ? ' s6-fast' : '') : '',
       segs: this.segs(shown, 2, color),
       cycle: () => {
         const next = (level + 1) % 3, mine = (zone === 1 ? 'drv' : 'pas') + (kind === 'heat' ? 'Heat' : 'Vent');
@@ -151,15 +152,18 @@ class Home extends Component {
     const pos = num(m.pos), dur = num(m.dur);
 
     this.pending = this.pending || {};
-    const drvTemp = this.pv('drvTemp', num(c.drvTemp, 21)), pasTemp = this.pv('pasTemp', num(c.pasTemp, 21));
+    // Whole degrees only.
+    const drvTemp = Math.round(this.pv('drvTemp', num(c.drvTemp, 21))), pasTemp = Math.round(this.pv('pasTemp', num(c.pasTemp, 21)));
     const fan = this.pv('fan', num(c.fan));
     const ac = this.pv('ac', !!c.compressor), auto = this.pv('auto', !!c.auto), demist = this.pv('demist', !!c.demist);
     const st = (on, color) => ({ border: on ? '2px solid ' + color : '1px solid #2A2A2A', bg: on ? '#1A1A1A' : '#161616', icon: on ? color : '#A6A6A6', text: on ? '#F2F2F2' : '#A6A6A6' });
-    const synced = this.pv('synced', c.dual !== 1);
+    // SYNC is our own setting: read from the car once, then only the SYNC button changes it.
+    if (this.syncMode === undefined && c.dual !== undefined) this.syncMode = c.dual !== 1;
+    const synced = this.syncMode === undefined ? true : this.syncMode;
     // When synced, a temp change applies to both sides (the car keeps the zones joined).
     const setTemp = (zone, value) => {
       if (synced) this.pending[zone === 1 ? 'pasTemp' : 'drvTemp'] = { val: value, until: Date.now() + 3000 };
-      this.send('temp', { zone, value }, zone === 1 ? 'drvTemp' : 'pasTemp', value);
+      this.send('temp', { zone, value, both: synced }, zone === 1 ? 'drvTemp' : 'pasTemp', value);
     };
     const d = st(demist, '#FF8A00'), a = st(ac, '#2FB3FF'), u = st(auto, accent), y = st(synced, '#F2F2F2');
     const cs = c.seats || {};
@@ -209,12 +213,12 @@ class Home extends Component {
       drvUp: () => setTemp(1, clampT(drvTemp + 1)), drvDown: () => setTemp(1, clampT(drvTemp - 1)),
       pasUp: () => setTemp(2, clampT(pasTemp + 1)), pasDown: () => setTemp(2, clampT(pasTemp - 1)),
       fanLabel: auto ? 'AUTO' : String(fan),
-      fanSegs: this.segs(Math.round(fan * kClimate), 7, accent),
+      fanAnim: fan > 0 ? 's6-spin s6-slow' : '', fanSegs: this.segs(Math.round(fan * kClimate), 7, accent),
       ac, auto, demist,
       demistBorder: d.border, demistBg: d.bg, demistIcon: d.icon, demistText: d.text,
       acBorder: a.border, acBg: a.bg, acIcon: a.icon, acText: a.text,
       autoBorder: u.border, autoBg: u.bg, autoIcon: u.icon, autoText: u.text,
-      synced, toggleSync: () => this.send('sync', { on: !synced }, 'synced', !synced),
+      synced, toggleSync: () => { this.syncMode = !synced; if (this.syncMode) this.pending.pasTemp = { val: drvTemp, until: Date.now() + 3000 }; this.send('sync', { on: !synced, value: drvTemp }); this.forceUpdate(); },
       syncBorder: y.border, syncBg: y.bg, syncIcon: y.icon, syncText: y.text,
       toggleAc: () => this.send('ac', { on: !ac }, 'ac', !ac),
       toggleAuto: () => this.send('auto', { on: !auto }, 'auto', !auto),
@@ -256,7 +260,28 @@ class Home extends Component {
   render() {
     const v = this.renderVals();
     return html`
-<div style="width: 100%; height: 838px; box-sizing: border-box; padding: 20px 28px 28px; background: #050505; color: #F2F2F2; font-family: Barlow, system-ui, sans-serif; position: relative; display: grid; grid-template-columns: minmax(0, 1.14fr) minmax(0, 1.14fr) minmax(0, 1fr) minmax(0, 0.97fr); grid-template-rows: minmax(0, 1fr) 140px; gap: 18px;">
+<div style="width: 100%; height: 838px; box-sizing: border-box; padding: 20px 28px 28px; background: #050505; color: #F2F2F2; font-family: Barlow, system-ui, sans-serif; position: relative; display: grid; grid-template-columns: minmax(0, 0.97fr) minmax(0, 1.14fr) minmax(0, 1.14fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 140px; gap: 18px;">
+
+  
+  <section aria-label="Now playing" class="gy-14" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 22px 24px; display: flex; flex-direction: column;  min-height: 0; min-width: 0; overflow: hidden;">
+    <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">NOW PLAYING</span>
+    <div style="flex: 1; min-height: 0; background: #1E1E1E center / contain no-repeat; background-image: ${v.artBg}; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke=${v.noteColor} stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+    </div>
+    <div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.trackTitle}</div><div style="font-size: 16px; color: #A6A6A6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.trackSub}</div></div>
+    <div class="gy-6" style="display: flex; flex-direction: column;">
+      <div style="height: 4px; background: #262626;"><div style="width: ${v.musicPct}%; height: 4px; background: ${v.accent};"></div></div>
+      <div style="display: flex; justify-content: space-between; font-size: 17px; color: #A6A6A6;"><span>${v.posText}</span><span>${v.durText}</span></div>
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <button type="button" onClick=${v.prevTrack} aria-label="Previous track" style="width: 60px; height: 60px; border: 1px solid #333; background: transparent; border-radius: 6px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F2F2F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 20L9 12l10-8v16z"></path><path d="M5 19V5"></path></svg></button>
+      <button type="button" onClick=${v.togglePlay} aria-label=${v.playLabel} style="width: 128px; height: 64px; border: 0; background: ${v.accent}; border-radius: 6px; transform: skewX(-8deg);">
+        ${v.playing ? html`<svg width="26" height="26" viewBox="0 0 24 24" fill="#0A0A0A" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>` : null}
+        ${v.paused ? html`<svg width="26" height="26" viewBox="0 0 24 24" fill="#0A0A0A" aria-hidden="true"><path d="M7 4l13 8-13 8z"></path></svg>` : null}
+      </button>
+      <button type="button" onClick=${v.nextTrack} aria-label="Next track" style="width: 60px; height: 60px; border: 1px solid #333; background: transparent; border-radius: 6px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F2F2F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4l10 8-10 8V4z"></path><path d="M19 5v14"></path></svg></button>
+    </div>
+  </section>
 
   
   <section aria-label="Range" class="gy-10" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 18px 24px; display: flex; flex-direction: column; align-items: center;  min-height: 0; min-width: 0; overflow: hidden;">
@@ -313,13 +338,19 @@ class Home extends Component {
   </section>
 
   
-  <section aria-label="Car" style="display: grid; grid-template-rows: 64px minmax(0, 1.75fr) minmax(0, 1fr) minmax(0, 1fr); gap: 14px; min-height: 0; min-width: 0; overflow: hidden;">
+  <section aria-label="Car" style="display: grid; grid-template-rows: 168px minmax(0, 1.55fr) minmax(0, 1fr); gap: 14px; min-height: 0; min-width: 0; overflow: hidden;">
 
-    <div aria-label="Drive system: ${v.modeShort}" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; min-height: 0; min-width: 0; overflow: hidden;">
-      <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">POWERTRAIN</span>
-      <div class="gx-10" style="display: flex; align-items: baseline;">
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 30px; line-height: 1; color: ${v.modeColor};">${v.modeShort}</span>
+    <div class="gx-14" style="display: flex;  min-height: 0; min-width: 0;">
+      <div aria-label="Drive system: ${v.modeShort}" style="flex: 1 1 0; min-width: 0; background: #111111; border: 1px solid #262626; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 72px; line-height: 1; letter-spacing: 0.02em; color: ${v.modeColor};">${v.modeShort}</span>
       </div>
+      <a href="#" onClick=${v.openCarPlay} aria-label="Open CarPlay" style="text-decoration: none; flex: 1 1 0; min-width: 0; background: #111111; border: 1px solid #262626; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+        <div style="position: absolute; top: -10px; bottom: -10px; left: -6px; width: 14px; background: ${v.accent}; transform: skewX(-12deg);"></div>
+        <svg width="96" height="96" viewBox="0 0 96 96" fill="none" aria-hidden="true">
+          <rect x="8" y="8" width="80" height="80" rx="22" stroke="#F2F2F2" stroke-width="6"></rect>
+          <path d="M38 30 L68 48 L38 66 Z" fill=${v.accent} stroke=${v.accent} stroke-width="6" stroke-linejoin="round"></path>
+        </svg>
+      </a>
     </div>
 
     <div aria-label="Tyre pressures" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden;">
@@ -358,35 +389,7 @@ class Home extends Component {
       <div style="font-size: 22px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">ODO ${v.odo} KM</div>
     </div>
 
-    <a href="#" onClick=${v.openCarPlay} class="gx-14" style="text-decoration: none; background: #111111; border: 1px solid #262626; border-radius: 8px; color: #F2F2F2; padding: 0 16px 0 0; display: flex; align-items: center;  overflow: hidden; min-height: 0; min-width: 0; overflow: hidden;">
-      <div style="width: 12px; align-self: stretch; background: ${v.accent}; transform: skewX(-12deg); margin-left: -5px;"></div>
-      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#F2F2F2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="13" rx="3"></rect><path d="M8 21h8"></path><path d="M9 11.5l2 2 4-4"></path></svg>
-      <div style="flex: 1; display: flex; flex-direction: column;">
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 26px; line-height: 1;">CARPLAY</span>
-      </div>
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke=${v.accent} stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
-    </a>
-  </section>
 
-  
-  <section aria-label="Now playing" class="gy-14" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 22px 24px; display: flex; flex-direction: column;  min-height: 0; min-width: 0; overflow: hidden;">
-    <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">NOW PLAYING</span>
-    <div style="flex: 1; min-height: 0; background: #1E1E1E center / contain no-repeat; background-image: ${v.artBg}; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
-      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke=${v.noteColor} stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-    </div>
-    <div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.trackTitle}</div><div style="font-size: 16px; color: #A6A6A6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.trackSub}</div></div>
-    <div class="gy-6" style="display: flex; flex-direction: column;">
-      <div style="height: 4px; background: #262626;"><div style="width: ${v.musicPct}%; height: 4px; background: ${v.accent};"></div></div>
-      <div style="display: flex; justify-content: space-between; font-size: 17px; color: #A6A6A6;"><span>${v.posText}</span><span>${v.durText}</span></div>
-    </div>
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <button type="button" onClick=${v.prevTrack} aria-label="Previous track" style="width: 60px; height: 60px; border: 1px solid #333; background: transparent; border-radius: 6px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F2F2F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 20L9 12l10-8v16z"></path><path d="M5 19V5"></path></svg></button>
-      <button type="button" onClick=${v.togglePlay} aria-label=${v.playLabel} style="width: 128px; height: 64px; border: 0; background: ${v.accent}; border-radius: 6px; transform: skewX(-8deg);">
-        ${v.playing ? html`<svg width="26" height="26" viewBox="0 0 24 24" fill="#0A0A0A" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>` : null}
-        ${v.paused ? html`<svg width="26" height="26" viewBox="0 0 24 24" fill="#0A0A0A" aria-hidden="true"><path d="M7 4l13 8-13 8z"></path></svg>` : null}
-      </button>
-      <button type="button" onClick=${v.nextTrack} aria-label="Next track" style="width: 60px; height: 60px; border: 1px solid #333; background: transparent; border-radius: 6px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F2F2F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4l10 8-10 8V4z"></path><path d="M19 5v14"></path></svg></button>
-    </div>
   </section>
 
   
@@ -395,11 +398,11 @@ class Home extends Component {
     <div style="display: flex; flex-shrink: 0;">
       <div class="gx-8" style="display: flex;">
         <button type="button" onClick=${v.pasHeat.cycle} aria-label="Passenger seat heating, ${v.pasHeat.label}" class="gy-6" style="width: 108px; height: 108px; flex-shrink: 0; padding: 0; border: 0; background: ${v.pasHeat.bg}; color: #F2F2F2; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-          <svg width="38" height="38" viewBox="0 -960 960 960" fill=${v.pasHeat.icon} aria-hidden="true"><path d="M765-490q-11-7-14-19t5-22l8-11q8-11 12-24t4-27q0-18-6.5-34.5T754-658q-21-23-32.5-50.5T710-767q0-22 6.5-43t19.5-39l8-12q7-11 19-12.5t23 5.5q11 7 13 19t-6 22l-8 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T840-591q0 22-6.5 43T814-509l-8 11q-8 10-19 12.5t-22-4.5Zm-173 0q-11-7-14-19t5-22l8-11q8-11 12-23.5t4-26.5q0-19-7-35.5T580-658q-21-23-32.5-50.5T536-767q0-22 6.5-43t19.5-39l8-12q7-11 18.5-13t22.5 5q10 7 12.5 19t-4.5 23l-7 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T667-591q0 22-6.5 43T641-509l-8 11q-8 10-19 12.5t-22-4.5Zm-173 0q-11-7-14-19t5-22l8-11q8-11 12-23.5t4-26.5q0-19-7-35.5T407-658q-21-23-33-50.5T362-767q0-22 6.5-43t20.5-39l9-12q8-10 20-12t22 5q11 7 13 19t-6 22l-8 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T494-591q0 22-6.5 43T468-509l-8 11q-8 10-19 12.5t-22-4.5ZM297-120q-25 0-44-14.5T228-172l-99-386q-5-14-6.5-29t-1.5-30q0-28 6.5-54.5T146-723q8-16 22.5-25.5T200-758q20 0 33.5 14t13.5 34q0 9-2.5 17T234-678q-22 23-26 53.5t9 59.5l17 43q28 65 49 132.5T304-250v54q8-11 24.5-18.5T365-222h260q21 0 36 15t15 36q0 21-15 36t-36 15H297Z"></path></svg>
+          <svg width="38" height="38" viewBox="0 -960 960 960" fill=${v.pasHeat.icon} aria-hidden="true"><path d="M297-120q-25 0-44-14.5T228-172l-99-386q-5-14-6.5-29t-1.5-30q0-28 6.5-54.5T146-723q8-16 22.5-25.5T200-758q20 0 33.5 14t13.5 34q0 9-2.5 17T234-678q-22 23-26 53.5t9 59.5l17 43q28 65 49 132.5T304-250v54q8-11 24.5-18.5T365-222h260q21 0 36 15t15 36q0 21-15 36t-36 15H297Z"></path><path class="${v.pasHeat.anim} s6-w0" d="M765 -490q-11-7-14-19t5-22l8-11q8-11 12-24t4-27q0-18-6.5-34.5T754-658q-21-23-32.5-50.5T710-767q0-22 6.5-43t19.5-39l8-12q7-11 19-12.5t23 5.5q11 7 13 19t-6 22l-8 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T840-591q0 22-6.5 43T814-509l-8 11q-8 10-19 12.5t-22-4.5Z"></path><path class="${v.pasHeat.anim} s6-w1" d="M592 -490q-11-7-14-19t5-22l8-11q8-11 12-23.5t4-26.5q0-19-7-35.5T580-658q-21-23-32.5-50.5T536-767q0-22 6.5-43t19.5-39l8-12q7-11 18.5-13t22.5 5q10 7 12.5 19t-4.5 23l-7 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T667-591q0 22-6.5 43T641-509l-8 11q-8 10-19 12.5t-22-4.5Z"></path><path class="${v.pasHeat.anim} s6-w2" d="M419 -490q-11-7-14-19t5-22l8-11q8-11 12-23.5t4-26.5q0-19-7-35.5T407-658q-21-23-33-50.5T362-767q0-22 6.5-43t20.5-39l9-12q8-10 20-12t22 5q11 7 13 19t-6 22l-8 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T494-591q0 22-6.5 43T468-509l-8 11q-8 10-19 12.5t-22-4.5Z"></path></svg>
           <div class="gx-4" style="display: flex;">${v.pasHeat.segs.map((s) => html`<div style="width: 14px; height: 5px; transform: skewX(-24deg); background: ${s.c};"></div>`)}</div>
         <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px; line-height: 1; letter-spacing: 0.08em; color: ${v.pasHeat.icon};">HEAT</span></button>
         <button type="button" onClick=${v.pasVent.cycle} aria-label="Passenger seat ventilation, ${v.pasVent.label}" class="gy-6" style="width: 108px; height: 108px; flex-shrink: 0; padding: 0; border: 0; background: ${v.pasVent.bg}; color: #F2F2F2; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-          <svg width="38" height="38" viewBox="0 -960 960 960" fill=${v.pasVent.icon} aria-hidden="true"><path d="M629.12-478q-22.8 0-34.96-14.25T582-523q0-13 5.31-23.62 5.3-10.61 16.67-18.19 8.34-5.31 14.79-14.03 6.44-8.72 10.23-26.16-2.86-1.56-5.36-3.11-2.5-1.56-4.64-3.89-29 11-42 16t-27.21 5q-28.42 0-50.1-25Q478-641 478-688.88q0-22.8 14.25-34.96T523-736q13 0 23.62 5.31 10.61 5.3 18.19 16.67 5.31 8.34 14.03 14.79 8.72 6.44 26.16 10.23 1.56-2.86 3.11-5.36 1.56-2.5 3.89-4.64-11-29-16-42t-5-27.21q0-28.42 25-50.1Q641-840 688.88-840q22.8 0 34.96 14.25T736-795q0 13-5.31 23.62-5.3 10.61-16.67 18.19-8.34 5.31-14.79 14.03-6.44 8.72-10.23 26.16 2.86 1.56 5.36 3.11 2.5 1.56 4.64 3.89 29-11 42-16t27.21-5q28.42 0 50.1 25Q840-677 840-629.12q0 22.8-14.25 34.96T795-582q-13 0-23.62-5.31-10.61-5.3-18.19-16.67-5.31-8.34-14.03-14.79-8.72-6.44-26.16-10.23-1.56 2.86-3.11 5.36-1.56 2.5-3.89 4.64 11 29 16 42t5 27.21q0 28.42-25 50.1Q677-478 629.12-478Zm51.38-159.68q8.5-8.67 8.5-21.5 0-12.82-8.68-21.32-8.67-8.5-21.5-8.5-12.82 0-21.32 8.68-8.5 8.67-8.5 21.5 0 12.82 8.68 21.32 8.67 8.5 21.5 8.5 12.82 0 21.32-8.68ZM297-120q-24.65 0-43.83-14.5Q234-149 228-172l-99-386q-5-14-6.5-28.84T121-617q0-27.66 6.5-54.33Q134-698 146-723q7.84-16.15 22.2-25.58 14.36-9.42 31.78-9.42 20.02 0 33.52 14.25Q247-729.5 247-710.22q0 9.22-2.5 17.22-2.5 8-10.5 15-21.92 23.01-25.96 53.51Q204-594 217-565l17 43q28 65 49 132.5T304-250v54q8-11 24.5-18.5T365-222h239q30.22 0 51.11 21.15T676-150v30H297Z"></path></svg>
+          <svg width="38" height="38" viewBox="0 -960 960 960" fill=${v.pasVent.icon} aria-hidden="true"><path d="M297-120q-24.65 0-43.83-14.5Q234-149 228-172l-99-386q-5-14-6.5-28.84T121-617q0-27.66 6.5-54.33Q134-698 146-723q7.84-16.15 22.2-25.58 14.36-9.42 31.78-9.42 20.02 0 33.52 14.25Q247-729.5 247-710.22q0 9.22-2.5 17.22-2.5 8-10.5 15-21.92 23.01-25.96 53.51Q204-594 217-565l17 43q28 65 49 132.5T304-250v54q8-11 24.5-18.5T365-222h239q30.22 0 51.11 21.15T676-150v30H297Z"></path><g class=${v.pasVent.anim}><path d="M629.12-478q-22.8 0-34.96-14.25T582-523q0-13 5.31-23.62 5.3-10.61 16.67-18.19 8.34-5.31 14.79-14.03 6.44-8.72 10.23-26.16-2.86-1.56-5.36-3.11-2.5-1.56-4.64-3.89-29 11-42 16t-27.21 5q-28.42 0-50.1-25Q478-641 478-688.88q0-22.8 14.25-34.96T523-736q13 0 23.62 5.31 10.61 5.3 18.19 16.67 5.31 8.34 14.03 14.79 8.72 6.44 26.16 10.23 1.56-2.86 3.11-5.36 1.56-2.5 3.89-4.64-11-29-16-42t-5-27.21q0-28.42 25-50.1Q641-840 688.88-840q22.8 0 34.96 14.25T736-795q0 13-5.31 23.62-5.3 10.61-16.67 18.19-8.34 5.31-14.79 14.03-6.44 8.72-10.23 26.16 2.86 1.56 5.36 3.11 2.5 1.56 4.64 3.89 29-11 42-16t27.21-5q28.42 0 50.1 25Q840-677 840-629.12q0 22.8-14.25 34.96T795-582q-13 0-23.62-5.31-10.61-5.3-18.19-16.67-5.31-8.34-14.03-14.79-8.72-6.44-26.16-10.23-1.56 2.86-3.11 5.36-1.56 2.5-3.89 4.64 11 29 16 42t5 27.21q0 28.42-25 50.1Q677-478 629.12-478Zm51.38-159.68q8.5-8.67 8.5-21.5 0-12.82-8.68-21.32-8.67-8.5-21.5-8.5-12.82 0-21.32 8.68-8.5 8.67-8.5 21.5 0 12.82 8.68 21.32 8.67 8.5 21.5 8.5 12.82 0 21.32-8.68Z"></path></g></svg>
           <div class="gx-4" style="display: flex;">${v.pasVent.segs.map((s) => html`<div style="width: 14px; height: 5px; transform: skewX(-24deg); background: ${s.c};"></div>`)}</div>
         <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px; line-height: 1; letter-spacing: 0.08em; color: ${v.pasVent.icon};">VENT</span></button>
       </div>
@@ -429,12 +432,9 @@ class Home extends Component {
 ></path></svg>
         <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px; line-height: 1; letter-spacing: 0.08em; color: ${v.syncIcon};">SYNC</span></button>
         <button type="button" onClick=${v.openFan} aria-label="Fan speed ${v.fanLabel}, tap for slider" class="gy-6" style="width: 108px; height: 108px; flex-shrink: 0; padding: 0; border: 1px solid #2A2A2A; background: #161616; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-          <div class="gx-6" style="display: flex; align-items: center;">
-            <svg width="38" height="38" viewBox="0 -960 960 960" fill="#F2F2F2" aria-hidden="true"><path d="M424-80q-51 0-77.5-30.5T320-180q0-26 11.5-50.5T367-271q22-14 36.5-37.5T425-373q-1 0-1-.5t-2-1.5l-116 41q-17 6-33 10t-33 4q-63 0-111.5-55T80-536q0-51 30.5-77.5T179-640q26 0 51 11.5t41 35.5q14 22 39.5 37.5T373-535q.67-1 1.33-2 .67-1 .67-2l-41-115q-6-17-10-33t-4-32q0-64 55-112.5T536-880q51 0 77.5 30.5T640-781q0 26-11.5 51T593-689q-26 17-40.5 45T536-586q1 1 1.5.5t1.5 1.5l115-43q17-6 32.5-9.5T719-640q81 0 121 67t40 149q0 51-32 77.5T777-320q-25 0-48.5-11.5T689-367q-14-22-37.5-36.5T587-426q-1 2-1.6 3.06-.6 1.06-1.4 1.94l42 115q6 16 10 30.5t4 30.5q1 65-54 115T424-80Zm56-340q25 0 42.5-17.5T540-480q0-25-17.5-42.5T480-540q-25 0-42.5 17.5T420-480q0 25 17.5 42.5T480-420Zm-58-165q12-5 26-9t28-6q8-45 29.5-81t54.5-58q10-7 15-17.5t5-24.5q0-16.42-10.5-27.71T536-820q-43 0-98.5 20.55-55.5 20.54-57.5 80.32 0 11.21 2.5 21.17T388-680l34 95ZM240-380q14 0 40-8l95-34q-8-14-11.5-28t-3.5-26q-45-8-81-29.5T221-560q-7-10-19-15t-23-5q-19 0-29 10.5T140-536q0 61.94 25.63 108.97Q191.25-380 240-380Zm184 240q53.13 0 104.57-23Q580-186 580-242q0-11-2-19t-6-19l-34-95q-13 6-26.5 10t-27.5 5q-8 45-29.5 81T400-221q-9 6-14.5 18.5T380-179q1 15 11 27t33 12Zm353-240q16.83 0 29.91-9.17Q820-398.33 820-424q0-44-20.5-99t-81.33-57q-11.17 0-20.67 2-9.5 2-17.5 5l-95 35q5 8 10 25.5t5 28.5q45 8 81 29.5t58 54.5q6 8 16.67 14 10.66 6 21.33 6ZM600-484ZM476-600ZM360-476Zm124 116Z"></path></svg>
-            <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 28px; line-height: 1; width: 40px; text-align: left;">${v.fanLabel}</span>
-          </div>
-          <div class="gx-3" style="display: flex;">${v.fanSegs.map((f) => html`<div style="width: 6px; height: 5px; background: ${f.c};"></div>`)}</div>
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px; line-height: 1; letter-spacing: 0.08em; color: #A6A6A6;">FAN</span></button>
+          <svg width="38" height="38" viewBox="0 -960 960 960" fill="#F2F2F2" aria-hidden="true"><path class=${v.fanAnim} d="M424-80q-51 0-77.5-30.5T320-180q0-26 11.5-50.5T367-271q22-14 36.5-37.5T425-373q-1 0-1-.5t-2-1.5l-116 41q-17 6-33 10t-33 4q-63 0-111.5-55T80-536q0-51 30.5-77.5T179-640q26 0 51 11.5t41 35.5q14 22 39.5 37.5T373-535q.67-1 1.33-2 .67-1 .67-2l-41-115q-6-17-10-33t-4-32q0-64 55-112.5T536-880q51 0 77.5 30.5T640-781q0 26-11.5 51T593-689q-26 17-40.5 45T536-586q1 1 1.5.5t1.5 1.5l115-43q17-6 32.5-9.5T719-640q81 0 121 67t40 149q0 51-32 77.5T777-320q-25 0-48.5-11.5T689-367q-14-22-37.5-36.5T587-426q-1 2-1.6 3.06-.6 1.06-1.4 1.94l42 115q6 16 10 30.5t4 30.5q1 65-54 115T424-80Zm56-340q25 0 42.5-17.5T540-480q0-25-17.5-42.5T480-540q-25 0-42.5 17.5T420-480q0 25 17.5 42.5T480-420Zm-58-165q12-5 26-9t28-6q8-45 29.5-81t54.5-58q10-7 15-17.5t5-24.5q0-16.42-10.5-27.71T536-820q-43 0-98.5 20.55-55.5 20.54-57.5 80.32 0 11.21 2.5 21.17T388-680l34 95ZM240-380q14 0 40-8l95-34q-8-14-11.5-28t-3.5-26q-45-8-81-29.5T221-560q-7-10-19-15t-23-5q-19 0-29 10.5T140-536q0 61.94 25.63 108.97Q191.25-380 240-380Zm184 240q53.13 0 104.57-23Q580-186 580-242q0-11-2-19t-6-19l-34-95q-13 6-26.5 10t-27.5 5q-8 45-29.5 81T400-221q-9 6-14.5 18.5T380-179q1 15 11 27t33 12Zm353-240q16.83 0 29.91-9.17Q820-398.33 820-424q0-44-20.5-99t-81.33-57q-11.17 0-20.67 2-9.5 2-17.5 5l-95 35q5 8 10 25.5t5 28.5q45 8 81 29.5t58 54.5q6 8 16.67 14 10.66 6 21.33 6ZM600-484ZM476-600ZM360-476Zm124 116Z"></path></svg>
+          <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px; line-height: 1; letter-spacing: 0.08em; color: #A6A6A6;">FAN <span style="color: #F2F2F2;">${v.fanLabel}</span></span>
+        </button>
       </div>
     </div>
 
@@ -449,11 +449,11 @@ class Home extends Component {
     <div style="display: flex; flex-shrink: 0;">
       <div class="gx-8" style="display: flex;">
         <button type="button" onClick=${v.drvHeat.cycle} aria-label="Driver seat heating, ${v.drvHeat.label}" class="gy-6" style="width: 108px; height: 108px; flex-shrink: 0; padding: 0; border: 0; background: ${v.drvHeat.bg}; color: #F2F2F2; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-          <svg width="38" height="38" viewBox="0 -960 960 960" fill=${v.drvHeat.icon} aria-hidden="true"><path d="M523-490q-11-7-13.5-19t5.5-22l8-11q8-11 12-24t4-27q0-18-6.5-34.5T513-658q-21-23-33-50.5T468-767q0-22 7-43t20-39l8-12q7-11 18.5-12.5T544-868q11 7 13.5 19t-5.5 22l-8 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T599-591q0 22-6.5 43T573-509l-8 11q-8 10-19.5 12.5T523-490Zm-173 0q-11-7-13.5-19t5.5-22l8-11q8-11 12-23.5t4-26.5q0-19-7-35.5T339-658q-21-23-33-50.5T294-767q0-22 7-43t20-39l8-12q7-11 18.5-13t22.5 5q10 7 12.5 19t-4.5 23l-7 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T426-591q0 22-6.5 43T400-509l-8 11q-8 10-19.5 12.5T350-490Zm-173 0q-11-7-13.5-19t5.5-22l8-11q8-11 12-23.5t4-26.5q0-19-7-35.5T166-658q-21-23-33-50.5T121-767q0-22 6.5-43t20.5-39l9-12q8-10 19.5-12t21.5 5q11 7 13.5 19t-5.5 22l-8 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T253-591q0 22-6.5 43T227-509l-8 11q-8 10-19.5 12.5T177-490Zm159 370q-21 0-36-15t-15-36q0-21 15-36t36-15h260q20 0 36.5 7.5T657-196v-54q0-72 21-139.5T727-522l17-43q13-29 9-59.5T727-678q-8-7-10.5-15t-2.5-17q0-20 13.5-34t33.5-14q17 0 31.5 9.5T815-723q12 25 18.5 51.5T840-617q0 15-1.5 30t-6.5 29l-99 386q-6 23-25 37.5T664-120H336Z"></path></svg>
+          <svg width="38" height="38" viewBox="0 -960 960 960" fill=${v.drvHeat.icon} aria-hidden="true"><path d="M336 -120q-21 0-36-15t-15-36q0-21 15-36t36-15h260q20 0 36.5 7.5T657-196v-54q0-72 21-139.5T727-522l17-43q13-29 9-59.5T727-678q-8-7-10.5-15t-2.5-17q0-20 13.5-34t33.5-14q17 0 31.5 9.5T815-723q12 25 18.5 51.5T840-617q0 15-1.5 30t-6.5 29l-99 386q-6 23-25 37.5T664-120H336Z"></path><path class="${v.drvHeat.anim} s6-w0" d="M523 -490q-11-7-13.5-19t5.5-22l8-11q8-11 12-24t4-27q0-18-6.5-34.5T513-658q-21-23-33-50.5T468-767q0-22 7-43t20-39l8-12q7-11 18.5-12.5T544-868q11 7 13.5 19t-5.5 22l-8 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T599-591q0 22-6.5 43T573-509l-8 11q-8 10-19.5 12.5T523-490Z"></path><path class="${v.drvHeat.anim} s6-w1" d="M350 -490q-11-7-13.5-19t5.5-22l8-11q8-11 12-23.5t4-26.5q0-19-7-35.5T339-658q-21-23-33-50.5T294-767q0-22 7-43t20-39l8-12q7-11 18.5-13t22.5 5q10 7 12.5 19t-4.5 23l-7 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T426-591q0 22-6.5 43T400-509l-8 11q-8 10-19.5 12.5T350-490Z"></path><path class="${v.drvHeat.anim} s6-w2" d="M177 -490q-11-7-13.5-19t5.5-22l8-11q8-11 12-23.5t4-26.5q0-19-7-35.5T166-658q-21-23-33-50.5T121-767q0-22 6.5-43t20.5-39l9-12q8-10 19.5-12t21.5 5q11 7 13.5 19t-5.5 22l-8 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T253-591q0 22-6.5 43T227-509l-8 11q-8 10-19.5 12.5T177-490Z"></path></svg>
           <div class="gx-4" style="display: flex;">${v.drvHeat.segs.map((s) => html`<div style="width: 14px; height: 5px; transform: skewX(-24deg); background: ${s.c};"></div>`)}</div>
         <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px; line-height: 1; letter-spacing: 0.08em; color: ${v.drvHeat.icon};">HEAT</span></button>
         <button type="button" onClick=${v.drvVent.cycle} aria-label="Driver seat ventilation, ${v.drvVent.label}" class="gy-6" style="width: 108px; height: 108px; flex-shrink: 0; padding: 0; border: 0; background: ${v.drvVent.bg}; color: #F2F2F2; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-          <svg width="38" height="38" viewBox="0 -960 960 960" fill=${v.drvVent.icon} aria-hidden="true"><path d="M272.12-478q-22.8 0-34.96-14.25T225-523q0-12.84 5.5-23.42 5.5-10.58 16.66-18.33 8.19-5.42 14.51-14.34Q268-588 272-605q-3.08-1.56-5.38-3.11-2.31-1.56-4.62-3.89-29 11-42 16t-27.21 5q-28.42 0-50.1-25Q121-641 121-688.88q0-22.8 14.25-34.96T166-736q13.22 0 23.72 5.31 10.5 5.31 18.28 16.69 5.19 8.33 14.07 14.77 8.89 6.44 25.93 10.23 1.56-2.86 3.11-5.36 1.56-2.5 3.89-4.64-11-29-16-42t-5-27.21q0-28.42 25.11-50.1Q284.23-840 332.17-840 355-840 367-825.75T379-795q0 13-5.31 23.62-5.3 10.61-16.67 18.19-8.34 5.31-14.79 14.03-6.44 8.72-10.23 26.16 3.08 1.56 5.38 3.11 2.31 1.56 4.62 3.89 29-11 42-16t27.21-5q28.42 0 50.1 25Q483-677 483-629.12q0 22.8-14.25 34.96T438-582q-13 0-23.62-5.31-10.61-5.3-18.19-16.67-5.31-8.34-14.03-14.79-8.72-6.44-26.16-10.23-2 3-3.56 5.45T349-619q11 29 16 42t5 27.21q0 28.42-25 50.1Q320-478 272.12-478Zm51.38-159.68q8.5-8.67 8.5-21.5 0-12.82-8.68-21.32-8.67-8.5-21.5-8.5-12.82 0-21.32 8.68-8.5 8.67-8.5 21.5 0 12.82 8.68 21.32 8.67 8.5 21.5 8.5 12.82 0 21.32-8.68ZM285-120v-30q0-29.7 20.89-50.85Q326.78-222 357-222h239q20 0 36.5 7.5T657-196v-54q0-72 21-139.5T727-522l17-43q13-29 8.96-59.49-4.04-30.5-25.96-53.51-8-7-10.5-15t-2.5-17.22q0-19.28 13.5-33.53T760.79-758q17.21 0 31.84 9.42Q807.26-739.15 815-723q12 25 18.5 51.67T840-617q0 15.32-1.5 30.16T832-558l-99 386q-6 23-25.17 37.5Q688.65-120 664-120H285Z"></path></svg>
+          <svg width="38" height="38" viewBox="0 -960 960 960" fill=${v.drvVent.icon} aria-hidden="true"><path d="M285-120v-30q0-29.7 20.89-50.85Q326.78-222 357-222h239q20 0 36.5 7.5T657-196v-54q0-72 21-139.5T727-522l17-43q13-29 8.96-59.49-4.04-30.5-25.96-53.51-8-7-10.5-15t-2.5-17.22q0-19.28 13.5-33.53T760.79-758q17.21 0 31.84 9.42Q807.26-739.15 815-723q12 25 18.5 51.67T840-617q0 15.32-1.5 30.16T832-558l-99 386q-6 23-25.17 37.5Q688.65-120 664-120H285Z"></path><g class=${v.drvVent.anim}><path d="M272.12-478q-22.8 0-34.96-14.25T225-523q0-12.84 5.5-23.42 5.5-10.58 16.66-18.33 8.19-5.42 14.51-14.34Q268-588 272-605q-3.08-1.56-5.38-3.11-2.31-1.56-4.62-3.89-29 11-42 16t-27.21 5q-28.42 0-50.1-25Q121-641 121-688.88q0-22.8 14.25-34.96T166-736q13.22 0 23.72 5.31 10.5 5.31 18.28 16.69 5.19 8.33 14.07 14.77 8.89 6.44 25.93 10.23 1.56-2.86 3.11-5.36 1.56-2.5 3.89-4.64-11-29-16-42t-5-27.21q0-28.42 25.11-50.1Q284.23-840 332.17-840 355-840 367-825.75T379-795q0 13-5.31 23.62-5.3 10.61-16.67 18.19-8.34 5.31-14.79 14.03-6.44 8.72-10.23 26.16 3.08 1.56 5.38 3.11 2.31 1.56 4.62 3.89 29-11 42-16t27.21-5q28.42 0 50.1 25Q483-677 483-629.12q0 22.8-14.25 34.96T438-582q-13 0-23.62-5.31-10.61-5.3-18.19-16.67-5.31-8.34-14.03-14.79-8.72-6.44-26.16-10.23-2 3-3.56 5.45T349-619q11 29 16 42t5 27.21q0 28.42-25 50.1Q320-478 272.12-478Zm51.38-159.68q8.5-8.67 8.5-21.5 0-12.82-8.68-21.32-8.67-8.5-21.5-8.5-12.82 0-21.32 8.68-8.5 8.67-8.5 21.5 0 12.82 8.68 21.32 8.67 8.5 21.5 8.5 12.82 0 21.32-8.68Z"></path></g></svg>
           <div class="gx-4" style="display: flex;">${v.drvVent.segs.map((s) => html`<div style="width: 14px; height: 5px; transform: skewX(-24deg); background: ${s.c};"></div>`)}</div>
         <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px; line-height: 1; letter-spacing: 0.08em; color: ${v.drvVent.icon};">VENT</span></button>
       </div>

@@ -95,6 +95,7 @@ class Home extends Component {
       label: (kind === 'heat' ? 'HEAT ' : 'VENT ') + (on ? level : 'OFF'),
       border: 'none', bg: on ? 'rgba(255,255,255,0.07)' : '#161616',
       icon: on ? color : '#A6A6A6',
+      anim: on ? (kind === 'heat' ? 's6-heat' : 's6-spin') + (level > 1 ? ' s6-fast' : '') : '',
       segs: this.segs(shown, 2, color),
       cycle: () => {
         const next = (level + 1) % 3, mine = (zone === 1 ? 'drv' : 'pas') + (kind === 'heat' ? 'Heat' : 'Vent');
@@ -151,15 +152,18 @@ class Home extends Component {
     const pos = num(m.pos), dur = num(m.dur);
 
     this.pending = this.pending || {};
-    const drvTemp = this.pv('drvTemp', num(c.drvTemp, 21)), pasTemp = this.pv('pasTemp', num(c.pasTemp, 21));
+    // Whole degrees only.
+    const drvTemp = Math.round(this.pv('drvTemp', num(c.drvTemp, 21))), pasTemp = Math.round(this.pv('pasTemp', num(c.pasTemp, 21)));
     const fan = this.pv('fan', num(c.fan));
     const ac = this.pv('ac', !!c.compressor), auto = this.pv('auto', !!c.auto), demist = this.pv('demist', !!c.demist);
     const st = (on, color) => ({ border: on ? '2px solid ' + color : '1px solid #2A2A2A', bg: on ? '#1A1A1A' : '#161616', icon: on ? color : '#A6A6A6', text: on ? '#F2F2F2' : '#A6A6A6' });
-    const synced = this.pv('synced', c.dual !== 1);
+    // SYNC is our own setting: read from the car once, then only the SYNC button changes it.
+    if (this.syncMode === undefined && c.dual !== undefined) this.syncMode = c.dual !== 1;
+    const synced = this.syncMode === undefined ? true : this.syncMode;
     // When synced, a temp change applies to both sides (the car keeps the zones joined).
     const setTemp = (zone, value) => {
       if (synced) this.pending[zone === 1 ? 'pasTemp' : 'drvTemp'] = { val: value, until: Date.now() + 3000 };
-      this.send('temp', { zone, value }, zone === 1 ? 'drvTemp' : 'pasTemp', value);
+      this.send('temp', { zone, value, both: synced }, zone === 1 ? 'drvTemp' : 'pasTemp', value);
     };
     const d = st(demist, '#FF8A00'), a = st(ac, '#2FB3FF'), u = st(auto, accent), y = st(synced, '#F2F2F2');
     const cs = c.seats || {};
@@ -209,12 +213,12 @@ class Home extends Component {
       drvUp: () => setTemp(1, clampT(drvTemp + 1)), drvDown: () => setTemp(1, clampT(drvTemp - 1)),
       pasUp: () => setTemp(2, clampT(pasTemp + 1)), pasDown: () => setTemp(2, clampT(pasTemp - 1)),
       fanLabel: auto ? 'AUTO' : String(fan),
-      fanSegs: this.segs(Math.round(fan * kClimate), 7, accent),
+      fanAnim: fan > 0 ? 's6-spin s6-slow' : '', fanSegs: this.segs(Math.round(fan * kClimate), 7, accent),
       ac, auto, demist,
       demistBorder: d.border, demistBg: d.bg, demistIcon: d.icon, demistText: d.text,
       acBorder: a.border, acBg: a.bg, acIcon: a.icon, acText: a.text,
       autoBorder: u.border, autoBg: u.bg, autoIcon: u.icon, autoText: u.text,
-      synced, toggleSync: () => this.send('sync', { on: !synced }, 'synced', !synced),
+      synced, toggleSync: () => { this.syncMode = !synced; if (this.syncMode) this.pending.pasTemp = { val: drvTemp, until: Date.now() + 3000 }; this.send('sync', { on: !synced, value: drvTemp }); this.forceUpdate(); },
       syncBorder: y.border, syncBg: y.bg, syncIcon: y.icon, syncText: y.text,
       toggleAc: () => this.send('ac', { on: !ac }, 'ac', !ac),
       toggleAuto: () => this.send('auto', { on: !auto }, 'auto', !auto),

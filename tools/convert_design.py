@@ -24,7 +24,7 @@ opt('kPa · all OK','{{tyreNote}}')
 opt('{{evShare}}% electric','{{tripFuel}}')
 opt('<div style="height: 4px; background: #262626;"><div style="height: 4px; width: {{evShare}}%; background: {{accent}};"></div></div>',
     '<div style="font-size: 13px; color: #A6A6A6;">ODO {{odo}} km</div>')
-rep('<a href="#" style="text-decoration: none;','<a href="#" onClick="{{openCarPlay}}" style="text-decoration: none;')
+rep('<a href="#" aria-label="Open CarPlay"','<a href="#" onClick="{{openCarPlay}}" aria-label="Open CarPlay"')
 # now playing
 rep('''<div style="flex: 1; min-height: 0; background: #1E1E1E; border-radius: 6px; display: flex; align-items: center; justify-content: center;">''',
     '''<div style="flex: 1; min-height: 0; background: #1E1E1E center / contain no-repeat; background-image: {{artBg}}; border-radius: 6px; display: flex; align-items: center; justify-content: center;">''')
@@ -37,7 +37,7 @@ rep('<button type="button" aria-label="Previous track"','<button type="button" o
 rep('<button type="button" aria-label="Next track"','<button type="button" onClick="{{nextTrack}}" aria-label="Next track"')
 # Fill the screen width: the page is 838 px tall and as wide as the screen's shape allows.
 rep('width: 1600px; height: 838px; box-sizing: border-box;','width: 100%; height: 838px; box-sizing: border-box;')
-rep('grid-template-columns: 400px 400px minmax(0, 1fr) 340px;','grid-template-columns: minmax(0, 1.14fr) minmax(0, 1.14fr) minmax(0, 1fr) minmax(0, 0.97fr);')
+rep('grid-template-columns: 340px 400px 400px minmax(0, 1fr);','grid-template-columns: minmax(0, 0.97fr) minmax(0, 1.14fr) minmax(0, 1.14fr) minmax(0, 1fr);')
 m=m.replace('width: 1600px; height: 838px; z-index: 10;','width: 100%; height: 838px; z-index: 10;')
 m=m.replace('top: 0; left: 0; width: 1600px; height: 838px; background:','top: 0; left: 0; width: 100%; height: 838px; background:')
 m=m.replace('left: 440px; top: 250px; width: 720px;','left: 50%; margin-left: -360px; top: 250px; width: 720px;')
