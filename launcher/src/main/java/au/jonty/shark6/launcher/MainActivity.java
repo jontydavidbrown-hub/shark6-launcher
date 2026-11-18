@@ -75,7 +75,15 @@ public class MainActivity extends Activity {
         cmdWorker = new HandlerThread("car-cmd");
         cmdWorker.start();
         cmd = new Handler(cmdWorker.getLooper());
+
+        // OTA: look for a newer build once per launch, a few seconds after start (lets Wi-Fi/4G come up).
+        bg.postDelayed(() -> {
+            JSONObject u = Updater.check(this);
+            if (u != null) pushJs("window.onUpdate && window.onUpdate(" + JSONObject.quote(u.toString()) + ")");
+        }, 8000);
     }
+
+    private void pushJs(String js) { ui.post(() -> { if (pageReady) web.evaluateJavascript(js, null); }); }
 
     private final Runnable poll = new Runnable() {
         @Override public void run() {
@@ -153,5 +161,14 @@ public class MainActivity extends Activity {
             sounds.play(id, 0.6f, 0.6f, 1, 0, 1f);
         }
         @JavascriptInterface public void toast(String m) { MainActivity.this.toast(m); }
+        @JavascriptInterface public void installUpdate(String url) {
+            new Thread(() -> Updater.install(MainActivity.this, url, new Updater.Progress() {
+                @Override public void percent(int p) { pushJs("window.onUpdateProgress && window.onUpdateProgress(" + p + ")"); }
+                @Override public void failed(String why) { pushJs("window.onUpdateFailed && window.onUpdateFailed(" + JSONObject.quote(why) + ")"); }
+            }), "ota").start();
+        }
+        @JavascriptInterface public String version() {
+            try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return ""; }
+        }
     }
 }

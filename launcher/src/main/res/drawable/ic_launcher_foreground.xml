@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shark fin with speed lines: crimson fin, white waterline and slashes. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#D42A3A" android:pathData="M36,72 C44,58 56,40 80,30 C71,42 67,56 72,72 Z" />
+    <path android:fillColor="#F2F2F2" android:pathData="M22,72 L84,72 L81,78 L19,78 Z" />
+    <path android:fillColor="#F2F2F2" android:fillAlpha="0.9" android:pathData="M28,52 L46,52 L43,57 L25,57 Z M24,62 L40,62 L37,67 L21,67 Z" />
+</vector>

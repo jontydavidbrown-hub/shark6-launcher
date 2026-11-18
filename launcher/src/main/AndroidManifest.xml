@@ -78,9 +78,14 @@
     <uses-permission android:name="android.permission.BYDAUTO_VEHICLE_INFO_SET" />
     <uses-permission android:name="android.permission.BYDAUTO_VEHICLE_INFO_COMMON" />
 
+    <!-- Over-the-air updates from the public GitHub releases. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <application
         android:label="Shark 6 Home"
-        android:icon="@android:drawable/ic_menu_compass"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
         android:hardwareAccelerated="true">
         <!-- Not full screen on purpose: BYD's own header bar stays visible and works with one tap. -->

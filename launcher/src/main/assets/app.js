@@ -4,7 +4,7 @@
 const { html, render, Component } = htmPreact;
 const Bridge = window.Car || {
   // Browser preview fallback: no car, so nothing happens.
-  command: () => 'no-car', sfx: () => {}, openCarPlay: () => {}, media: () => {}, openApp: () => {}, toast: (m) => console.log(m)
+  command: () => 'no-car', sfx: () => {}, openCarPlay: () => {}, media: () => {}, openApp: () => {}, installUpdate: () => { setTimeout(() => window.onUpdateProgress(40), 300); }, toast: (m) => console.log(m)
 };
 
 const GEARS = { 1: 'P', 2: 'R', 3: 'N', 4: 'D', 5: 'D', 6: 'D' };
@@ -41,6 +41,10 @@ class Home extends Component {
     };
     window.replayBoot = () => this.playBoot();
     window.onCommandResult = (id, r) => this.commandResult(id, r);
+    // OTA: Android tells us when a newer build is out, then reports download progress.
+    window.onUpdate = (json) => { try { this.setState({ update: JSON.parse(json), updPct: -1, updErr: '' }); } catch (e) {} };
+    window.onUpdateProgress = (p) => this.setState({ updPct: p });
+    window.onUpdateFailed = (m) => this.setState({ updPct: -1, updErr: 'Update failed. Try again later.' });
     this.playBoot();
   }
   playBoot() {
@@ -241,6 +245,11 @@ class Home extends Component {
       fanPct: Math.round((Math.max(1, fan) - 1) / 6 * 100),
       sliderStepDown: () => { this.armClose(); if (s.slider === 'fan') (l => this.send('fan', { level: l }, 'fan', l))(Math.max(1, fan - 1)); else setTemp(s.slider === 'pas' ? 2 : 1, Math.max(17, (s.slider === 'pas' ? pasTemp : drvTemp) - 1)); },
       sliderStepUp: () => { this.armClose(); if (s.slider === 'fan') (l => this.send('fan', { level: l }, 'fan', l))(Math.min(7, fan + 1)); else setTemp(s.slider === 'pas' ? 2 : 1, Math.min(33, (s.slider === 'pas' ? pasTemp : drvTemp) + 1)); },
+      updateOpen: !!s.update, updateName: s.update ? s.update.name : '',
+      updateBusy: s.updPct >= 0, updateIdle: !(s.updPct >= 0), updatePct: Math.max(0, s.updPct || 0), updateBarOpacity: s.updPct >= 0 ? 1 : 0,
+      updateNote: s.updErr || (s.updPct >= 100 ? 'Confirm on the screen that opens' : s.updPct >= 0 ? 'Downloading ' + s.updPct + '%' : 'A new version of the home screen is ready'),
+      updateLater: () => this.setState({ update: null }),
+      updateInstall: () => { sfx('on'); this.setState({ updPct: 0, updErr: '' }); try { Bridge.installUpdate(s.update.url); } catch (e) { this.setState({ updPct: -1, updErr: 'Update failed. Try again later.' }); } },
       onSlide: (e) => {
         this.armClose();
         const v = parseInt(e.target.value, 10), which = s.slider;
@@ -460,6 +469,21 @@ class Home extends Component {
     </div>
 
   </section>
+  
+  ${v.updateOpen ? html`
+    <div role="dialog" aria-label="Update available" class="s6-sheet" class="gx-24" style="position: absolute; left: 28px; right: 28px; bottom: 28px; height: 140px; z-index: 12; box-sizing: border-box; background: #111111; border: 1px solid #333333; border-radius: 8px; padding: 0 20px 0 28px; display: flex; align-items: center;  overflow: hidden;">
+      <div style="position: absolute; top: -10px; bottom: -10px; left: -5px; width: 10px; background: ${v.accent}; transform: skewX(-12deg);"></div>
+      <div class="gy-12" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column;">
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 20px; letter-spacing: 0.12em; color: ${v.accent};">UPDATE · ${v.updateName}</span>
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px; line-height: 1; color: #F2F2F2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.updateNote}</span>
+        <div style="height: 6px; border-radius: 3px; background: #262626; opacity: ${v.updateBarOpacity};"><div style="width: ${v.updatePct}%; height: 6px; border-radius: 3px; background: ${v.accent};"></div></div>
+      </div>
+      ${v.updateIdle ? html`
+        <button type="button" onClick=${v.updateLater} style="width: 160px; height: 72px; flex-shrink: 0; border: 0; border-radius: 6px; background: #1E1E1E; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 22px; letter-spacing: 0.08em;">LATER</button>
+        <button type="button" onClick=${v.updateInstall} style="width: 200px; height: 72px; flex-shrink: 0; border: 0; border-radius: 6px; background: ${v.accent}; color: #F2F2F2; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 22px; letter-spacing: 0.08em; transform: skewX(-8deg); margin-left: 14px;">INSTALL</button>
+      ` : null}
+    </div>
+  ` : null}
   
   ${v.sliderOpen ? html`
     <div onClick=${v.closeSlider} aria-hidden="true" style="position: absolute; top: 0; left: 0; width: 100%; height: 838px; z-index: 10; background: rgba(0,0,0,0.35);"></div>

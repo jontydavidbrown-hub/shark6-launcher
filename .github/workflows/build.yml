@@ -27,6 +27,12 @@ jobs:
         run: |
           cp probe/build/outputs/apk/debug/probe-debug.apk shark6-probe.apk
           cp launcher/build/outputs/apk/debug/launcher-debug.apk shark6-home.apk
+      - name: Version file (read by the launcher's update check)
+        run: |
+          code=$(grep -oP 'versionCode \K\d+' launcher/build.gradle)
+          name=$(grep -oP "versionName '\K[^']+" launcher/build.gradle)
+          echo "{\"code\":$code,\"name\":\"$name\"}" > version.json
+          cat version.json
       - uses: actions/upload-artifact@v4
         with:
           name: shark6-apks
@@ -43,3 +49,4 @@ jobs:
           files: |
             shark6-probe.apk
             shark6-home.apk
+            version.json
