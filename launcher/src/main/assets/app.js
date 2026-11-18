@@ -223,22 +223,22 @@ class Home extends Component {
       drvVent: this.seat('vent', num(seats.drvVent), 1, '#2FB3FF', 0.3),
       pasHeat: this.seat('heat', num(seats.pasHeat), 2, '#FF8A00', 0.4),
       pasVent: this.seat('vent', num(seats.pasVent), 2, '#2FB3FF', 0.4),
-      // Sliders: temperature in whole degrees (the car's setter takes ints), fan 1-7.
-      openDrv: () => set({ slider: 'drv' }), openPas: () => set({ slider: 'pas' }), openFan: () => set({ slider: 'fan' }),
-      closeSlider: () => set({ slider: null }),
-      sliderOpen: !!s.slider,
-      sliderTitle: s.slider === 'fan' ? 'FAN SPEED' : s.slider === 'pas' ? 'PASSENGER TEMP' : 'DRIVER TEMP',
+      // Temperature / fan bar: slides over the climate strip, closes after 5 s idle or a tap outside.
+      openDrv: () => { set({ slider: 'drv' }); this.armClose(); }, openPas: () => { set({ slider: 'pas' }); this.armClose(); },
+      openFan: () => { set({ slider: 'fan' }); this.armClose(); },
+      closeSlider: () => { clearTimeout(this.closeT); set({ slider: null }); },
+      sliderOpen: !!s.slider, sliderIsTemp: !!s.slider && s.slider !== 'fan', sliderIsFan: s.slider === 'fan',
+      sliderTitle: s.slider === 'fan' ? 'FAN' : s.slider === 'pas' ? 'PASSENGER' : 'DRIVER',
       sliderMin: s.slider === 'fan' ? 1 : 17, sliderMax: s.slider === 'fan' ? 7 : 33, sliderStep: 1,
-      sliderValue: s.slider === 'fan' ? fan : s.slider === 'pas' ? pasTemp : drvTemp,
+      sliderValue: s.slider === 'fan' ? fan : (s.slider === 'pas' ? pasTemp : drvTemp),
       sliderText: s.slider === 'fan' ? String(fan) : (s.slider === 'pas' ? pasTemp : drvTemp) + '°',
-      sliderMinLabel: s.slider === 'fan' ? '1 · gentle' : '17° · cool', sliderMaxLabel: s.slider === 'fan' ? 'max · 7' : 'warm · 33°',
-      sliderIsTemp: !!s.slider && s.slider !== 'fan', sliderIsFan: s.slider === 'fan',
-      coolWidth: 188, warmLeft: 220, markLeft: 214,
-      fanFill: Math.round((Math.max(1, fan) - 1) / 6 * 616),
-      thumbClass: s.slider === 'fan' || !s.slider ? '' : ((s.slider === 'pas' ? pasTemp : drvTemp) < 22 ? 's6-cool' : (s.slider === 'pas' ? pasTemp : drvTemp) > 22 ? 's6-warm' : ''),
-      sliderTextColor: s.slider === 'fan' || !s.slider ? '#F2F2F2' : ((s.slider === 'pas' ? pasTemp : drvTemp) < 22 ? '#2FB3FF' : (s.slider === 'pas' ? pasTemp : drvTemp) > 22 ? '#FF5A5F' : '#F2F2F2'),
-      sliderLeftLabel: s.slider === 'fan' ? '' : 'COOL', sliderRightLabel: s.slider === 'fan' ? '' : 'HEAT',
+      sliderTextColor: s.slider === 'fan' || !s.slider ? '#F2F2F2' : (s.slider === 'pas' ? pasTemp : drvTemp) < 22 ? '#2FB3FF' : (s.slider === 'pas' ? pasTemp : drvTemp) > 22 ? '#FF5A5F' : '#F2F2F2',
+      thumbClass: s.slider === 'fan' || !s.slider ? 's6-fan' : (s.slider === 'pas' ? pasTemp : drvTemp) < 22 ? 's6-cool' : (s.slider === 'pas' ? pasTemp : drvTemp) > 22 ? 's6-warm' : '',
+      fanPct: Math.round((Math.max(1, fan) - 1) / 6 * 100),
+      sliderStepDown: () => { this.armClose(); if (s.slider === 'fan') (l => this.send('fan', { level: l }, 'fan', l))(Math.max(1, fan - 1)); else setTemp(s.slider === 'pas' ? 2 : 1, Math.max(17, (s.slider === 'pas' ? pasTemp : drvTemp) - 1)); },
+      sliderStepUp: () => { this.armClose(); if (s.slider === 'fan') (l => this.send('fan', { level: l }, 'fan', l))(Math.min(7, fan + 1)); else setTemp(s.slider === 'pas' ? 2 : 1, Math.min(33, (s.slider === 'pas' ? pasTemp : drvTemp) + 1)); },
       onSlide: (e) => {
+        this.armClose();
         const v = parseInt(e.target.value, 10), which = s.slider;
         const key = which === 'fan' ? 'fan' : which === 'pas' ? 'pasTemp' : 'drvTemp';
         this.pending[key] = { val: v, until: Date.now() + 3000 };
@@ -252,6 +252,7 @@ class Home extends Component {
       }
     };
   }
+  armClose() { clearTimeout(this.closeT); this.closeT = setTimeout(() => this.setState({ slider: null }), 5000); }
   render() {
     const v = this.renderVals();
     return html`
@@ -461,31 +462,35 @@ class Home extends Component {
   </section>
   
   ${v.sliderOpen ? html`
-    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 838px; z-index: 10;">
-      <div onClick=${v.closeSlider} aria-hidden="true" style="position: absolute; top: 0; left: 0; width: 100%; height: 838px; background: rgba(0,0,0,0.65);"></div>
-      <div role="dialog" aria-label=${v.sliderTitle} style="position: absolute; left: 50%; margin-left: -360px; top: 250px; width: 720px; box-sizing: border-box; background: #111111; border: 1px solid #333; border-top: 4px solid ${v.accent}; border-radius: 8px; padding: 22px 28px 26px;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">${v.sliderTitle}</span>
-          <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 64px; line-height: 1; color: ${v.sliderTextColor};">${v.sliderText}</span>
-        </div>
-        <div style="position: relative; height: 56px; margin: 18px 0;">
-          ${v.sliderIsTemp ? html`
-            <div style="position: absolute; top: 23px; left: 24px; width: ${v.coolWidth}px; height: 10px; background: #2FB3FF; border-radius: 5px 0 0 5px;"></div>
-            <div style="position: absolute; top: 23px; left: ${v.warmLeft}px; right: 24px; height: 10px; background: #FF5A5F; border-radius: 0 5px 5px 0;"></div>
-            <div style="position: absolute; top: 8px; left: ${v.markLeft}px; width: 4px; height: 40px; background: #F2F2F2; border-radius: 2px;"></div>
-          ` : null}
-          ${v.sliderIsFan ? html`
-            <div style="position: absolute; top: 23px; left: 24px; right: 24px; height: 10px; background: #262626; border-radius: 5px;"></div>
-            <div style="position: absolute; top: 23px; left: 24px; width: ${v.fanFill}px; height: 10px; background: ${v.accent}; border-radius: 5px;"></div>
-          ` : null}
-          <input type="range" class="s6-range ${v.thumbClass}" aria-label=${v.sliderTitle} min=${v.sliderMin} max=${v.sliderMax} step=${v.sliderStep} value=${v.sliderValue} onInput=${v.onSlide} />
-        </div>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 22px; letter-spacing: 0.08em; color: #2FB3FF; width: 140px;">${v.sliderLeftLabel}</span>
-          <button type="button" onClick=${v.closeSlider} style="border: 0; background: ${v.accent}; color: #0A0A0A; border-radius: 6px; height: 64px; width: 220px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 24px; letter-spacing: 0.08em;">DONE</button>
-          <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 22px; letter-spacing: 0.08em; color: #FF5A5F; width: 140px; text-align: right;">${v.sliderRightLabel}</span>
-        </div>
+    <div onClick=${v.closeSlider} aria-hidden="true" style="position: absolute; top: 0; left: 0; width: 100%; height: 838px; z-index: 10; background: rgba(0,0,0,0.35);"></div>
+    <div role="dialog" aria-label=${v.sliderTitle} class="s6-sheet" class="gx-20" style="position: absolute; left: 28px; right: 28px; bottom: 28px; height: 140px; z-index: 11; box-sizing: border-box; background: #111111; border: 1px solid #333333; border-radius: 8px; padding: 0 16px 0 28px; display: flex; align-items: center;">
+      <div class="gy-4" style="width: 170px; flex-shrink: 0; display: flex; flex-direction: column;">
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 20px; letter-spacing: 0.12em; color: ${v.accent};">${v.sliderTitle}</span>
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 64px; line-height: 0.95; color: ${v.sliderTextColor};">${v.sliderText}</span>
       </div>
+      <button type="button" onClick=${v.sliderStepDown} aria-label="Down" style="width: 72px; height: 72px; flex-shrink: 0; border: 0; border-radius: 50%; background: #1E1E1E; color: #F2F2F2; font-size: 34px; line-height: 1;">–</button>
+      <div style="flex: 1 1 0; min-width: 0; position: relative; height: 96px;">
+        ${v.sliderIsTemp ? html`
+          <div style="position: absolute; top: 28px; left: 28px; right: 28px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #2FB3FF 0%, rgba(47,179,255,0.18) 31.25%, rgba(255,90,95,0.18) 31.25%, #FF5A5F 100%);"></div>
+          <div style="position: absolute; top: 18px; left: 28px; right: 28px; height: 28px;"><div style="position: absolute; top: 0; left: 31.25%; width: 2px; height: 28px; margin-left: -1px; background: #F2F2F2; opacity: 0.7;"></div></div>
+          <div style="position: absolute; top: 62px; left: 28px; right: 28px; height: 24px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 20px; letter-spacing: 0.06em; color: #6B6B6B;">
+            <span style="position: absolute; left: 0; color: #2FB3FF;">17°</span>
+            <span style="position: absolute; left: 31.25%; width: 60px; margin-left: -30px; text-align: center;">22°</span>
+            <span style="position: absolute; right: 0; color: #FF5A5F;">33°</span>
+          </div>
+        ` : null}
+        ${v.sliderIsFan ? html`
+          <div style="position: absolute; top: 28px; left: 28px; right: 28px; height: 8px; border-radius: 4px; background: #262626;"><div style="width: ${v.fanPct}%; height: 8px; border-radius: 4px; background: ${v.accent};"></div></div>
+          <div style="position: absolute; top: 62px; left: 28px; right: 28px; height: 24px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 20px; color: #6B6B6B;">
+            <span style="position: absolute; left: 0;">1</span><span style="position: absolute; right: 0;">7</span>
+          </div>
+        ` : null}
+        <input type="range" class="s6-range ${v.thumbClass}" aria-label=${v.sliderTitle} min=${v.sliderMin} max=${v.sliderMax} step=${v.sliderStep} value=${v.sliderValue} onInput=${v.onSlide} style="position: absolute; top: 4px; left: 0; width: 100%;" />
+      </div>
+      <button type="button" onClick=${v.sliderStepUp} aria-label="Up" style="width: 72px; height: 72px; flex-shrink: 0; border: 0; border-radius: 50%; background: #1E1E1E; color: #F2F2F2; font-size: 34px; line-height: 1;">+</button>
+      <button type="button" onClick=${v.closeSlider} aria-label="Close" style="width: 72px; height: 108px; flex-shrink: 0; border: 0; border-left: 1px solid #262626; background: transparent; margin-left: 4px;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#A6A6A6" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+      </button>
     </div>
   ` : null}
 </div>

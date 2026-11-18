@@ -13,15 +13,18 @@
 body{margin:0;background:#000}
 a{color:#FF5A5F}a:hover{color:#FF8A8D}
 button{font-family:inherit;cursor:pointer}
-.s6-range{-webkit-appearance:none;appearance:none;position:relative;display:block;width:100%;height:56px;background:transparent;margin:0}
-.s6-range::-webkit-slider-runnable-track{height:10px;background:transparent;border-radius:5px}
-.s6-range::-webkit-slider-thumb{-webkit-appearance:none;width:48px;height:48px;margin-top:-19px;border-radius:50%;background:#F2F2F2;border:4px solid #0A0A0A;box-shadow:0 0 0 2px #F2F2F2}
-.s6-range::-moz-range-track{height:10px;background:transparent;border-radius:5px}
-.s6-range::-moz-range-thumb{width:40px;height:40px;border-radius:50%;background:#F2F2F2;border:4px solid #0A0A0A;box-shadow:0 0 0 2px #F2F2F2}
-.s6-cool::-webkit-slider-thumb{background:#2FB3FF;box-shadow:0 0 0 2px #2FB3FF}
-.s6-warm::-webkit-slider-thumb{background:#FF5A5F;box-shadow:0 0 0 2px #FF5A5F}
-.s6-cool::-moz-range-thumb{background:#2FB3FF;box-shadow:0 0 0 2px #2FB3FF}
-.s6-warm::-moz-range-thumb{background:#FF5A5F;box-shadow:0 0 0 2px #FF5A5F}
+.s6-range{-webkit-appearance:none;appearance:none;display:block;height:56px;background:transparent;margin:0}
+.s6-range::-webkit-slider-runnable-track{height:8px;background:transparent}
+.s6-range::-webkit-slider-thumb{-webkit-appearance:none;width:56px;height:56px;margin-top:-24px;border-radius:50%;background:#F2F2F2;border:0;box-shadow:0 0 0 6px rgba(242,242,242,0.18),0 4px 12px rgba(0,0,0,0.6)}
+.s6-range::-moz-range-track{height:8px;background:transparent}
+.s6-range::-moz-range-thumb{width:56px;height:56px;border-radius:50%;background:#F2F2F2;border:0;box-shadow:0 0 0 6px rgba(242,242,242,0.18),0 4px 12px rgba(0,0,0,0.6)}
+.s6-cool::-webkit-slider-thumb{box-shadow:0 0 0 6px rgba(47,179,255,0.45),0 4px 12px rgba(0,0,0,0.6)}
+.s6-warm::-webkit-slider-thumb{box-shadow:0 0 0 6px rgba(255,90,95,0.45),0 4px 12px rgba(0,0,0,0.6)}
+.s6-cool::-moz-range-thumb{box-shadow:0 0 0 6px rgba(47,179,255,0.45)}
+.s6-warm::-moz-range-thumb{box-shadow:0 0 0 6px rgba(255,90,95,0.45)}
+.s6-sheet{-webkit-animation:s6up .18s ease-out;animation:s6up .18s ease-out}
+@-webkit-keyframes s6up{from{-webkit-transform:translateY(24px);opacity:0}to{-webkit-transform:none;opacity:1}}
+@keyframes s6up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
 </style>
 </helmet>
 <div style="width: 1600px; height: 838px; box-sizing: border-box; padding: 20px 28px 28px; background: #050505; color: #F2F2F2; font-family: Barlow, system-ui, sans-serif; position: relative; display: grid; grid-template-columns: 400px 400px minmax(0, 1fr) 340px; grid-template-rows: minmax(0, 1fr) 140px; gap: 18px;">
@@ -228,33 +231,37 @@ button{font-family:inherit;cursor:pointer}
     </div>
 
   </section>
-  <!-- SLIDER OVERLAY -->
+  <!-- SLIDER BAR (slides over the climate strip) -->
   <sc-if value="{{sliderOpen}}">
-    <div style="position: absolute; top: 0; left: 0; width: 1600px; height: 838px; z-index: 10;">
-      <div onClick="{{closeSlider}}" aria-hidden="true" style="position: absolute; top: 0; left: 0; width: 1600px; height: 838px; background: rgba(0,0,0,0.65);"></div>
-      <div role="dialog" aria-label="{{sliderTitle}}" style="position: absolute; left: 440px; top: 250px; width: 720px; box-sizing: border-box; background: #111111; border: 1px solid #333; border-top: 4px solid {{accent}}; border-radius: 8px; padding: 22px 28px 26px;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: {{accent}};">{{sliderTitle}}</span>
-          <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 64px; line-height: 1; color: {{sliderTextColor}};">{{sliderText}}</span>
-        </div>
-        <div style="position: relative; height: 56px; margin: 18px 0;">
-          <sc-if value="{{sliderIsTemp}}" hint-placeholder-val="{{true}}">
-            <div style="position: absolute; top: 23px; left: 24px; width: {{coolWidth}}px; height: 10px; background: #2FB3FF; border-radius: 5px 0 0 5px;"></div>
-            <div style="position: absolute; top: 23px; left: {{warmLeft}}px; right: 24px; height: 10px; background: #FF5A5F; border-radius: 0 5px 5px 0;"></div>
-            <div style="position: absolute; top: 8px; left: {{markLeft}}px; width: 4px; height: 40px; background: #F2F2F2; border-radius: 2px;"></div>
-          </sc-if>
-          <sc-if value="{{sliderIsFan}}" hint-placeholder-val="{{false}}">
-            <div style="position: absolute; top: 23px; left: 24px; right: 24px; height: 10px; background: #262626; border-radius: 5px;"></div>
-            <div style="position: absolute; top: 23px; left: 24px; width: {{fanFill}}px; height: 10px; background: {{accent}}; border-radius: 5px;"></div>
-          </sc-if>
-          <input type="range" class="s6-range {{thumbClass}}" aria-label="{{sliderTitle}}" min="{{sliderMin}}" max="{{sliderMax}}" step="{{sliderStep}}" value="{{sliderValue}}" onChange="{{onSlide}}">
-        </div>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 22px; letter-spacing: 0.08em; color: #2FB3FF; width: 140px;">{{sliderLeftLabel}}</span>
-          <button type="button" onClick="{{closeSlider}}" style="border: 0; background: {{accent}}; color: #0A0A0A; border-radius: 6px; height: 64px; width: 220px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 24px; letter-spacing: 0.08em;">DONE</button>
-          <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 22px; letter-spacing: 0.08em; color: #FF5A5F; width: 140px; text-align: right;">{{sliderRightLabel}}</span>
-        </div>
+    <div onClick="{{closeSlider}}" aria-hidden="true" style="position: absolute; top: 0; left: 0; width: 1600px; height: 838px; z-index: 10; background: rgba(0,0,0,0.35);"></div>
+    <div role="dialog" aria-label="{{sliderTitle}}" class="s6-sheet" style="position: absolute; left: 28px; right: 28px; bottom: 28px; height: 140px; z-index: 11; box-sizing: border-box; background: #111111; border: 1px solid #333333; border-radius: 8px; padding: 0 16px 0 28px; display: flex; align-items: center; gap: 20px;">
+      <div style="width: 170px; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px;">
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 20px; letter-spacing: 0.12em; color: {{accent}};">{{sliderTitle}}</span>
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 64px; line-height: 0.95; color: {{sliderTextColor}};">{{sliderText}}</span>
       </div>
+      <button type="button" onClick="{{sliderStepDown}}" aria-label="Down" style="width: 72px; height: 72px; flex-shrink: 0; border: 0; border-radius: 50%; background: #1E1E1E; color: #F2F2F2; font-size: 34px; line-height: 1;">–</button>
+      <div style="flex: 1 1 0; min-width: 0; position: relative; height: 96px;">
+        <sc-if value="{{sliderIsTemp}}" hint-placeholder-val="{{true}}">
+          <div style="position: absolute; top: 28px; left: 28px; right: 28px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #2FB3FF 0%, rgba(47,179,255,0.18) 31.25%, rgba(255,90,95,0.18) 31.25%, #FF5A5F 100%);"></div>
+          <div style="position: absolute; top: 18px; left: 28px; right: 28px; height: 28px;"><div style="position: absolute; top: 0; left: 31.25%; width: 2px; height: 28px; margin-left: -1px; background: #F2F2F2; opacity: 0.7;"></div></div>
+          <div style="position: absolute; top: 62px; left: 28px; right: 28px; height: 24px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 20px; letter-spacing: 0.06em; color: #6B6B6B;">
+            <span style="position: absolute; left: 0; color: #2FB3FF;">17°</span>
+            <span style="position: absolute; left: 31.25%; width: 60px; margin-left: -30px; text-align: center;">22°</span>
+            <span style="position: absolute; right: 0; color: #FF5A5F;">33°</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{sliderIsFan}}" hint-placeholder-val="{{false}}">
+          <div style="position: absolute; top: 28px; left: 28px; right: 28px; height: 8px; border-radius: 4px; background: #262626;"><div style="width: {{fanPct}}%; height: 8px; border-radius: 4px; background: {{accent}};"></div></div>
+          <div style="position: absolute; top: 62px; left: 28px; right: 28px; height: 24px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 20px; color: #6B6B6B;">
+            <span style="position: absolute; left: 0;">1</span><span style="position: absolute; right: 0;">7</span>
+          </div>
+        </sc-if>
+        <input type="range" class="s6-range {{thumbClass}}" aria-label="{{sliderTitle}}" min="{{sliderMin}}" max="{{sliderMax}}" step="{{sliderStep}}" value="{{sliderValue}}" onChange="{{onSlide}}" style="position: absolute; top: 4px; left: 0; width: 100%;">
+      </div>
+      <button type="button" onClick="{{sliderStepUp}}" aria-label="Up" style="width: 72px; height: 72px; flex-shrink: 0; border: 0; border-radius: 50%; background: #1E1E1E; color: #F2F2F2; font-size: 34px; line-height: 1;">+</button>
+      <button type="button" onClick="{{closeSlider}}" aria-label="Close" style="width: 72px; height: 108px; flex-shrink: 0; border: 0; border-left: 1px solid #262626; background: transparent; margin-left: 4px;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#A6A6A6" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+      </button>
     </div>
   </sc-if>
 </div>
@@ -323,6 +330,7 @@ class Component extends DCLogic {
       border: on ? '2px solid ' + accent : '1px solid #333'
     };
   }
+  armClose() { clearTimeout(this.closeT); this.closeT = setTimeout(() => this.setState({ slider: null }), 5000); }
   renderVals() {
     const s = this.state;
     const accent = this.props.accent ?? '#FF5A5F';
@@ -354,22 +362,22 @@ class Component extends DCLogic {
       musicPct: Math.round(38 * kMusic),
       tyreFL: (36.5 * kBars).toFixed(1), tyreFR: (36.2 * kBars).toFixed(1), tyreRL: (41.6 * kBars).toFixed(1), tyreRR: (36.9 * kBars).toFixed(1),
       tripKm: (48.2 * kBars).toFixed(1), tripKwh: (19.6 * kBars).toFixed(1), evShare: count(86, kBars), odo: count(12480, kBars),
-      openDrv: () => set({ slider: 'drv' }), openPas: () => set({ slider: 'pas' }), openFan: () => set({ slider: 'fan' }),
-      closeSlider: () => set({ slider: null }),
-      sliderOpen: !!s.slider,
-      sliderTitle: s.slider === 'fan' ? 'FAN SPEED' : s.slider === 'pas' ? 'PASSENGER TEMP' : 'DRIVER TEMP',
-      sliderMin: s.slider === 'fan' ? 1 : 17, sliderMax: s.slider === 'fan' ? 7 : 33,
-      sliderStep: s.slider === 'fan' ? 1 : 0.5,
-      sliderValue: s.slider === 'fan' ? s.fan : s.slider === 'pas' ? s.pasTemp : s.drvTemp,
+      // Temperature / fan bar: slides over the climate strip, closes after 5 s idle or a tap outside.
+      openDrv: () => { set({ slider: 'drv' }); this.armClose(); }, openPas: () => { set({ slider: 'pas' }); this.armClose(); },
+      openFan: () => { set({ slider: 'fan' }); this.armClose(); },
+      closeSlider: () => { clearTimeout(this.closeT); set({ slider: null }); },
+      sliderOpen: !!s.slider, sliderIsTemp: !!s.slider && s.slider !== 'fan', sliderIsFan: s.slider === 'fan',
+      sliderTitle: s.slider === 'fan' ? 'FAN' : s.slider === 'pas' ? 'PASSENGER' : 'DRIVER',
+      sliderMin: s.slider === 'fan' ? 1 : 17, sliderMax: s.slider === 'fan' ? 7 : 33, sliderStep: 1,
+      sliderValue: s.slider === 'fan' ? s.fan : (s.slider === 'pas' ? s.pasTemp : s.drvTemp),
       sliderText: s.slider === 'fan' ? String(s.fan) : (s.slider === 'pas' ? s.pasTemp : s.drvTemp) + '°',
-      sliderMinLabel: s.slider === 'fan' ? '1 · gentle' : '17° · cool', sliderMaxLabel: s.slider === 'fan' ? 'max · 7' : 'warm · 33°',
-      sliderIsTemp: !!s.slider && s.slider !== 'fan', sliderIsFan: s.slider === 'fan',
-      coolWidth: 188, warmLeft: 220, markLeft: 214,
-      fanFill: Math.round((Math.max(1, s.fan) - 1) / 6 * 616),
-      thumbClass: s.slider === 'fan' || !s.slider ? '' : ((s.slider === 'pas' ? s.pasTemp : s.drvTemp) < 22 ? 's6-cool' : (s.slider === 'pas' ? s.pasTemp : s.drvTemp) > 22 ? 's6-warm' : ''),
-      sliderTextColor: s.slider === 'fan' || !s.slider ? '#F2F2F2' : ((s.slider === 'pas' ? s.pasTemp : s.drvTemp) < 22 ? '#2FB3FF' : (s.slider === 'pas' ? s.pasTemp : s.drvTemp) > 22 ? '#FF5A5F' : '#F2F2F2'),
-      sliderLeftLabel: s.slider === 'fan' ? '' : 'COOL', sliderRightLabel: s.slider === 'fan' ? '' : 'HEAT',
+      sliderTextColor: s.slider === 'fan' || !s.slider ? '#F2F2F2' : (s.slider === 'pas' ? s.pasTemp : s.drvTemp) < 22 ? '#2FB3FF' : (s.slider === 'pas' ? s.pasTemp : s.drvTemp) > 22 ? '#FF5A5F' : '#F2F2F2',
+      thumbClass: s.slider === 'fan' || !s.slider ? 's6-fan' : (s.slider === 'pas' ? s.pasTemp : s.drvTemp) < 22 ? 's6-cool' : (s.slider === 'pas' ? s.pasTemp : s.drvTemp) > 22 ? 's6-warm' : '',
+      fanPct: Math.round((Math.max(1, s.fan) - 1) / 6 * 100),
+      sliderStepDown: () => { this.armClose(); if (s.slider === 'fan') (l => set({ fan: l, auto: false }))(Math.max(1, s.fan - 1)); else ((z, t) => set(z === 2 ? { pasTemp: t } : { drvTemp: t }))(s.slider === 'pas' ? 2 : 1, Math.max(17, (s.slider === 'pas' ? s.pasTemp : s.drvTemp) - 1)); },
+      sliderStepUp: () => { this.armClose(); if (s.slider === 'fan') (l => set({ fan: l, auto: false }))(Math.min(7, s.fan + 1)); else ((z, t) => set(z === 2 ? { pasTemp: t } : { drvTemp: t }))(s.slider === 'pas' ? 2 : 1, Math.min(33, (s.slider === 'pas' ? s.pasTemp : s.drvTemp) + 1)); },
       onSlide: (e) => {
+        this.armClose();
         const v = parseFloat(e.target.value);
         if (s.slider === 'fan') set({ fan: v, auto: false });
         else if (s.slider === 'pas') set({ pasTemp: v });

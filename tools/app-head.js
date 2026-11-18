@@ -223,22 +223,22 @@ class Home extends Component {
       drvVent: this.seat('vent', num(seats.drvVent), 1, '#2FB3FF', 0.3),
       pasHeat: this.seat('heat', num(seats.pasHeat), 2, '#FF8A00', 0.4),
       pasVent: this.seat('vent', num(seats.pasVent), 2, '#2FB3FF', 0.4),
-      // Sliders: temperature in whole degrees (the car's setter takes ints), fan 1-7.
-      openDrv: () => set({ slider: 'drv' }), openPas: () => set({ slider: 'pas' }), openFan: () => set({ slider: 'fan' }),
-      closeSlider: () => set({ slider: null }),
-      sliderOpen: !!s.slider,
-      sliderTitle: s.slider === 'fan' ? 'FAN SPEED' : s.slider === 'pas' ? 'PASSENGER TEMP' : 'DRIVER TEMP',
+      // Temperature / fan bar: slides over the climate strip, closes after 5 s idle or a tap outside.
+      openDrv: () => { set({ slider: 'drv' }); this.armClose(); }, openPas: () => { set({ slider: 'pas' }); this.armClose(); },
+      openFan: () => { set({ slider: 'fan' }); this.armClose(); },
+      closeSlider: () => { clearTimeout(this.closeT); set({ slider: null }); },
+      sliderOpen: !!s.slider, sliderIsTemp: !!s.slider && s.slider !== 'fan', sliderIsFan: s.slider === 'fan',
+      sliderTitle: s.slider === 'fan' ? 'FAN' : s.slider === 'pas' ? 'PASSENGER' : 'DRIVER',
       sliderMin: s.slider === 'fan' ? 1 : 17, sliderMax: s.slider === 'fan' ? 7 : 33, sliderStep: 1,
-      sliderValue: s.slider === 'fan' ? fan : s.slider === 'pas' ? pasTemp : drvTemp,
+      sliderValue: s.slider === 'fan' ? fan : (s.slider === 'pas' ? pasTemp : drvTemp),
       sliderText: s.slider === 'fan' ? String(fan) : (s.slider === 'pas' ? pasTemp : drvTemp) + '°',
-      sliderMinLabel: s.slider === 'fan' ? '1 · gentle' : '17° · cool', sliderMaxLabel: s.slider === 'fan' ? 'max · 7' : 'warm · 33°',
-      sliderIsTemp: !!s.slider && s.slider !== 'fan', sliderIsFan: s.slider === 'fan',
-      coolWidth: 188, warmLeft: 220, markLeft: 214,
-      fanFill: Math.round((Math.max(1, fan) - 1) / 6 * 616),
-      thumbClass: s.slider === 'fan' || !s.slider ? '' : ((s.slider === 'pas' ? pasTemp : drvTemp) < 22 ? 's6-cool' : (s.slider === 'pas' ? pasTemp : drvTemp) > 22 ? 's6-warm' : ''),
-      sliderTextColor: s.slider === 'fan' || !s.slider ? '#F2F2F2' : ((s.slider === 'pas' ? pasTemp : drvTemp) < 22 ? '#2FB3FF' : (s.slider === 'pas' ? pasTemp : drvTemp) > 22 ? '#FF5A5F' : '#F2F2F2'),
-      sliderLeftLabel: s.slider === 'fan' ? '' : 'COOL', sliderRightLabel: s.slider === 'fan' ? '' : 'HEAT',
+      sliderTextColor: s.slider === 'fan' || !s.slider ? '#F2F2F2' : (s.slider === 'pas' ? pasTemp : drvTemp) < 22 ? '#2FB3FF' : (s.slider === 'pas' ? pasTemp : drvTemp) > 22 ? '#FF5A5F' : '#F2F2F2',
+      thumbClass: s.slider === 'fan' || !s.slider ? 's6-fan' : (s.slider === 'pas' ? pasTemp : drvTemp) < 22 ? 's6-cool' : (s.slider === 'pas' ? pasTemp : drvTemp) > 22 ? 's6-warm' : '',
+      fanPct: Math.round((Math.max(1, fan) - 1) / 6 * 100),
+      sliderStepDown: () => { this.armClose(); if (s.slider === 'fan') (l => this.send('fan', { level: l }, 'fan', l))(Math.max(1, fan - 1)); else setTemp(s.slider === 'pas' ? 2 : 1, Math.max(17, (s.slider === 'pas' ? pasTemp : drvTemp) - 1)); },
+      sliderStepUp: () => { this.armClose(); if (s.slider === 'fan') (l => this.send('fan', { level: l }, 'fan', l))(Math.min(7, fan + 1)); else setTemp(s.slider === 'pas' ? 2 : 1, Math.min(33, (s.slider === 'pas' ? pasTemp : drvTemp) + 1)); },
       onSlide: (e) => {
+        this.armClose();
         const v = parseInt(e.target.value, 10), which = s.slider;
         const key = which === 'fan' ? 'fan' : which === 'pas' ? 'pasTemp' : 'drvTemp';
         this.pending[key] = { val: v, until: Date.now() + 3000 };
@@ -252,6 +252,7 @@ class Home extends Component {
       }
     };
   }
+  armClose() { clearTimeout(this.closeT); this.closeT = setTimeout(() => this.setState({ slider: null }), 5000); }
   render() {
     const v = this.renderVals();
     return html`

@@ -18,20 +18,23 @@ html,body{margin:0;height:100%;position:fixed;width:100%;top:0;left:0;background
 #stage{width:100%;height:100%}
 a{color:#FF5A5F}
 /* Flex gaps as margins: the car's WebView predates flexbox gap. */
-.gx-10>*+*{margin-left:10px}.gx-14>*+*{margin-left:14px}.gx-22>*+*{margin-left:22px}.gx-3>*+*{margin-left:3px}.gx-4>*+*{margin-left:4px}.gx-6>*+*{margin-left:6px}.gx-8>*+*{margin-left:8px}.gy-10>*+*{margin-top:10px}.gy-14>*+*{margin-top:14px}.gy-16>*+*{margin-top:16px}.gy-6>*+*{margin-top:6px}.gy-7>*+*{margin-top:7px}
+.gx-10>*+*{margin-left:10px}.gx-14>*+*{margin-left:14px}.gx-20>*+*{margin-left:20px}.gx-22>*+*{margin-left:22px}.gx-3>*+*{margin-left:3px}.gx-4>*+*{margin-left:4px}.gx-6>*+*{margin-left:6px}.gx-8>*+*{margin-left:8px}.gy-10>*+*{margin-top:10px}.gy-14>*+*{margin-top:14px}.gy-16>*+*{margin-top:16px}.gy-4>*+*{margin-top:4px}.gy-6>*+*{margin-top:6px}.gy-7>*+*{margin-top:7px}
 button{font-family:inherit;cursor:pointer}
 *:focus{outline:none}
 button::-moz-focus-inner{border:0}
 button:active,a:active{filter:brightness(1.3)}
-.s6-range{-webkit-appearance:none;appearance:none;position:relative;display:block;width:100%;height:56px;background:transparent;margin:0}
-.s6-range::-webkit-slider-runnable-track{height:10px;background:transparent;border-radius:5px}
-.s6-range::-webkit-slider-thumb{-webkit-appearance:none;width:48px;height:48px;margin-top:-19px;border-radius:50%;background:#F2F2F2;border:4px solid #0A0A0A;box-shadow:0 0 0 2px #F2F2F2}
-.s6-range::-moz-range-track{height:10px;background:transparent;border-radius:5px}
-.s6-range::-moz-range-thumb{width:40px;height:40px;border-radius:50%;background:#F2F2F2;border:4px solid #0A0A0A;box-shadow:0 0 0 2px #F2F2F2}
-.s6-cool::-webkit-slider-thumb{background:#2FB3FF;box-shadow:0 0 0 2px #2FB3FF}
-.s6-warm::-webkit-slider-thumb{background:#FF5A5F;box-shadow:0 0 0 2px #FF5A5F}
-.s6-cool::-moz-range-thumb{background:#2FB3FF;box-shadow:0 0 0 2px #2FB3FF}
-.s6-warm::-moz-range-thumb{background:#FF5A5F;box-shadow:0 0 0 2px #FF5A5F}
+.s6-range{-webkit-appearance:none;appearance:none;display:block;height:56px;background:transparent;margin:0}
+.s6-range::-webkit-slider-runnable-track{height:8px;background:transparent}
+.s6-range::-webkit-slider-thumb{-webkit-appearance:none;width:56px;height:56px;margin-top:-24px;border-radius:50%;background:#F2F2F2;border:0;box-shadow:0 0 0 6px rgba(242,242,242,0.18),0 4px 12px rgba(0,0,0,0.6)}
+.s6-range::-moz-range-track{height:8px;background:transparent}
+.s6-range::-moz-range-thumb{width:56px;height:56px;border-radius:50%;background:#F2F2F2;border:0;box-shadow:0 0 0 6px rgba(242,242,242,0.18),0 4px 12px rgba(0,0,0,0.6)}
+.s6-cool::-webkit-slider-thumb{box-shadow:0 0 0 6px rgba(47,179,255,0.45),0 4px 12px rgba(0,0,0,0.6)}
+.s6-warm::-webkit-slider-thumb{box-shadow:0 0 0 6px rgba(255,90,95,0.45),0 4px 12px rgba(0,0,0,0.6)}
+.s6-cool::-moz-range-thumb{box-shadow:0 0 0 6px rgba(47,179,255,0.45)}
+.s6-warm::-moz-range-thumb{box-shadow:0 0 0 6px rgba(255,90,95,0.45)}
+.s6-sheet{-webkit-animation:s6up .18s ease-out;animation:s6up .18s ease-out}
+@-webkit-keyframes s6up{from{-webkit-transform:translateY(24px);opacity:0}to{-webkit-transform:none;opacity:1}}
+@keyframes s6up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
 </style>
 </head>
 <body>
