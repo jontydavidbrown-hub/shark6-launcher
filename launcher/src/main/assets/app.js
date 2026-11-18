@@ -266,7 +266,11 @@ class Home extends Component {
     const ac = this.pv('ac', !!c.compressor), auto = this.pv('auto', !!c.auto), demist = this.pv('demist', !!c.demist);
     const st = (on, color) => ({ border: on ? '2px solid ' + color : '1px solid #2A2A2A', bg: on ? '#1A1A1A' : '#161616', icon: on ? color : '#A6A6A6', text: on ? '#F2F2F2' : '#A6A6A6' });
     // SYNC is our own setting: read from the car once, then only the SYNC button changes it.
-    if (this.syncMode === undefined && c.dual !== undefined) this.syncMode = c.dual !== 1;
+    // Sync always starts on: on the first car reading after launch, join the zones if the car has them split.
+    if (this.syncMode === undefined && c.dual !== undefined) {
+      this.syncMode = true; (this.cmdQuiet = this.cmdQuiet || {})[0] = true;
+      if (c.dual === 1 && typeof c.drvTemp === 'number') Bridge.command('sync', JSON.stringify({ id: 0, on: true, value: c.drvTemp }));
+    }
     const synced = this.syncMode === undefined ? true : this.syncMode;
     // When synced, a temp change applies to both sides (the car keeps the zones joined).
     const setTemp = (zone, value) => {
