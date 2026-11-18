@@ -202,17 +202,13 @@ final class CarData {
         Object r;
         switch (name) {
             case "temp": {
-                // As SharkHub: the passenger zone only holds its own setting with the zones split;
-                // the driver side sets both zones unless they're already split.
+                // Synced (zones joined): every temp tap sets both sides and the zones stay joined.
+                // Split: each side sets only its own zone. Only the SYNC button changes the mode.
                 int t = Math.max(17, Math.min(33, a.optInt("value", 21)));
-                int target;
-                if (a.optInt("zone", ZONE_DRIVER) == ZONE_PASSENGER) {
-                    call("ac", "setAcTemperatureControlMode", SOURCE_UI, ON);
-                    target = ZONE_PASSENGER;
-                } else {
-                    Double split = num("ac", "getAcTemperatureControlMode");
-                    target = split != null && split.intValue() == ON ? ZONE_DRIVER : ZONE_BOTH;
-                }
+                Double split = num("ac", "getAcTemperatureControlMode");
+                boolean separate = split != null && split.intValue() == ON;
+                int target = !separate ? ZONE_BOTH
+                        : a.optInt("zone", ZONE_DRIVER) == ZONE_PASSENGER ? ZONE_PASSENGER : ZONE_DRIVER;
                 r = call("ac", "setAcTemperature", target, t, SOURCE_UI, UNIT_C);
                 break;
             }

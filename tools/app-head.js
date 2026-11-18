@@ -147,6 +147,11 @@ class Home extends Component {
     const ac = this.pv('ac', !!c.compressor), auto = this.pv('auto', !!c.auto), demist = this.pv('demist', !!c.demist);
     const st = (on, color) => ({ border: on ? '2px solid ' + color : '1px solid #2A2A2A', bg: on ? '#1A1A1A' : '#161616', icon: on ? color : '#A6A6A6', text: on ? '#F2F2F2' : '#A6A6A6' });
     const synced = this.pv('synced', c.dual !== 1);
+    // When synced, a temp change applies to both sides (the car keeps the zones joined).
+    const setTemp = (zone, value) => {
+      if (synced) this.pending[zone === 1 ? 'pasTemp' : 'drvTemp'] = { val: value, until: Date.now() + 3000 };
+      this.send('temp', { zone, value }, zone === 1 ? 'drvTemp' : 'pasTemp', value);
+    };
     const d = st(demist, '#FF8A00'), a = st(ac, '#2FB3FF'), u = st(auto, accent), y = st(synced, '#F2F2F2');
     const cs = c.seats || {};
     const seats = { drvHeat: this.pv('drvHeat', cs.drvHeat), drvVent: this.pv('drvVent', cs.drvVent),
@@ -192,10 +197,8 @@ class Home extends Component {
       togglePlay: () => Bridge.media(m.playing ? 'pause' : 'play'),
       prevTrack: () => Bridge.media('prev'), nextTrack: () => Bridge.media('next'),
       drvTemp: tempUp(drvTemp, kClimate), pasTemp: tempUp(pasTemp, kClimate),
-      drvUp: () => this.send('temp', { zone: 1, value: clampT(drvTemp + 1) }, 'drvTemp', clampT(drvTemp + 1)),
-      drvDown: () => this.send('temp', { zone: 1, value: clampT(drvTemp - 1) }, 'drvTemp', clampT(drvTemp - 1)),
-      pasUp: () => this.send('temp', { zone: 2, value: clampT(pasTemp + 1) }, 'pasTemp', clampT(pasTemp + 1)),
-      pasDown: () => this.send('temp', { zone: 2, value: clampT(pasTemp - 1) }, 'pasTemp', clampT(pasTemp - 1)),
+      drvUp: () => setTemp(1, clampT(drvTemp + 1)), drvDown: () => setTemp(1, clampT(drvTemp - 1)),
+      pasUp: () => setTemp(2, clampT(pasTemp + 1)), pasDown: () => setTemp(2, clampT(pasTemp - 1)),
       fanLabel: auto ? 'AUTO' : String(fan),
       fanSegs: this.segs(Math.round(fan * kClimate), 7, accent),
       ac, auto, demist,
@@ -224,11 +227,12 @@ class Home extends Component {
         const v = parseInt(e.target.value, 10), which = s.slider;
         const key = which === 'fan' ? 'fan' : which === 'pas' ? 'pasTemp' : 'drvTemp';
         this.pending[key] = { val: v, until: Date.now() + 3000 };
+        if (synced && key !== 'fan') this.pending[key === 'drvTemp' ? 'pasTemp' : 'drvTemp'] = { val: v, until: Date.now() + 3000 };
         this.forceUpdate();
         clearTimeout(this.slideTimer);
         this.slideTimer = setTimeout(() => {
           if (which === 'fan') this.send('fan', { level: v }, 'fan', v);
-          else this.send('temp', { zone: which === 'pas' ? 2 : 1, value: v }, key, v);
+          else setTemp(which === 'pas' ? 2 : 1, v);
         }, 350);
       }
     };

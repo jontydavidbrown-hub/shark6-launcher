@@ -37,8 +37,12 @@ final class Media {
             MediaController best = null;
             for (MediaController c : list) {
                 PlaybackState s = c.getPlaybackState();
-                if (s != null && s.getState() == PlaybackState.STATE_PLAYING) return c;
-                if (best == null && c.getMetadata() != null) best = c;
+                if (s == null) continue;
+                int st = s.getState();
+                if (st == PlaybackState.STATE_PLAYING) return c;
+                // Skip sessions that are idle or errored (e.g. Spotify "please log in", BT disconnected).
+                if (st == PlaybackState.STATE_NONE || st == PlaybackState.STATE_ERROR || st == PlaybackState.STATE_STOPPED) continue;
+                if (best == null) best = c;
             }
             return best;
         } catch (SecurityException e) {
@@ -67,7 +71,7 @@ final class Media {
             String app = appName(current.getPackageName());
             o.put("app", app);
             // Some sources (BYD radio, local music) publish a session with no track title: show the app.
-            if (!o.has("title")) o.put("title", app);
+            if (!o.has("title") && ps != null && ps.getState() == PlaybackState.STATE_PLAYING) o.put("title", app);
             if (ps != null) {
                 boolean playing = ps.getState() == PlaybackState.STATE_PLAYING;
                 o.put("playing", playing);
