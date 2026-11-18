@@ -61,21 +61,35 @@ final class Sideload {
         t.start();
     }
 
-    /** "http://192.168.x.x:8686" for each Wi-Fi/hotspot address the car has. */
+    /**
+     * Where a phone can reach the page. The car also has internal networks (172.16.x for its own
+     * modules) that a phone can never reach, so those are left out. 192.168.43.1 is the car's own
+     * hotspot; any other private address is a Wi-Fi network the car has joined.
+     */
     static String address() {
         StringBuilder b = new StringBuilder();
+        String hotspot = null;
         try {
             for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
                 if (!ni.isUp() || ni.isLoopback()) continue;
+                String name = ni.getName() == null ? "" : ni.getName();
+                if (!(name.startsWith("wlan") || name.startsWith("ap") || name.startsWith("swlan") || name.startsWith("softap"))) continue;
                 for (InetAddress a : Collections.list(ni.getInetAddresses())) {
-                    if (a instanceof Inet4Address && !a.isLoopbackAddress()) {
-                        if (b.length() > 0) b.append("  or  ");
-                        b.append("http://").append(a.getHostAddress()).append(':').append(PORT);
-                    }
+                    if (!(a instanceof Inet4Address) || a.isLoopbackAddress()) continue;
+                    String ip = a.getHostAddress();
+                    if (ip.startsWith("172.16.")) continue;
+                    String url = "http://" + ip + ":" + PORT;
+                    if (ip.startsWith("192.168.43.")) { hotspot = url; continue; }
+                    if (b.length() > 0) b.append("  or  ");
+                    b.append(url).append(" (Wi-Fi)");
                 }
             }
         } catch (Exception ignored) { }
-        return b.length() == 0 ? "no Wi-Fi connection" : b.toString();
+        if (hotspot != null) {
+            if (b.length() > 0) b.append("  or  ");
+            b.append(hotspot).append(" (join the car's hotspot)");
+        }
+        return b.length() == 0 ? "connect the car to Wi-Fi or turn on its hotspot" : b.toString();
     }
 
     private static void handle(Context c, Socket s) {
