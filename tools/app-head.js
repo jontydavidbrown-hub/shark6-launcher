@@ -138,7 +138,8 @@ class Home extends Component {
     }, 250);
     window.onCommandResult = (id, r) => this.commandResult(id, r);
     // OTA: Android tells us when a newer build is out, then reports download progress.
-    window.onUpdate = (json) => { try { this.setState({ update: JSON.parse(json), updPct: -1, updErr: '' }); } catch (e) {} };
+    window.onUpdate = (json) => { try { this.setState({ update: JSON.parse(json), updPct: -1, updErr: '', updChecking: false }); } catch (e) {} };
+    window.onNoUpdate = () => { this.setState({ updChecking: false }); Bridge.toast('Up to date (' + (call('version') || 'latest') + ')'); };
     window.onUpdateProgress = (p) => this.setState({ updPct: p });
     window.onUpdateFailed = (m) => this.setState({ updPct: -1, updErr: 'Update failed. Try again later.' });
     // Welcome screen once per car start; the dials sweep in after it.
@@ -449,6 +450,13 @@ class Home extends Component {
       sliderStepDown: () => { this.armClose(); if (s.slider === 'fan') (l => this.send('fan', { level: l }, 'fan', l))(Math.max(1, fan - 1)); else setTemp(s.slider === 'pas' ? 2 : 1, Math.max(17, (s.slider === 'pas' ? pasTemp : drvTemp) - 1)); },
       sliderStepUp: () => { this.armClose(); if (s.slider === 'fan') (l => this.send('fan', { level: l }, 'fan', l))(Math.min(7, fan + 1)); else setTemp(s.slider === 'pas' ? 2 : 1, Math.min(33, (s.slider === 'pas' ? pasTemp : drvTemp) + 1)); },
       openCameras: (e) => { if (e) e.preventDefault(); Bridge.openApp('cameras'); },
+      checkUpdates: () => {
+        if (s.updChecking) return;
+        sfx('tap'); this.setState({ updChecking: true });
+        try { Bridge.checkUpdate(); } catch (e) { this.setState({ updChecking: false }); }
+        setTimeout(() => { if (this.state.updChecking) { this.setState({ updChecking: false }); Bridge.toast('Couldn\'t check for updates. Is the car online?'); } }, 20000);
+      },
+      updIconColor: s.updChecking ? accent : '#A6A6A6', updSpin: s.updChecking ? 's6-spin 1s linear infinite' : 'none',
       updateOpen: !!s.update, updateName: s.update ? s.update.name : '',
       updateBusy: s.updPct >= 0, updateIdle: !(s.updPct >= 0), updatePct: Math.max(0, s.updPct || 0), updateBarOpacity: s.updPct >= 0 ? 1 : 0,
       updateNote: s.updErr || (s.updPct >= 100 ? 'Confirm on the screen that opens' : s.updPct >= 0 ? 'Downloading ' + s.updPct + '%' : 'A new version of the home screen is ready'),

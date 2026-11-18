@@ -352,6 +352,15 @@ public class MainActivity extends Activity {
                 @Override public void failed(String why) { pushJs("window.onUpdateFailed && window.onUpdateFailed(" + JSONObject.quote(why) + ")"); }
             }), "ota").start();
         }
+        /** Manual "check for updates": shows the update sheet, or tells the page it is up to date. */
+        @JavascriptInterface public void checkUpdate() {
+            new Thread(() -> {
+                lastUpdateCheck = System.currentTimeMillis();
+                JSONObject u = Updater.check(MainActivity.this);
+                if (u != null) pushJs("window.onUpdate && window.onUpdate(" + JSONObject.quote(u.toString()) + ")");
+                else pushJs("window.onNoUpdate && window.onNoUpdate()");
+            }, "ota-check-now").start();
+        }
         @JavascriptInterface public String version() {
             try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return ""; }
         }
