@@ -245,7 +245,7 @@ final class Sideload {
             + "button:disabled{opacity:.5}#s{margin-top:20px;white-space:pre-wrap;color:#F2F2F2}</style></head><body>"
             + "<h1>Send an app to the Shark</h1><p>Pick an APK file or paste a link to one. The car installs it and opens it.</p>"
             + "<label>PIN on the car screen</label><input id=pin inputmode=numeric maxlength=4 placeholder='0000'>"
-            + "<label>APK file</label><input id=f type=file accept='.apk,application/vnd.android.package-archive'>"
+            + "<label>APK file</label><input id=f type=file>"
             + "<button id=up>Send file</button>"
             + "<label>Or a link to an APK</label><input id=u type=url placeholder='https://…/game.apk'>"
             + "<button id=go>Send link</button><div id=s></div><script>"
