@@ -73,7 +73,6 @@ final class Sideload {
             for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
                 if (!ni.isUp() || ni.isLoopback()) continue;
                 String name = ni.getName() == null ? "" : ni.getName();
-                if (!(name.startsWith("wlan") || name.startsWith("ap") || name.startsWith("swlan") || name.startsWith("softap"))) continue;
                 for (InetAddress a : Collections.list(ni.getInetAddresses())) {
                     if (!(a instanceof Inet4Address) || a.isLoopbackAddress()) continue;
                     String ip = a.getHostAddress();
