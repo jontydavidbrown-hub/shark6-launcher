@@ -274,11 +274,11 @@ class Home extends Component {
         <span style="font-size: 24px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KM</span>
       </div>
     </div>
-    <div style="align-self: stretch; height: 100px; flex-shrink: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
-      <div style="border-left: 4px solid ${v.accent}; padding-left: 12px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 50px; line-height: 1.05; white-space: nowrap;">${v.evRange} KM</div><div style="font-size: 26px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">BATTERY ${v.battPct}%</div></div>
-      <div style="border-left: 4px solid #F2F2F2; padding-left: 12px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 50px; line-height: 1.05; white-space: nowrap;">${v.fuelRange} KM</div><div style="font-size: 26px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">FUEL ${v.fuelPct}%</div></div>
+    <div style="align-self: stretch; height: 84px; flex-shrink: 0; margin-top: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+      <div style="border-left: 4px solid ${v.accent}; padding-left: 12px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px; line-height: 1.1; white-space: nowrap;">${v.evRange} KM</div><div style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">BATTERY ${v.battPct}%</div></div>
+      <div style="border-left: 4px solid #F2F2F2; padding-left: 12px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px; line-height: 1.1; white-space: nowrap;">${v.fuelRange} KM</div><div style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">FUEL ${v.fuelPct}%</div></div>
     </div>
-    <div style="align-self: stretch; margin-top: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border-top: 1px solid #262626; padding-top: 12px;"><div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 44px; line-height: 1.05; white-space: nowrap; overflow: hidden;">${v.avgElec} <span style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KWH/100 AVG</span></div></div><div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 44px; line-height: 1.05; white-space: nowrap; overflow: hidden;">${v.avgFuel} <span style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">L/100 AVG</span></div></div></div>
+    <div style="align-self: stretch; margin-top: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border-top: 1px solid #262626; padding-top: 12px;"><div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px; line-height: 1.1; white-space: nowrap; overflow: hidden;">${v.avgElec} <span style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KWH/100 AVG</span></div></div><div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px; line-height: 1.1; white-space: nowrap; overflow: hidden;">${v.avgFuel} <span style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">L/100 AVG</span></div></div></div>
   </section>
 
   
@@ -301,14 +301,14 @@ class Home extends Component {
         <span style="font-size: 24px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KM/H</span>
       </div>
     </div>
-    <div class="gy-16" style="align-self: stretch; height: 100px; flex-shrink: 0; display: flex; flex-direction: column; justify-content: center;">
+    <div class="gy-16" style="align-self: stretch; height: 84px; flex-shrink: 0; margin-top: auto; display: flex; flex-direction: column; justify-content: center;">
       <div style="position: relative; height: 12px; background: #1C1C1C;">
         <div style="position: absolute; top: 0; bottom: 0; left: ${v.powerLeft}%; width: ${v.powerWidth}%; background: ${v.powerColor};"></div>
         <div style="position: absolute; top: -4px; bottom: -4px; left: 50%; width: 2px; background: #4A4A4A;"></div>
       </div>
-      <div style="display: flex; justify-content: space-between; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 24px; letter-spacing: 0.04em; color: #A6A6A6;"><span>REGEN</span><span style="color: #F2F2F2; font-size: 40px; line-height: 1;">${v.powerLabel}</span><span>POWER</span></div>
+      <div style="display: flex; justify-content: space-between; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 20px; letter-spacing: 0.04em; color: #A6A6A6;"><span>REGEN</span><span style="color: #F2F2F2; font-size: 36px; line-height: 1;">${v.powerLabel}</span><span>POWER</span></div>
     </div>
-    <div style="align-self: stretch; margin-top: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border-top: 1px solid #262626; padding-top: 12px;"><div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 44px; line-height: 1.05; white-space: nowrap; overflow: hidden;">${v.driveMode} <span style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">MODE</span></div></div><div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 44px; line-height: 1.05; white-space: nowrap; overflow: hidden;">${v.outside}° <span style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">OUTSIDE</span></div></div></div>
+    <div style="align-self: stretch; margin-top: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border-top: 1px solid #262626; padding-top: 12px;"><div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px; line-height: 1.1; white-space: nowrap; overflow: hidden;">${v.driveMode} <span style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">MODE</span></div></div><div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px; line-height: 1.1; white-space: nowrap; overflow: hidden;">${v.outside}° <span style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">OUTSIDE</span></div></div></div>
   </section>
 
   
@@ -351,10 +351,10 @@ class Home extends Component {
         <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">TRIP</span>
       </div>
       <div class="gx-22" style="display: flex;">
-        <div><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 26px;">${v.tripKm}</span> <span style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KM</span></div>
-        <div><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 26px;">${v.tripKwh}</span> <span style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KWH/100</span></div>
+        <div><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px;">${v.tripKm}</span> <span style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KM</span></div>
+        <div><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px;">${v.tripKwh}</span> <span style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KWH/100</span></div>
       </div>
-      <div style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">ODO ${v.odo} KM</div>
+      <div style="font-size: 22px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">ODO ${v.odo} KM</div>
     </div>
 
     <a href="#" onClick=${v.openCarPlay} class="gx-14" style="text-decoration: none; background: #111111; border: 1px solid #262626; border-radius: 8px; color: #F2F2F2; padding: 0 16px 0 0; display: flex; align-items: center;  overflow: hidden; min-height: 0; min-width: 0; overflow: hidden;">
