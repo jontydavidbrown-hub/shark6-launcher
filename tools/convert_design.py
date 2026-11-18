@@ -24,6 +24,7 @@ opt('kPa · all OK','{{tyreNote}}')
 opt('{{evShare}}% electric','{{tripFuel}}')
 opt('<div style="height: 4px; background: #262626;"><div style="height: 4px; width: {{evShare}}%; background: {{accent}};"></div></div>',
     '<div style="font-size: 13px; color: #A6A6A6;">ODO {{odo}} km</div>')
+rep('<a href="#" aria-label="Open 360 cameras"','<a href="#" onClick="{{openCameras}}" aria-label="Open 360 cameras"')
 rep('<a href="#" aria-label="Open CarPlay"','<a href="#" onClick="{{openCarPlay}}" aria-label="Open CarPlay"')
 # now playing
 rep('''<div style="flex: 1; min-height: 0; background: #1E1E1E; border-radius: 6px; display: flex; align-items: center; justify-content: center;">''',

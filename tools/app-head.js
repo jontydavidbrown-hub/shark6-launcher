@@ -254,6 +254,7 @@ class Home extends Component {
       fanPct: Math.round((Math.max(1, fan) - 1) / 6 * 100),
       sliderStepDown: () => { this.armClose(); if (s.slider === 'fan') (l => this.send('fan', { level: l }, 'fan', l))(Math.max(1, fan - 1)); else setTemp(s.slider === 'pas' ? 2 : 1, Math.max(17, (s.slider === 'pas' ? pasTemp : drvTemp) - 1)); },
       sliderStepUp: () => { this.armClose(); if (s.slider === 'fan') (l => this.send('fan', { level: l }, 'fan', l))(Math.min(7, fan + 1)); else setTemp(s.slider === 'pas' ? 2 : 1, Math.min(33, (s.slider === 'pas' ? pasTemp : drvTemp) + 1)); },
+      openCameras: (e) => { if (e) e.preventDefault(); Bridge.openApp('cameras'); },
       updateOpen: !!s.update, updateName: s.update ? s.update.name : '',
       updateBusy: s.updPct >= 0, updateIdle: !(s.updPct >= 0), updatePct: Math.max(0, s.updPct || 0), updateBarOpacity: s.updPct >= 0 ? 1 : 0,
       updateNote: s.updErr || (s.updPct >= 100 ? 'Confirm on the screen that opens' : s.updPct >= 0 ? 'Downloading ' + s.updPct + '%' : 'A new version of the home screen is ready'),

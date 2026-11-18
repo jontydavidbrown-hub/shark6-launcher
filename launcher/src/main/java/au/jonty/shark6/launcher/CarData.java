@@ -190,8 +190,13 @@ final class CarData {
             JSONObject seats = new JSONObject();
             seats.put("drvHeat", seatLevel(num("setting", "getSeatHeatingState", 1)));
             seats.put("drvVent", seatLevel(num("setting", "getSeatVentilatingState", 1)));
-            seats.put("pasHeat", seatLevel(num("setting", "getSeatHeatingState", 2)));
-            seats.put("pasVent", seatLevel(num("setting", "getSeatVentilatingState", 2)));
+            // Passenger seat: this build answers zone 2 with 0, and reports the passenger seat through
+            // the *NotL1PState getters instead (probe 0.7, passenger vent on: 1 -> 3).
+            Double ph = num("setting", "getSeatHeatingState", 2), pv = num("setting", "getSeatVentilatingState", 2);
+            if (ph == null || ph < 1) ph = num("setting", "getSeatHeatingNotL1PState");
+            if (pv == null || pv < 1) pv = num("setting", "getSeatVentilatingNotL1PState");
+            seats.put("pasHeat", seatLevel(ph));
+            seats.put("pasVent", seatLevel(pv));
             o.put("seats", seats);
         } catch (Exception e) {
             Log.w(TAG, "read failed", e);

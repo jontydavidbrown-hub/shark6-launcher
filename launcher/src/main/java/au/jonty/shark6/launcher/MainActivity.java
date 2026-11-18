@@ -191,6 +191,11 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void openCarPlay() { ui.post(() -> launch("com.ts.carplay.app")); }
         @JavascriptInterface public void openApp(String which) {
             if ("energy".equals(which)) ui.post(() -> launch("com.byd.dlc.drivingmode"));
+            // BYD's own 360 camera view (probe 0.7: Android exposes no camera feeds to apps, so we open theirs).
+            if ("cameras".equals(which)) ui.post(() -> {
+                Intent i = new Intent().setClassName("com.byd.avm", "com.byd.avm.MainActivity").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                try { startActivity(i); } catch (Exception e) { launch("com.ts.avm"); }
+            });
         }
         @JavascriptInterface public void media(String action) { bg.post(() -> media.control(action)); }
         @JavascriptInterface public void sfx(String name) {

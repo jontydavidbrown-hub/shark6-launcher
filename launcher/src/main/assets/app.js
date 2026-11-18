@@ -254,6 +254,7 @@ class Home extends Component {
       fanPct: Math.round((Math.max(1, fan) - 1) / 6 * 100),
       sliderStepDown: () => { this.armClose(); if (s.slider === 'fan') (l => this.send('fan', { level: l }, 'fan', l))(Math.max(1, fan - 1)); else setTemp(s.slider === 'pas' ? 2 : 1, Math.max(17, (s.slider === 'pas' ? pasTemp : drvTemp) - 1)); },
       sliderStepUp: () => { this.armClose(); if (s.slider === 'fan') (l => this.send('fan', { level: l }, 'fan', l))(Math.min(7, fan + 1)); else setTemp(s.slider === 'pas' ? 2 : 1, Math.min(33, (s.slider === 'pas' ? pasTemp : drvTemp) + 1)); },
+      openCameras: (e) => { if (e) e.preventDefault(); Bridge.openApp('cameras'); },
       updateOpen: !!s.update, updateName: s.update ? s.update.name : '',
       updateBusy: s.updPct >= 0, updateIdle: !(s.updPct >= 0), updatePct: Math.max(0, s.updPct || 0), updateBarOpacity: s.updPct >= 0 ? 1 : 0,
       updateNote: s.updErr || (s.updPct >= 100 ? 'Confirm on the screen that opens' : s.updPct >= 0 ? 'Downloading ' + s.updPct + '%' : 'A new version of the home screen is ready'),
@@ -356,15 +357,18 @@ class Home extends Component {
   </section>
 
   
-  <section aria-label="Car" style="display: grid; grid-template-rows: 168px minmax(0, 1.55fr) minmax(0, 1fr); gap: 14px; min-height: 0; min-width: 0; overflow: hidden;">
+  <section aria-label="Car" style="display: grid; grid-template-rows: 112px minmax(0, 1.55fr) minmax(0, 1fr); gap: 14px; min-height: 0; min-width: 0; overflow: hidden;">
 
     <div class="gx-14" style="display: flex;  min-height: 0; min-width: 0;">
       <div aria-label="Drive system: ${v.modeShort}" style="flex: 1 1 0; min-width: 0; background: #111111; border: 1px solid #262626; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 46px; line-height: 1; letter-spacing: 0.04em; color: ${v.modeColor};">${v.modeShort}</span>
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 38px; line-height: 1; letter-spacing: 0.04em; color: ${v.modeColor};">${v.modeShort}</span>
       </div>
+      <a href="#" onClick=${v.openCameras} aria-label="Open 360 cameras" style="text-decoration: none; flex: 1 1 0; min-width: 0; background: #111111; border: 1px solid #262626; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 38px; line-height: 1; letter-spacing: 0.02em; color: #F2F2F2;">360°</span>
+      </a>
       <a href="#" onClick=${v.openCarPlay} aria-label="Open CarPlay" style="text-decoration: none; flex: 1 1 0; min-width: 0; background: #111111; border: 1px solid #262626; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
         <div class="gy-10" style="display: flex; flex-direction: column; align-items: center;">
-          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="#F2F2F2" stroke-width="2"></rect><path d="M9.2 8.3v7.4c0 .6.6.9 1.1.6l5.6-3.7c.4-.3.4-.9 0-1.2l-5.6-3.7c-.5-.3-1.1 0-1.1.6z" fill="#F2F2F2"></path></svg>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="#F2F2F2" stroke-width="2"></rect><path d="M9.2 8.3v7.4c0 .6.6.9 1.1.6l5.6-3.7c.4-.3.4-.9 0-1.2l-5.6-3.7c-.5-.3-1.1 0-1.1.6z" fill="#F2F2F2"></path></svg>
         </div>
       </a>
     </div>
