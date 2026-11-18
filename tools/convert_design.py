@@ -35,6 +35,12 @@ rep('font-size: 30px;">{{trackTitle}}','font-size: 30px; white-space: nowrap; ov
 rep('<span>1:24</span><span>3:41</span>','<span>{{posText}}</span><span>{{durText}}</span>')
 rep('<button type="button" aria-label="Previous track"','<button type="button" onClick="{{prevTrack}}" aria-label="Previous track"')
 rep('<button type="button" aria-label="Next track"','<button type="button" onClick="{{nextTrack}}" aria-label="Next track"')
+# Fill the screen width: the page is 838 px tall and as wide as the screen's shape allows.
+rep('width: 1600px; height: 838px; box-sizing: border-box;','width: 100%; height: 838px; box-sizing: border-box;')
+rep('grid-template-columns: 400px 400px minmax(0, 1fr) 340px;','grid-template-columns: minmax(0, 1.14fr) minmax(0, 1.14fr) minmax(0, 1fr) minmax(0, 0.97fr);')
+m=m.replace('width: 1600px; height: 838px; z-index: 10;','width: 100%; height: 838px; z-index: 10;')
+m=m.replace('top: 0; left: 0; width: 1600px; height: 838px; background:','top: 0; left: 0; width: 100%; height: 838px; background:')
+m=m.replace('left: 440px; top: 250px; width: 720px;','left: 50%; margin-left: -360px; top: 250px; width: 720px;')
 # --- template conversion to htm ---
 m=re.sub(r'<!--.*?-->','',m,flags=re.S)
 m=re.sub(r'\s+hint-placeholder-[a-z]+="[^"]*"','',m)
@@ -50,6 +56,8 @@ m=re.sub(r'<sc-if value="\{\{([\w.]+)\}\}">(.*?)</sc-if>',conv_if,m,flags=re.S)
 m=re.sub(r'(\w[\w-]*)="\{\{(@?)([\w.]+)\}\}"',lambda x: x.group(1)+'=${'+('' if x.group(2) else 'v.')+x.group(3)+'}',m)
 m=re.sub(r'\{\{(@?)([\w.]+)\}\}',lambda x:'${'+('' if x.group(1) else 'v.')+x.group(2)+'}',m)
 m=m.replace('onChange=${v.onSlide}','onInput=${v.onSlide}')
+# htm needs void elements self-closed, or it swallows what follows (the stray "div").
+m=re.sub(r'<(input|img|br|hr)\b([^>]*?)\s*/?>',r'<\1\2 />',m)
 assert '{{' not in m and 'sc-' not in m, re.findall(r'.{40}(?:\{\{|sc-).{40}',m)[:5]
 open(sys.argv[2],'w').write(m)
 print(len(m))
