@@ -32,6 +32,7 @@ class Home extends Component {
       if (first) this.playBoot();
     };
     window.replayBoot = () => this.playBoot();
+    window.onCommandResult = (id, r) => this.commandResult(id, r);
     this.playBoot();
   }
   playBoot() {
@@ -61,12 +62,20 @@ class Home extends Component {
     const p = (this.pending || {})[key];
     return p && p.until > Date.now() ? p.val : real;
   }
+  // Commands run in the background on the Android side; the result comes back through
+  // window.onCommandResult, so the tap shows instantly and never waits on the car.
   send(name, args, key, val) {
     this.pending = this.pending || {};
     if (key) { this.pending[key] = { val, until: Date.now() + 3000 }; this.forceUpdate(); }
-    const r = Bridge.command(name, JSON.stringify(args || {}));
-    if (r === 'ok' || r === 'no-car') return;
-    if (key) { delete this.pending[key]; this.forceUpdate(); }
+    this.cmdSeq = (this.cmdSeq || 0) + 1;
+    this.cmdKeys = this.cmdKeys || {};
+    this.cmdKeys[this.cmdSeq] = key;
+    Bridge.command(name, JSON.stringify(Object.assign({ id: this.cmdSeq }, args || {})));
+  }
+  commandResult(id, r) {
+    if (r === 'ok') return;
+    const key = (this.cmdKeys || {})[id];
+    if (key && this.pending) { delete this.pending[key]; this.forceUpdate(); }
     if (r === 'disabled') Bridge.toast('Climate and seat controls are switched off in this build');
     else Bridge.toast('The car didn\'t accept that (' + r + ')');
   }
@@ -75,7 +84,7 @@ class Home extends Component {
     const on = level > 0;
     return {
       label: (kind === 'heat' ? 'HEAT ' : 'VENT ') + (on ? level : 'OFF'),
-      border: on ? '2px solid ' + color : '1px solid #333',
+      border: 'none', bg: on ? 'rgba(255,255,255,0.07)' : '#161616',
       icon: on ? color : '#A6A6A6',
       segs: this.segs(shown, 2, color),
       cycle: () => {
@@ -99,9 +108,8 @@ class Home extends Component {
     const totalRange = num(c.totalRange, evRange + fuelRange);
     const speedNow = Math.max(0, Math.round(num(c.speed)));
     const MAX = 180, b = s.boot;
-    const sweep = b < 0.45 ? this.ease(b / 0.45) * MAX
-      : MAX + (Math.min(speedNow, MAX) - MAX) * this.ease(Math.min(1, (b - 0.45) / 0.55));
-    const shownSpeed = b >= 1 ? speedNow : Math.round(sweep);
+    // Count straight up from 0 to the current speed (no full-scale sweep).
+    const shownSpeed = b >= 1 ? speedNow : Math.round(Math.min(speedNow, MAX) * this.stage(0));
 
     const gear = GEARS[c.gear] || '';
     const gearColor = (g) => (gear === g ? accent : '#4A4A4A');
@@ -138,7 +146,8 @@ class Home extends Component {
     const fan = this.pv('fan', num(c.fan));
     const ac = this.pv('ac', !!c.compressor), auto = this.pv('auto', !!c.auto), demist = this.pv('demist', !!c.demist);
     const st = (on, color) => ({ border: on ? '2px solid ' + color : '1px solid #2A2A2A', bg: on ? '#1A1A1A' : '#161616', icon: on ? color : '#A6A6A6', text: on ? '#F2F2F2' : '#A6A6A6' });
-    const d = st(demist, '#FF8A00'), a = st(ac, '#2FB3FF'), u = st(auto, accent);
+    const synced = this.pv('synced', c.dual !== 1);
+    const d = st(demist, '#FF8A00'), a = st(ac, '#2FB3FF'), u = st(auto, accent), y = st(synced, '#F2F2F2');
     const cs = c.seats || {};
     const seats = { drvHeat: this.pv('drvHeat', cs.drvHeat), drvVent: this.pv('drvVent', cs.drvVent),
       pasHeat: this.pv('pasHeat', cs.pasHeat), pasVent: this.pv('pasVent', cs.pasVent) };
@@ -193,6 +202,8 @@ class Home extends Component {
       demistBorder: d.border, demistBg: d.bg, demistIcon: d.icon, demistText: d.text,
       acBorder: a.border, acBg: a.bg, acIcon: a.icon, acText: a.text,
       autoBorder: u.border, autoBg: u.bg, autoIcon: u.icon, autoText: u.text,
+      synced, toggleSync: () => this.send('sync', { on: !synced }, 'synced', !synced),
+      syncBorder: y.border, syncBg: y.bg, syncIcon: y.icon, syncText: y.text,
       toggleAc: () => this.send('ac', { on: !ac }, 'ac', !ac),
       toggleAuto: () => this.send('auto', { on: !auto }, 'auto', !auto),
       toggleDemist: () => this.send('demist', { on: !demist }, 'demist', !demist),

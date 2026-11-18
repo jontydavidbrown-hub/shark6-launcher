@@ -47,7 +47,7 @@ final class CarData {
 
     private final Context ctx;
     private final Map<String, Object> devices = new HashMap<>();
-    private final Map<String, Method> methods = new HashMap<>();
+    private final Map<String, Method> methods = java.util.Collections.synchronizedMap(new HashMap<>());
     private final StringBuilder openLog = new StringBuilder();
     private boolean opened;
 
@@ -174,6 +174,8 @@ final class CarData {
             if (comp != null) o.put("compressor", comp.intValue() == ON ? 1 : 0);
             if (ctrl != null) o.put("auto", ctrl.intValue() == CTRL_AUTO ? 1 : 0);
             if (defrost != null) o.put("demist", defrost.intValue() == ON ? 1 : 0);
+            Double split = num("ac", "getAcTemperatureControlMode");
+            if (split != null) o.put("dual", split.intValue() == ON ? 1 : 0);
             // Seats: OFF=1, LOW=2, HIGH=3 on the car; 0 means not reported.
             JSONObject seats = new JSONObject();
             seats.put("drvHeat", seatLevel(num("setting", "getSeatHeatingState", 1)));
@@ -196,6 +198,7 @@ final class CarData {
     /** Climate and seat commands. Returns "ok", "disabled", or why the car refused. */
     String command(String name, JSONObject a) {
         if (!CONTROLS_ENABLED) return "disabled";
+        if (!open()) return "no car connection";
         Object r;
         switch (name) {
             case "temp": {
@@ -213,6 +216,10 @@ final class CarData {
                 r = call("ac", "setAcTemperature", target, t, SOURCE_UI, UNIT_C);
                 break;
             }
+            case "sync":
+                // Synced = zones joined (control mode off); unsynced = separate driver/passenger temps.
+                r = call("ac", "setAcTemperatureControlMode", SOURCE_UI, a.optBoolean("on") ? OFF : ON);
+                break;
             case "fan":
                 r = call("ac", "setAcWindLevel", SOURCE_UI, Math.max(1, Math.min(7, a.optInt("level", 1))));
                 break;

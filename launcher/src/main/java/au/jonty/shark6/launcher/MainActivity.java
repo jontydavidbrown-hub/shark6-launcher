@@ -26,8 +26,8 @@ public class MainActivity extends Activity {
     private WebView web;
     private CarData car;
     private Media media;
-    private HandlerThread worker;
-    private Handler bg;
+    private HandlerThread worker, cmdWorker;
+    private Handler bg, cmd;
     private final Handler ui = new Handler(Looper.getMainLooper());
     private volatile boolean resumed;
     private boolean pageReady;
@@ -60,6 +60,9 @@ public class MainActivity extends Activity {
         worker.start();
         bg = new Handler(worker.getLooper());
         bg.post(car::open);
+        cmdWorker = new HandlerThread("car-cmd");
+        cmdWorker.start();
+        cmd = new Handler(cmdWorker.getLooper());
     }
 
     private final Runnable poll = new Runnable() {
@@ -88,6 +91,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onDestroy() {
         worker.quitSafely();
+        cmdWorker.quitSafely();
         web.destroy();
         super.onDestroy();
     }
@@ -105,20 +109,26 @@ public class MainActivity extends Activity {
 
     /** Called from the page as window.Car.*. Every method runs on a binder thread. */
     private final class Bridge {
-        @JavascriptInterface public String command(String name, String json) {
-            final String[] out = {"error"};
-            final Object lock = new Object();
-            try {
-                final JSONObject a = new JSONObject(json);
-                synchronized (lock) {
-                    bg.post(() -> { synchronized (lock) { out[0] = car.command(name, a); lock.notifyAll(); } });
-                    lock.wait(1500);
+        /** Fire-and-forget: runs on its own thread so a tap never waits behind the poll. */
+        @JavascriptInterface public void command(String name, String json) {
+            cmd.post(() -> {
+                String result;
+                int id = 0;
+                try {
+                    JSONObject a = new JSONObject(json);
+                    id = a.optInt("id");
+                    result = car.command(name, a);
+                } catch (Exception e) {
+                    result = "error";
                 }
-            } catch (Exception e) {
-                return "error";
-            }
-            if ("ok".equals(out[0])) { bg.removeCallbacks(poll); bg.post(poll); } // refresh quickly so the UI shows the car's new state
-            return out[0];
+                final String js = "window.onCommandResult && window.onCommandResult(" + id + "," + JSONObject.quote(result) + ")";
+                ui.post(() -> web.evaluateJavascript(js, null));
+                if ("ok".equals(result)) {
+                    // Re-read soon so the screen shows the car's real state once it has applied it.
+                    bg.removeCallbacks(poll);
+                    bg.postDelayed(poll, 250);
+                }
+            });
         }
         @JavascriptInterface public void openCarPlay() { ui.post(() -> launch("com.ts.carplay.app")); }
         @JavascriptInterface public void openApp(String which) {
