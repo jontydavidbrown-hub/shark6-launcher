@@ -65,8 +65,17 @@ final class Cameras {
             if (portOpen(PORT, 100)) return session;
             Thread.sleep(100);
         }
+        // Diagnose: what does the car's ADB shell say about itself and the helper?
+        String diag;
+        try {
+            diag = adb.shell("id; ls -l " + lib + " 2>&1; cat /data/local/tmp/shark6cam.log 2>&1 | tail -3").getAllOutput();
+        } catch (Throwable t) {
+            diag = "diag failed: " + t;
+        }
         session.close();
-        throw new Exception("camera helper didn't come up (log: /data/local/tmp/shark6cam.log)");
+        diag = diag.replace('\n', ' ').trim();
+        if (diag.length() > 400) diag = diag.substring(0, 400);
+        throw new Exception("camera helper didn't come up. " + diag);
     }
 
     /** Needs `adb shell pm grant au.jonty.shark6.launcher android.permission.WRITE_SECURE_SETTINGS`. */
