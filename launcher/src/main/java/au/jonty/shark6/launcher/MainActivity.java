@@ -3,6 +3,8 @@ package au.jonty.shark6.launcher;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
+import android.media.AudioAttributes;
+import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -30,6 +32,8 @@ public class MainActivity extends Activity {
     private Handler bg, cmd;
     private final Handler ui = new Handler(Looper.getMainLooper());
     private volatile boolean resumed;
+    private SoundPool sounds;
+    private int sfxTap, sfxOn, sfxOff;
     private boolean pageReady;
 
     @Override
@@ -53,6 +57,14 @@ public class MainActivity extends Activity {
         });
         setContentView(web);
         web.loadUrl("file:///android_asset/index.html");
+
+        // Button sounds: sonification usage, so they mix over music instead of pausing it.
+        sounds = new SoundPool.Builder().setMaxStreams(3).setAudioAttributes(new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build()).build();
+        sfxTap = sounds.load(this, R.raw.sfx_tap, 1);
+        sfxOn = sounds.load(this, R.raw.sfx_on, 1);
+        sfxOff = sounds.load(this, R.raw.sfx_off, 1);
 
         car = new CarData(this);
         media = new Media(this);
@@ -93,6 +105,7 @@ public class MainActivity extends Activity {
         worker.quitSafely();
         cmdWorker.quitSafely();
         web.destroy();
+        sounds.release();
         super.onDestroy();
     }
 
@@ -135,6 +148,10 @@ public class MainActivity extends Activity {
             if ("energy".equals(which)) ui.post(() -> launch("com.byd.dlc.drivingmode"));
         }
         @JavascriptInterface public void media(String action) { bg.post(() -> media.control(action)); }
+        @JavascriptInterface public void sfx(String name) {
+            int id = "on".equals(name) ? sfxOn : "off".equals(name) ? sfxOff : sfxTap;
+            sounds.play(id, 0.6f, 0.6f, 1, 0, 1f);
+        }
         @JavascriptInterface public void toast(String m) { MainActivity.this.toast(m); }
     }
 }

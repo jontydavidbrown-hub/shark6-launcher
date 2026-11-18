@@ -4,12 +4,20 @@
 const { html, render, Component } = htmPreact;
 const Bridge = window.Car || {
   // Browser preview fallback: no car, so nothing happens.
-  command: () => 'no-car', openCarPlay: () => {}, media: () => {}, openApp: () => {}, toast: (m) => console.log(m)
+  command: () => 'no-car', sfx: () => {}, openCarPlay: () => {}, media: () => {}, openApp: () => {}, toast: (m) => console.log(m)
 };
 
 const GEARS = { 1: 'P', 2: 'R', 3: 'N', 4: 'D', 5: 'D', 6: 'D' };
 const ENERGY = { 0: 'STANDBY', 1: 'EV MODE', 2: 'EV ONLY', 3: 'HYBRID', 4: 'FUEL', 5: 'HOLD' };
 const DRIVE = { 1: 'Normal', 2: 'Eco', 3: 'Sport', 4: 'Snow', 5: 'Mud', 6: 'Sand' };
+
+// Button sounds. Commands pick on/off/tap; any other button or link gets a tap.
+let lastSfx = 0;
+function sfx(name) { lastSfx = Date.now(); try { Bridge.sfx(name); } catch (e) {} }
+document.addEventListener('click', (e) => {
+  const t = e.target && e.target.closest ? e.target.closest('button, a, input') : null;
+  if (t && Date.now() - lastSfx > 80 && t.type !== 'range') sfx('tap');
+});
 
 function mmss(ms) {
   if (!(ms > 0)) return '0:00';
@@ -66,6 +74,7 @@ class Home extends Component {
   // window.onCommandResult, so the tap shows instantly and never waits on the car.
   send(name, args, key, val) {
     this.pending = this.pending || {};
+    sfx(typeof val === 'boolean' ? (val ? 'on' : 'off') : (name.startsWith('seat') ? (val > 0 ? 'on' : 'off') : 'tap'));
     if (key) { this.pending[key] = { val, until: Date.now() + 3000 }; this.forceUpdate(); }
     this.cmdSeq = (this.cmdSeq || 0) + 1;
     this.cmdKeys = this.cmdKeys || {};
