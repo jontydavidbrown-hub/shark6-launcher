@@ -43,7 +43,7 @@ button{font-family:inherit;cursor:pointer}
   <!-- HEADER: averages, time, drive details (the app hides BYD's header) -->
   <div aria-label="Status" style="grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; min-height: 0;">
     <div style="display: flex; align-items: baseline; padding-left: 4px;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 28px; line-height: 1; white-space: nowrap;">{{avgElec}}</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; color: #A6A6A6; letter-spacing: 0.06em; margin-left: 5px;">KWH/100 AVG</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 28px; line-height: 1; white-space: nowrap; margin-left: 28px;">{{avgFuel}}</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; color: #A6A6A6; letter-spacing: 0.06em; margin-left: 5px;">L/100 AVG</span></div>
-    <div aria-label="Time" style="display: flex; align-items: baseline; padding: 0 24px;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px; line-height: 1; letter-spacing: 0.02em;">{{clockTime}}</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 20px; color: #A6A6A6; letter-spacing: 0.06em; margin-left: 6px;">{{clockAmPm}}</span></div>
+    <div aria-label="Time" onPointerDown="{{diagHoldStart}}" onPointerUp="{{diagHoldEnd}}" onPointerLeave="{{diagHoldEnd}}" style="display: flex; align-items: baseline; padding: 0 24px;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px; line-height: 1; letter-spacing: 0.02em;">{{clockTime}}</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 20px; color: #A6A6A6; letter-spacing: 0.06em; margin-left: 6px;">{{clockAmPm}}</span></div>
     <div style="display: flex; align-items: baseline; justify-content: flex-end; padding-right: 4px;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 28px; line-height: 1; white-space: nowrap;">{{driveMode}}</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; color: #A6A6A6; letter-spacing: 0.06em; margin-left: 5px;">MODE</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 28px; line-height: 1; white-space: nowrap; margin-left: 28px;">{{outside}}°</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; color: #A6A6A6; letter-spacing: 0.06em; margin-left: 5px;">OUTSIDE</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 28px; line-height: 1; white-space: nowrap; margin-left: 28px;">{{odo}}</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; color: #A6A6A6; letter-spacing: 0.06em; margin-left: 5px;">KM ODO</span></div>
   </div>
 
@@ -208,40 +208,19 @@ button{font-family:inherit;cursor:pointer}
   </section>
 
   <!-- RIGHT: two live cameras (front/rear on top, left/right below; tap to switch) -->
-  <section aria-label="Cameras" style="display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; min-height: 0; min-width: 0; overflow: hidden;">
-  <sc-if value="{{camsNormal}}">
-
-    <div aria-label="Camera: {{camName}}. Tap to switch front and rear" onClick="{{camNext}}" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; overflow: hidden; cursor: pointer;">
-      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+  <section aria-label="Cameras" style="display: grid; grid-template-rows: minmax(0, 1fr); min-height: 0; min-width: 0; overflow: hidden;">
+    <div aria-label="Camera: {{camName}}. Tap to switch camera" onClick="{{camNext}}" style="background: #111111; border: 1px solid {{camBorder}}; box-shadow: {{camGlow}}; border-radius: 8px; padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; overflow: hidden; cursor: pointer;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
         <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: {{accent}};">CAMERA</span>
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: #F2F2F2;">{{camName}}</span>
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: {{camNameColor}};">{{camName}}</span>
       </div>
       <div id="s6-cam" style="flex: 1; min-height: 0; position: relative; background: #000 center / cover no-repeat; background-image: {{camImage}}; border-radius: 6px; overflow: hidden;">
         <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; padding: 0 16px; text-align: center; font-size: 17px; color: #A6A6A6;">{{camStatus}}</div>
-        <div style="position: absolute; left: 8px; bottom: 8px; display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.55); border-radius: 4px; padding: 3px 8px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{accent}};"></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.1em;">LIVE</span></div>
+      </div>
+      <div style="display: flex; justify-content: center; gap: 8px;">
+        <span style="width: 8px; height: 8px; border-radius: 4px; background: {{camDot0}};"></span><span style="width: 8px; height: 8px; border-radius: 4px; background: {{camDot1}};"></span><span style="width: 8px; height: 8px; border-radius: 4px; background: {{camDot2}};"></span><span style="width: 8px; height: 8px; border-radius: 4px; background: {{camDot3}};"></span>
       </div>
     </div>
-
-    <div aria-label="Camera: {{cam2Name}}. Tap to switch side" onClick="{{cam2Next}}" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; overflow: hidden; cursor: pointer;">
-      <div style="display: flex; justify-content: space-between; align-items: baseline;">
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: {{accent}};">CAMERA</span>
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: #F2F2F2;">{{cam2Name}}</span>
-      </div>
-      <div id="s6-cam2" style="flex: 1; min-height: 0; position: relative; background: #000 center / cover no-repeat; background-image: {{cam2Image}}; border-radius: 6px; overflow: hidden;">
-        <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; padding: 0 16px; text-align: center; font-size: 17px; color: #A6A6A6;">{{cam2Status}}</div>
-        <div style="position: absolute; left: 8px; bottom: 8px; display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.55); border-radius: 4px; padding: 3px 8px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{accent}};"></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.1em;">LIVE</span></div>
-      </div>
-    </div>
-  </sc-if>
-  <sc-if value="{{camRightBig}}">
-    <div aria-label="Right camera, shown while the right indicator is on" style="grid-row: 1 / span 2; background: #111111; border: 1px solid #262626; border-radius: 8px; box-sizing: border-box; border-color: #FFB020; box-shadow: 0 0 0 2px rgba(255,176,32,0.35); padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: hidden;">
-      <div style="display: flex; justify-content: space-between; align-items: center;"><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: {{accent}};">CAMERA</span><span style="display: flex; align-items: center; gap: 8px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: #FFB020;">RIGHT <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h9V4l8 8-8 8v-5H4z" fill="#FFB020"></path></svg></span></div>
-      <div id="s6-cam" style="flex: 1; min-height: 0; position: relative; background: #000; border-radius: 6px; overflow: hidden;">
-        <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; padding: 0 16px; text-align: center; font-size: 17px; color: #A6A6A6;">{{camStatus}}</div>
-      </div>
-      <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.12em; color: #FFB020;">● RIGHT INDICATOR ON</div>
-    </div>
-  </sc-if>
   </section>
 
   <!-- CLIMATE + SEATS -->
@@ -343,6 +322,12 @@ button{font-family:inherit;cursor:pointer}
       <div style="display: flex; align-items: center;"><div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 34px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 46px;">{{wRange}}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">KM</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.16em; color: #6B6B6B;">RANGE</span></div><div style="width: 1px; height: 64px; background: #262626;"></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 34px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 46px;">{{wBatt}}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">%</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.16em; color: #6B6B6B;">BATTERY</span></div><div style="width: 1px; height: 64px; background: #262626;"></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 34px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 46px;">{{wFuel}}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">%</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.16em; color: #6B6B6B;">FUEL</span></div><div style="width: 1px; height: 64px; background: #262626;"></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 34px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 46px;">{{wOut}}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">°</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.16em; color: #6B6B6B;">OUTSIDE</span></div><div style="width: 1px; height: 64px; background: #262626;"></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 34px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 46px;">{{wTyres}}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;"></span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.16em; color: #6B6B6B;">TYRES</span></div></div>
       <div style="font-size: 18px; color: #A6A6A6;">{{wNote}}</div>
       <div style="width: 360px; height: 4px; border-radius: 2px; background: #1C1C1C; overflow: hidden; margin-top: 16px;"><div class="s6-wbar" style="width: 100%; height: 4px; background: {{accent}};"></div></div>
+    </div>
+  </sc-if>
+  <!-- DIAGNOSTICS (hold the clock for 2 s) -->
+  <sc-if value="{{diagOpen}}">
+    <div role="dialog" aria-label="Diagnostics" onClick="{{diagClose}}" style="position: absolute; top: 0; left: 0; width: 1600px; height: 900px; z-index: 90; background: rgba(0,0,0,0.88); display: flex; align-items: center; justify-content: center;">
+      <div style="width: 1100px; background: #111111; border: 1px solid #333; border-radius: 12px; padding: 24px 28px; font-family: monospace; font-size: 18px; line-height: 1.5; color: #F2F2F2; white-space: pre-wrap;">{{diagText}}</div>
     </div>
   </sc-if>
   <!-- UPDATE BAR (over-the-air update offer) -->
@@ -488,7 +473,7 @@ class Component extends DCLogic {
     ];
     const m = modes[s.mode];
     return {
-      accent, camsNormal: true,
+      accent, camBorder: '#262626', camGlow: 'none', camNameColor: '#F2F2F2',
       battPct: count(battPct, kBars), fuelPct: count(fuelPct, kBars),
       evRange: count(evRange, kBars), fuelRange: count(fuelRange, kBars), totalRange: count(totalRange, kRange),
       rangeDash: Math.round(641 * Math.min(1, totalRange / 1000) * kRange) + ' 1000',
@@ -500,12 +485,13 @@ class Component extends DCLogic {
         return { clockTime: ((hr % 12) || 12) + ':' + String(d.getMinutes()).padStart(2, '0'), clockAmPm: hr < 12 ? 'AM' : 'PM' };
       })(),
       ...(() => {
-        // Two camera tiles: top switches front/rear, bottom switches left/right (stills in this preview).
-        const NAMES = ['FRONT', 'RIGHT', 'REAR', 'LEFT'];
-        const a = s.camA == null ? 0 : s.camA, b = s.camB == null ? 3 : s.camB;
+        // One camera tile: tap cycles front, rear, left, right (stills in this preview).
+        const NAMES = ['FRONT', 'RIGHT', 'REAR', 'LEFT'], ORDER = [0, 2, 3, 1];
+        const a = s.camA == null ? 0 : s.camA, at = ORDER.indexOf(a);
+        const dot = (i) => (i === at ? '#F2F2F2' : '#333333');
         return {
-          camName: NAMES[a], camImage: 'url(' + CAM_SHOTS[a] + ')', camStatus: '', camNext: () => set({ camA: a === 0 ? 2 : 0 }),
-          cam2Name: NAMES[b], cam2Image: 'url(' + CAM_SHOTS[b] + ')', cam2Status: '', cam2Next: () => set({ camB: b === 3 ? 1 : 3 })
+          camName: NAMES[a], camImage: 'url(' + CAM_SHOTS[a] + ')', camStatus: '', camNext: () => set({ camA: ORDER[(at + 1) % 4] }),
+          camDot0: dot(0), camDot1: dot(1), camDot2: dot(2), camDot3: dot(3)
         };
       })(),
       ...(() => {

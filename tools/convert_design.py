@@ -27,7 +27,6 @@ opt('<div style="height: 4px; background: #262626;"><div style="height: 4px; wid
 rep('<a href="#" aria-label="Open 360 cameras"','<a href="#" onClick="{{openCameras}}" aria-label="Open 360 cameras"')
 rep('<a href="#" aria-label="Open CarPlay"','<a href="#" onClick="{{openCarPlay}}" aria-label="Open CarPlay"')
 rep('background: #000 center / cover no-repeat; background-image: {{camImage}};','background: #000;')
-rep('background: #000 center / cover no-repeat; background-image: {{cam2Image}};','background: #000;')
 # now playing
 rep('''<div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #1E1E1E; border-radius: 6px; display: flex; align-items: center; justify-content: center;">''',
     '''<div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #1E1E1E center / contain no-repeat; background-image: {{artBg}}; border-radius: 6px; display: flex; align-items: center; justify-content: center;">''')

@@ -126,7 +126,13 @@ final class CarData {
      * left, 4/5 for right and 6/7 for hazards (as Overdrive, MIT, uses it); getLightStatus(4 left,
      * 5 right) is the fallback.
      */
+    private AutoSvc auto;
+    String turnSource() { return auto == null ? "sdk" : auto.source + " · " + auto.last; }
+
     private int turn() {
+        if (auto == null) auto = new AutoSvc(ctx);
+        int t = auto.turn();
+        if (t >= 0) return t;
         Double f = num("light", "getTurnLightFlashState");
         if (f != null && f >= 2 && f <= 7) {
             int v = f.intValue();
@@ -178,7 +184,7 @@ final class CarData {
                 Double op = num("energy", "getOperationMode"); // 1 Economy, 2 Sport, 3 Normal
                 dm = op == null ? null : op == 1 ? 2.0 : op == 2 ? 3.0 : op == 3 ? 1.0 : null;
             }
-            put(o, "opMode", dm, 1, 6);
+            put(o, "opMode", dm, 1, 20);
             put(o, "motorKw", num("motor", "getMotorPower"), -400, 400);
             put(o, "engineKw", num("engine", "getEnginePower"), 0, 400);
             // Tyres: psi x10 on this car (ByType), else kPa.

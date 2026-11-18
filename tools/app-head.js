@@ -9,10 +9,13 @@ const Bridge = window.Car || {
 
 const GEARS = { 1: 'P', 2: 'R', 3: 'N', 4: 'D', 5: 'D', 6: 'D' };
 const ENERGY = { 0: 'STANDBY', 1: 'EV MODE', 2: 'EV ONLY', 3: 'HYBRID', 4: 'FUEL', 5: 'HOLD' };
-const DRIVE = { 1: 'Normal', 2: 'Eco', 3: 'Sport', 4: 'Snow', 5: 'Mud', 6: 'Sand' };
+// Shark 6 order (Jonty, 0.37): 5 is Sand and 6 is Mud. 7 is assumed to be Mountain until checked.
+const DRIVE = { 1: 'Normal', 2: 'Eco', 3: 'Sport', 4: 'Snow', 5: 'Sand', 6: 'Mud', 7: 'Mountain' };
+const driveName = (m) => DRIVE[m] || (typeof m === 'number' ? 'Mode ' + m : '');
 // The accent colour follows the drive mode.
-const MODE_ACCENT = { 1: '#D42A3A', 2: '#2FBF71', 3: '#FF2D2D', 4: '#5AC8FA', 5: '#FF8A00', 6: '#E8B04A' };
-const TERRAIN_SUB = { 4: 'GRIP ON SNOW AND ICE', 5: 'TRACTION IN MUD', 6: 'FLOAT ON SAND' };
+const MODE_ACCENT = { 1: '#D42A3A', 2: '#2FBF71', 3: '#FF2D2D', 4: '#5AC8FA', 5: '#E8B04A', 6: '#FF8A00', 7: '#C08A5A' };
+const TERRAIN_SUB = { 4: 'GRIP ON SNOW AND ICE', 5: 'FLOAT ON SAND', 6: 'TRACTION IN MUD', 7: 'HILL CLIMB AND DESCENT' };
+const CAM_NAMES = ['FRONT', 'RIGHT', 'REAR', 'LEFT'], CAM_ORDER = [0, 2, 3, 1];
 const KWH_PRICE = 0.30, FUEL_PRICE = 2.00, BATT_KWH = 29.6, TANK_L = 60;
 const call = (name, ...a) => { try { return Bridge[name] ? Bridge[name](...a) : undefined; } catch (e) { return undefined; } };
 function readJson(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
@@ -130,7 +133,7 @@ class Home extends Component {
       }).join(';');
       if (key !== this.camKey) { this.camKey = key; try { Bridge.camRects(key); } catch (e) {} }
       // Which camera each view shows: the top tile turns into the right camera while indicating right.
-      const s = this.state, want = [s.rightCam && s.car.gear !== 2 ? 1 : (s.camA == null ? 0 : s.camA), s.camB == null ? 3 : s.camB, 0].join(',');
+      const s = this.state, want = [s.rightCam && s.car.gear !== 2 ? 1 : (s.camA == null ? 0 : s.camA), 3, 0].join(',');
       if (want !== this.camWant) { this.camWant = want; want.split(',').forEach((slot, view) => { try { Bridge.camShow(view, +slot); } catch (e) {} }); }
     }, 250);
     window.onCommandResult = (id, r) => this.commandResult(id, r);
@@ -236,7 +239,7 @@ class Home extends Component {
     const em = c.energyMode;
     const engineOn = engineKw >= 3;
     const modeLabel = ENERGY[em] || '—';
-    const drive = DRIVE[c.opMode];
+    const drive = driveName(c.opMode);
     const modePower = (drive ? drive + ' · ' : '') + (hasPower
       ? (regen ? Math.round(-kw) + ' kW back to battery' : engineOn ? 'Engine ' + Math.round(engineKw) + ' kW' : Math.round(kw) + ' kW out')
       : 'Power reading unavailable');
@@ -298,16 +301,25 @@ class Home extends Component {
       modeShort: em === 3 ? 'HEV' : em === 4 ? 'FUEL' : (em === 1 || em === 2) ? 'EV' : '—',
       modeSub: hasPower ? (regen ? 'Regen ' + Math.round(-kw) + ' kW' : engineOn ? 'Engine running' : 'Electric drive') : (em === 3 ? 'Hybrid' : em === 1 || em === 2 ? 'Electric' : ''),
       modeColor: em === 1 || em === 2 ? '#4ADE80' : '#F2F2F2',
+      diagOpen: !!s.diag, diagText: s.diag || '', diagClose: () => this.setState({ diag: null }),
+      diagHoldStart: () => {
+        clearTimeout(this.diagT);
+        this.diagT = setTimeout(() => {
+          const raw = { opMode: c.opMode, gear: c.gear, speed: c.speed, tilt: c.tilt, rightCam: !!s.rightCam, lowCam: !!s.lowCam };
+          this.setState({ diag: (call('diag') || 'no Android bridge') + '\npage: ' + JSON.stringify(raw) });
+        }, 2000);
+      },
+      diagHoldEnd: () => clearTimeout(this.diagT),
       tyreNote: tyres.length ? (tyreLow ? 'psi · CHECK' : 'psi · all OK') : 'psi',
       ...(() => {
         // Right indicator camera, low-speed front camera, off-road view.
         const rightBig = !!s.rightCam && c.gear !== 2;
-        const off = c.opMode >= 4 && c.opMode <= 6;
+        const off = c.opMode >= 4;
         const tl = c.tilt, has = tl && typeof tl.p === 'number';
         const deg = (v) => (has ? Math.round(Math.abs(v)) + '°' : '—');
         return {
-          camsNormal: !rightBig, camRightBig: rightBig, lowCam: !!s.lowCam,
-          offroad: off, terrainName: (DRIVE[c.opMode] || '').toUpperCase(), terrainSub: TERRAIN_SUB[c.opMode] || '',
+          lowCam: !!s.lowCam,
+          offroad: off, terrainName: driveName(c.opMode).toUpperCase(), terrainSub: TERRAIN_SUB[c.opMode] || 'TERRAIN MODE',
           pitchText: deg(has ? tl.p : 0), rollText: deg(has ? tl.r : 0),
           pitchRot: 'rotate(' + (has ? Math.max(-45, Math.min(45, -tl.p)) : 0) + ' 150 150)',
           rollRot: 'rotate(' + (has ? Math.max(-45, Math.min(45, tl.r)) : 0) + ' 150 150)',
@@ -341,12 +353,14 @@ class Home extends Component {
         };
       })(),
       ...(() => {
-        // Two camera tiles: top switches front/rear, bottom switches left/right. Android draws the pictures.
-        const NAMES = ['FRONT', 'RIGHT', 'REAR', 'LEFT'];
-        const a = s.camA == null ? 0 : s.camA, b = s.camB == null ? 3 : s.camB, st = s.camStatus || '';
-        const pick = (view, slot, key) => this.setState({ [key]: slot });
-        return { camName: NAMES[a], camImage: 'none', camStatus: st, camNext: () => pick(0, a === 0 ? 2 : 0, 'camA'),
-          cam2Name: NAMES[b], cam2Image: 'none', cam2Status: st, cam2Next: () => pick(1, b === 3 ? 1 : 3, 'camB') };
+        // One camera tile: tap cycles front, rear, left, right. While indicating right it shows the right camera.
+        const a = s.camA == null ? 0 : s.camA, at = CAM_ORDER.indexOf(a), st = s.camStatus || '';
+        const ind = !!s.rightCam && c.gear !== 2, shown = ind ? 1 : a;
+        const dot = (i) => (CAM_ORDER[i] === shown ? '#F2F2F2' : '#333333');
+        return { camName: ind ? 'RIGHT ›' : CAM_NAMES[a], camImage: 'none', camStatus: st,
+          camNext: () => this.setState({ camA: CAM_ORDER[(at + 1) % 4] }),
+          camBorder: ind ? '#FFB020' : '#262626', camGlow: ind ? '0 0 0 2px rgba(255,176,32,0.35)' : 'none',
+          camNameColor: ind ? '#FFB020' : '#F2F2F2', camDot0: dot(0), camDot1: dot(1), camDot2: dot(2), camDot3: dot(3) };
       })(),
       ...(() => {
         // Clock (BYD's header is hidden). The car poll re-renders every second, so it stays current.

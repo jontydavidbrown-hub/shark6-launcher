@@ -307,6 +307,16 @@ public class MainActivity extends Activity {
         /** True once per app start, so the welcome screen shows when the car starts, not on every return home. */
         @JavascriptInterface public boolean firstStart() { boolean f = !welcomed; welcomed = true; return f; }
         @JavascriptInterface public boolean hasTilt() { return tilt.available(); }
+        /** Hold the clock for 2 s: what the car SDK opened and where the indicator reading comes from. */
+        @JavascriptInterface public String diag() {
+            double[] f = car.fast(), t = tilt.read();
+            String ver = "?";
+            try { ver = getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception ignored) { }
+            return "Shark 6 Home " + ver + "\n" + car.openReport()
+                    + "turn: " + (f == null ? "-" : (int) f[2]) + " via " + car.turnSource() + "\n"
+                    + "tilt sensor: " + tilt.available() + (t == null ? "" : String.format(" pitch %.1f roll %.1f", t[0], t[1])) + "\n"
+                    + "draw over apps: " + android.provider.Settings.canDrawOverlays(MainActivity.this);
+        }
         @JavascriptInterface public void zeroTilt() { tilt.zero(); }
         @JavascriptInterface public void toast(String m) { MainActivity.this.toast(m); }
         @JavascriptInterface public void installUpdate(String url) {
