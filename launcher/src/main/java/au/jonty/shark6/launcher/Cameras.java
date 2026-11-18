@@ -53,8 +53,9 @@ final class Cameras {
             File priv = new File(c.getFilesDir(), "adbkey"), pub = new File(c.getFilesDir(), "adbkey.pub");
             if (!priv.exists() || !pub.exists()) AdbKeyPair.generate(priv, pub);
             adb = Dadb.create(ADB_HOST, ADB_PORT, AdbKeyPair.read(priv, pub), 3000, 0);
-            shell = adb.openShell("cd /data/local/tmp && LD_LIBRARY_PATH=/vendor/lib64:/system/lib64 exec "
-                    + lib + " 2> /data/local/tmp/shark6cam.log");
+            // No log file: SELinux won't let the shell create files in /data/local/tmp, and a failed
+            // redirect stops the command before it runs. Helper messages come back on this stream.
+            shell = adb.openShell("LD_LIBRARY_PATH=/vendor/lib64:/system/lib64 exec " + lib);
         } catch (Throwable t) {
             new Session(adb, shell).close();
             throw new Exception("couldn't use the car's ADB: " + t.getClass().getSimpleName()
@@ -68,7 +69,7 @@ final class Cameras {
         // Diagnose: what does the car's ADB shell say about itself and the helper?
         String diag;
         try {
-            diag = adb.shell("id; ls -l " + lib + " 2>&1; cat /data/local/tmp/shark6cam.log 2>&1 | tail -3").getAllOutput();
+            diag = adb.shell("id; ls -l " + lib + " 2>&1").getAllOutput();
         } catch (Throwable t) {
             diag = "diag failed: " + t;
         }
