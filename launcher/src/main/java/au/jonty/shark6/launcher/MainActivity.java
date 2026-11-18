@@ -81,11 +81,22 @@ public class MainActivity extends Activity {
         fastWorker.start();
         fastH = new Handler(fastWorker.getLooper());
 
-        // OTA: look for a newer build once per launch, a few seconds after start (lets Wi-Fi/4G come up).
-        bg.postDelayed(() -> {
-            JSONObject u = Updater.check(this);
-            if (u != null) pushJs("window.onUpdate && window.onUpdate(" + JSONObject.quote(u.toString()) + ")");
-        }, 8000);
+    }
+
+    // OTA: look for a newer build shortly after start (lets Wi-Fi/4G come up), then again whenever
+    // the home screen comes back into view, at most every 15 minutes.
+    private static final long UPDATE_EVERY_MS = 15 * 60 * 1000;
+    private long lastUpdateCheck;
+    private final Runnable updateCheck = () -> {
+        lastUpdateCheck = System.currentTimeMillis();
+        JSONObject u = Updater.check(this);
+        if (u != null) pushJs("window.onUpdate && window.onUpdate(" + JSONObject.quote(u.toString()) + ")");
+    };
+    private void maybeCheckForUpdate() {
+        if (lastUpdateCheck != 0 && System.currentTimeMillis() - lastUpdateCheck < UPDATE_EVERY_MS) return;
+        lastUpdateCheck = System.currentTimeMillis();
+        // Own thread: a slow network must never hold up climate commands or the speedo.
+        ui.postDelayed(() -> new Thread(updateCheck, "ota-check").start(), 8000);
     }
 
     private void pushJs(String js) { ui.post(() -> { if (pageReady) web.evaluateJavascript(js, null); }); }
@@ -124,6 +135,7 @@ public class MainActivity extends Activity {
         bg.post(poll);
         fastH.removeCallbacks(fastPoll);
         fastH.post(fastPoll);
+        maybeCheckForUpdate();
     }
 
     @Override protected void onPause() {
