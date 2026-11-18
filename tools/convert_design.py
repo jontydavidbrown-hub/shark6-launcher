@@ -18,9 +18,9 @@ opt('<span style="font-size: 12px; color: #A6A6A6; border: 1px solid #333; borde
     '<span style="font-size: 12px; color: {{liveColor}}; border: 1px solid #333; border-radius: 4px; padding: 2px 8px;">{{liveLabel}}</span>')
 rep('<span style="color: #4A4A4A;">P</span><span style="color: #4A4A4A;">R</span><span style="color: #4A4A4A;">N</span><span style="color: {{accent}};">D</span>',
     '<span style="color: {{gearP}};">P</span><span style="color: {{gearR}};">R</span><span style="color: {{gearN}};">N</span><span style="color: {{gearD}};">D</span>')
-rep('<button type="button" onClick="{{cycleMode}}" aria-label="Energy flow: {{modeLabel}}. Tap to preview the next mode" style="background: #111111;',
+opt('<button type="button" onClick="{{cycleMode}}" aria-label="Energy flow: {{modeLabel}}. Tap to preview the next mode" style="background: #111111;',
     '<button type="button" onClick="{{openEnergy}}" aria-label="Energy: {{modeLabel}}" style="background: #111111;')
-rep('kPa · all OK','{{tyreNote}}')
+opt('kPa · all OK','{{tyreNote}}')
 rep('{{evShare}}% electric','{{tripFuel}}')
 rep('<div style="height: 4px; background: #262626;"><div style="height: 4px; width: {{evShare}}%; background: {{accent}};"></div></div>',
     '<div style="font-size: 13px; color: #A6A6A6;">ODO {{odo}} km</div>')

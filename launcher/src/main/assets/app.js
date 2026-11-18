@@ -124,6 +124,7 @@ class Home extends Component {
     const tyres = Array.isArray(c.tyres) ? c.tyres : [];
     const tyre = (i) => (typeof tyres[i] === 'number' ? (tyres[i] * kBars).toFixed(1) : '—');
     const tyreLow = Array.isArray(c.tyreStates) && c.tyreStates.some((x) => x === 2);
+    const tyreColor = (i) => (Array.isArray(c.tyreStates) && c.tyreStates[i] && c.tyreStates[i] !== 0 ? '#FF8A00' : '#F2F2F2');
 
     const tripKm = num(c.tripKm), tripKwh = num(c.tripKwh);
     const per100 = tripKm >= 1 ? (tripKwh / tripKm) * 100 : 0;
@@ -164,6 +165,10 @@ class Home extends Component {
       engLine: engineOn ? '#F2F2F2' : '#262626', engText: engineOn ? '#F2F2F2' : '#A6A6A6',
       openEnergy: () => Bridge.openApp('energy'),
       tyreFL: tyre(0), tyreFR: tyre(1), tyreRL: tyre(2), tyreRR: tyre(3),
+      tyreFLc: tyreColor(0), tyreFRc: tyreColor(1), tyreRLc: tyreColor(2), tyreRRc: tyreColor(3),
+      modeShort: em === 3 ? 'HEV' : em === 4 ? 'FUEL' : (em === 1 || em === 2) ? 'EV' : '—',
+      modeSub: hasPower ? (regen ? 'Regen ' + Math.round(-kw) + ' kW' : engineOn ? 'Engine running' : 'Electric drive') : (em === 3 ? 'Hybrid' : em === 1 || em === 2 ? 'Electric' : ''),
+      modeColor: em === 1 || em === 2 ? '#4ADE80' : '#F2F2F2',
       tyreNote: tyres.length ? (tyreLow ? 'psi · CHECK' : 'psi · all OK') : 'psi',
       tripKm: (tripKm * kBars).toFixed(1), tripKwh: (per100 * kBars).toFixed(1),
       tripFuel: num(c.tripFuel) > 0 ? num(c.tripFuel).toFixed(1) + ' L fuel' : 'no fuel used',
@@ -279,30 +284,39 @@ class Home extends Component {
   </section>
 
   
-  <section aria-label="Car" style="display: grid; grid-template-rows: repeat(4, minmax(0, 1fr)); gap: 14px; min-height: 0;">
+  <section aria-label="Car" style="display: grid; grid-template-rows: 64px minmax(0, 1.75fr) minmax(0, 1fr) minmax(0, 1fr); gap: 14px; min-height: 0;">
 
-    <button type="button" onClick=${v.openEnergy} aria-label="Energy: ${v.modeLabel}" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 16px; color: #F2F2F2; display: flex; flex-direction: column; justify-content: space-between; text-align: left; min-height: 0;">
-      <div style="width: 100%; display: flex; justify-content: space-between; align-items: baseline;">
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">ENERGY</span>
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px;">${v.modeLabel}</span>
+    <div aria-label="Drive system: ${v.modeShort}" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; min-height: 0;">
+      <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">POWERTRAIN</span>
+      <div class="gx-10" style="display: flex; align-items: baseline;">
+        <span style="font-size: 13px; color: #A6A6A6;">${v.modeSub}</span>
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 30px; line-height: 1; color: ${v.modeColor};">${v.modeShort}</span>
       </div>
-      <div class="gx-8" style="width: 100%; display: flex; align-items: center;  font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 16px; letter-spacing: 0.06em;">
-        <span>BATT</span><div style="flex: 1; height: 3px; background: ${v.battLine};"></div><span>WHEELS</span><div style="flex: 1; height: 3px; background: ${v.engLine};"></div><span style="color: ${v.engText};">ENG</span>
-      </div>
-      <span style="font-size: 13px; color: #A6A6A6;">${v.modePower}</span>
-    </button>
+    </div>
 
-    <div aria-label="Tyre pressures" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0;">
+    <div aria-label="Tyre pressures" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; min-height: 0;">
       <div style="display: flex; justify-content: space-between; align-items: baseline;">
         <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">TYRES</span>
         <span style="font-size: 13px; color: #A6A6A6;">${v.tyreNote}</span>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 26px 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: center;">
-        <span style="text-align: right; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 24px; line-height: 1.1;">${v.tyreFL}</span>
-        <div style="grid-row: 1 / 3; grid-column: 2; justify-self: center; width: 22px; height: 52px; border: 2px solid #4A4A4A; border-radius: 6px 6px 3px 3px;"></div>
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 24px; line-height: 1.1;">${v.tyreFR}</span>
-        <span style="text-align: right; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 24px; line-height: 1.1;">${v.tyreRL}</span>
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 24px; line-height: 1.1;">${v.tyreRR}</span>
+      <div class="gx-14" style="flex: 1; display: flex; align-items: center; justify-content: center;">
+        <div style="position: relative; width: 96px; height: 150px;"><div style="position: absolute; top: 14px; left: 0; right: 0; text-align: right;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px; line-height: 1; color: ${v.tyreFLc};">${v.tyreFL}</div><div style="font-size: 11px; letter-spacing: 0.08em; color: #6B6B6B;">FRONT L</div></div><div style="position: absolute; top: 100px; left: 0; right: 0; text-align: right;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px; line-height: 1; color: ${v.tyreRLc};">${v.tyreRL}</div><div style="font-size: 11px; letter-spacing: 0.08em; color: #6B6B6B;">REAR L</div></div></div>
+        <svg width="80" height="150" viewBox="0 0 80 170" fill="none" aria-hidden="true" style="flex-shrink: 0;">
+          <rect x="3" y="24" width="10" height="26" rx="3" fill=${v.tyreFLc} opacity="0.85"></rect>
+          <rect x="67" y="24" width="10" height="26" rx="3" fill=${v.tyreFRc} opacity="0.85"></rect>
+          <rect x="3" y="122" width="10" height="26" rx="3" fill=${v.tyreRLc} opacity="0.85"></rect>
+          <rect x="67" y="122" width="10" height="26" rx="3" fill=${v.tyreRRc} opacity="0.85"></rect>
+          <path d="M8 52 L14 49 L14 57 Z" fill="#5A5A5A"></path>
+          <path d="M72 52 L66 49 L66 57 Z" fill="#5A5A5A"></path>
+          <path d="M14 30 C14 12 24 5 40 4 C56 5 66 12 66 30 L66 160 C66 164 63 167 59 167 L21 167 C17 167 14 164 14 160 Z" fill="#1A1A1A" stroke="#6B6B6B" stroke-width="2"></path>
+          <path d="M22 18 C30 13 50 13 58 18" stroke="#3A3A3A" stroke-width="1.5"></path>
+          <path d="M19 47 C30 40 50 40 61 47 L58 61 C47 57 33 57 22 61 Z" fill="#333333"></path>
+          <rect x="22" y="63" width="36" height="28" rx="4" fill="#242424"></rect>
+          <path d="M22 93 L58 93 L56 99 L24 99 Z" fill="#333333"></path>
+          <rect x="19" y="104" width="42" height="58" rx="2" fill="#121212" stroke="#4A4A4A" stroke-width="1.5"></rect>
+          <path d="M26 112 L26 154 M33 112 L33 154 M40 112 L40 154 M47 112 L47 154 M54 112 L54 154" stroke="#262626" stroke-width="1.5"></path>
+        </svg>
+        <div style="position: relative; width: 96px; height: 150px;"><div style="position: absolute; top: 14px; left: 0; right: 0; text-align: left;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px; line-height: 1; color: ${v.tyreFRc};">${v.tyreFR}</div><div style="font-size: 11px; letter-spacing: 0.08em; color: #6B6B6B;">FRONT R</div></div><div style="position: absolute; top: 100px; left: 0; right: 0; text-align: left;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px; line-height: 1; color: ${v.tyreRRc};">${v.tyreRR}</div><div style="font-size: 11px; letter-spacing: 0.08em; color: #6B6B6B;">REAR R</div></div></div>
       </div>
     </div>
 
