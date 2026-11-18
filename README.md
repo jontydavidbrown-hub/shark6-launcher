@@ -13,11 +13,15 @@ A custom home screen for the BYD Shark 6 (DiLink head unit), sporty design.
    adb connect <car-ip>:5555
    adb install -r shark6-probe.apk
    ```
-3. Open **Shark 6 Probe** on the car screen. Photograph the summary, or pull the full report:
+3. (Optional, for the now-playing check) start a song in CarPlay, then allow the probe to read media info:
+   ```
+   adb shell cmd notification allow_listener au.jonty.shark6.probe/au.jonty.shark6.probe.MediaListener
+   ```
+4. Open **Shark 6 Probe** on the car screen. Photograph the summary, or pull the full report:
    ```
    adb pull /sdcard/Android/data/au.jonty.shark6.probe/files/probe-report.txt
    ```
-4. Remove it afterwards with `adb uninstall au.jonty.shark6.probe`.
+5. Remove it afterwards with `adb uninstall au.jonty.shark6.probe`.
 
 ## Caution
 Unofficial apps may affect BYD warranty, and a BYD over-the-air update can remove sideloaded apps or close ADB access.

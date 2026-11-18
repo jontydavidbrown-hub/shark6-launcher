@@ -193,6 +193,35 @@ public class ProbeActivity extends Activity {
         full.append("Notification-access settings page exists: ").append(listenerSettings).append('\n');
         summary.append("CarPlay apps: ").append(matches == 0 ? "none found by name" : names.toString()).append('\n')
                 .append("Now-playing access page: ").append(listenerSettings ? "yes" : "no").append('\n');
+        summary.append("Now playing: ").append(nowPlaying()).append('\n');
+    }
+
+    /** Reads active media sessions (needs notification access granted to MediaListener). */
+    private String nowPlaying() {
+        full.append("\n== Active media sessions ==\n");
+        try {
+            android.media.session.MediaSessionManager msm =
+                    (android.media.session.MediaSessionManager) getSystemService(Context.MEDIA_SESSION_SERVICE);
+            List<android.media.session.MediaController> list = msm.getActiveSessions(
+                    new android.content.ComponentName(this, MediaListener.class));
+            if (list.isEmpty()) return "access OK, but nothing is playing (play a song in CarPlay and reopen)";
+            StringBuilder sb = new StringBuilder();
+            for (android.media.session.MediaController c : list) {
+                android.media.MediaMetadata md = c.getMetadata();
+                android.media.session.PlaybackState ps = c.getPlaybackState();
+                String title = md == null ? "?" : String.valueOf(md.getString(android.media.MediaMetadata.METADATA_KEY_TITLE));
+                String artist = md == null ? "?" : String.valueOf(md.getString(android.media.MediaMetadata.METADATA_KEY_ARTIST));
+                String line = c.getPackageName() + ": \"" + title + "\" by " + artist
+                        + (ps == null ? "" : " state=" + ps.getState() + " actions=" + ps.getActions());
+                full.append(line).append('\n');
+                sb.append("\n   ").append(line);
+            }
+            return "READABLE" + sb;
+        } catch (SecurityException se) {
+            return "no access yet (run the allow_listener command, then reopen)";
+        } catch (Throwable t) {
+            return "error " + root(t);
+        }
     }
 
     private List<String> discoverClasses() {
