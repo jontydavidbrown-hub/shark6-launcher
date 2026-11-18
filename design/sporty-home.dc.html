@@ -462,7 +462,7 @@ class Component extends DCLogic {
       cycleMode: () => set({ mode: (s.mode + 1) % 3 }),
       playing: s.playing, paused: !s.playing, playLabel: s.playing ? 'Pause' : 'Play',
       togglePlay: () => set({ playing: !s.playing }),
-      drvTemp: tempUp(s.drvTemp, kClimate), pasTemp: tempUp(s.pasTemp, kClimate),
+      drvTemp: s.drvTemp, pasTemp: s.pasTemp, // no count-up at launch
       drvUp: () => setT(1, clamp(s.drvTemp + 1)),
       drvDown: () => setT(1, clamp(s.drvTemp - 1)),
       pasUp: () => setT(2, clamp(s.pasTemp + 1)),

@@ -245,7 +245,7 @@ class Home extends Component {
       playing: !!m.playing, paused: !m.playing, playLabel: m.playing ? 'Pause' : 'Play',
       togglePlay: () => Bridge.media(m.playing ? 'pause' : 'play'),
       prevTrack: () => Bridge.media('prev'), nextTrack: () => Bridge.media('next'),
-      drvTemp: tempUp(drvTemp, kClimate), pasTemp: tempUp(pasTemp, kClimate),
+      drvTemp, pasTemp, // shown straight away, no count-up at launch
       drvUp: () => setTemp(1, clampT(drvTemp + 1)), drvDown: () => setTemp(1, clampT(drvTemp - 1)),
       pasUp: () => setTemp(2, clampT(pasTemp + 1)), pasDown: () => setTemp(2, clampT(pasTemp - 1)),
       fanLabel: auto ? 'AUTO' : String(fan),
