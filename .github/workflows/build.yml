@@ -1,0 +1,39 @@
+name: Build APKs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Build
+        run: gradle --no-daemon :probe:assembleDebug
+      - name: Rename APK
+        run: cp probe/build/outputs/apk/debug/probe-debug.apk shark6-probe.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shark6-probe
+          path: shark6-probe.apk
+      - name: Publish release
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: probe-build-${{ github.run_number }}
+          name: Shark 6 Probe (build ${{ github.run_number }})
+          body: Read-only test app. Install with `adb install -r shark6-probe.apk`.
+          files: shark6-probe.apk
