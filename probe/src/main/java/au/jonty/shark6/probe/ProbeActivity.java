@@ -55,6 +55,21 @@ public class ProbeActivity extends Activity {
             "energy", "mode", "temp", "wind", "fan", "defrost", "demist", "seat", "heat", "vent", "cool"
     };
 
+    private static final String[] WANTED_DEVICES = {
+            "android.hardware.bydauto.ac.BYDAutoAcDevice",
+            "android.hardware.bydauto.seat.BYDAutoSeatDevice",
+            "android.hardware.bydauto.setting.BYDAutoSettingDevice",
+            "android.hardware.bydauto.statistic.BYDAutoStatisticDevice",
+            "android.hardware.bydauto.energy.BYDAutoEnergyDevice",
+            "android.hardware.bydauto.speed.BYDAutoSpeedDevice",
+            "android.hardware.bydauto.instrument.BYDAutoInstrumentDevice",
+            "android.hardware.bydauto.charging.BYDAutoChargingDevice",
+            "android.hardware.bydauto.tyre.BYDAutoTyreDevice",
+            "android.hardware.bydauto.gearbox.BYDAutoGearboxDevice",
+            "android.hardware.bydauto.bodywork.BYDAutoBodyworkDevice",
+            "android.hardware.bydauto.sensor.BYDAutoSensorDevice",
+    };
+
     private final StringBuilder summary = new StringBuilder();
     private final StringBuilder full = new StringBuilder();
     private TextView view;
@@ -75,6 +90,16 @@ public class ProbeActivity extends Activity {
         ScrollView sv = new ScrollView(this);
         sv.addView(view);
         setContentView(sv);
+        Thread.setDefaultUncaughtExceptionHandler((th, ex) -> {
+            full.append("\nCRASH on thread ").append(th.getName()).append(": ").append(android.util.Log.getStackTraceString(ex)).append('\n');
+            save();
+            // BYD SDK background threads (e.g. the audio device needing a car permission) can throw
+            // on their own; let that thread die but keep the probe running.
+            if (th.getName().startsWith("BYD") || !th.getName().equals("probe") && th != Looper.getMainLooper().getThread()) return;
+            summary.append("CRASHED: ").append(root(ex)).append(" (see full report)\n");
+            save();
+            android.os.Process.killProcess(android.os.Process.myPid());
+        });
         new Thread(this::runProbe, "probe").start();
     }
 
@@ -84,9 +109,17 @@ public class ProbeActivity extends Activity {
             permissions();
             homeScreen();
             carPlay();
-            List<String> classes = discoverClasses();
-            for (String c : classes) {
-                if (c.endsWith("Device")) probeDevice(c);
+            discoverClasses();
+            save();
+            // Only the devices the launcher needs (same list SharkHub opens on this build).
+            for (String d : WANTED_DEVICES) {
+                full.append("\n[probing ").append(d).append("]\n");
+                save(); // so a crash still leaves a report showing where it stopped
+                try {
+                    probeDevice(d);
+                } catch (Throwable t) {
+                    full.append("probe of ").append(d).append(" threw ").append(root(t)).append('\n');
+                }
             }
         } catch (Throwable t) {
             full.append("\nFATAL: ").append(t).append('\n');
@@ -412,7 +445,7 @@ public class ProbeActivity extends Activity {
         }
     }
 
-    private String save() {
+    private synchronized String save() {
         try {
             File dir = getExternalFilesDir(null);
             if (dir == null) dir = getFilesDir();
