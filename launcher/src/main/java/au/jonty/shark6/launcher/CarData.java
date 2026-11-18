@@ -39,6 +39,7 @@ final class CarData {
             {"engine", "android.hardware.bydauto.engine.BYDAutoEngineDevice"},
             {"motor", "android.hardware.bydauto.motor.BYDAutoMotorDevice"},
             {"instrument", "android.hardware.bydauto.instrument.BYDAutoInstrumentDevice"},
+            {"light", "android.hardware.bydauto.light.BYDAutoLightDevice"},
     };
 
     // AC constants (SharkHub's Byd object, confirmed from the car's own constants).
@@ -113,11 +114,27 @@ final class CarData {
         }
     }
 
-    /** Speed and gear only: cheap enough to read ten times a second for a live speedo. */
+    /** Speed, gear and indicators: cheap enough to read ten times a second for a live speedo. */
     double[] fast() {
         if (!open()) return null;
         Double sp = num("speed", "getCurrentSpeed"), g = num("gearbox", "getGearboxAutoModeLevel");
-        return new double[] { sp == null ? -1 : sp, g == null ? -1 : g };
+        return new double[] { sp == null ? -1 : sp, g == null ? -1 : g, turn() };
+    }
+
+    /**
+     * Indicators: 0 off, 1 left, 2 right, 3 hazards. light.getTurnLightFlashState() reads 2/3 for
+     * left, 4/5 for right and 6/7 for hazards (as Overdrive, MIT, uses it); getLightStatus(4 left,
+     * 5 right) is the fallback.
+     */
+    private int turn() {
+        Double f = num("light", "getTurnLightFlashState");
+        if (f != null && f >= 2 && f <= 7) {
+            int v = f.intValue();
+            return v <= 3 ? 1 : v <= 5 ? 2 : 3;
+        }
+        Double l = num("light", "getLightStatus", 4), r = num("light", "getLightStatus", 5);
+        boolean left = l != null && l.intValue() == 1, right = r != null && r.intValue() == 1;
+        return left && right ? 3 : left ? 1 : right ? 2 : 0;
     }
 
     private Double num(String device, String name, int... args) {

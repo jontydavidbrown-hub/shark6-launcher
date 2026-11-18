@@ -31,13 +31,15 @@ public class MainActivity extends Activity {
     private HandlerThread worker, cmdWorker, fastWorker;
     private Handler bg, cmd, fastH;
     private static final long FAST_MS = 100;
-    private long lastSpeed = Long.MIN_VALUE, lastGear = Long.MIN_VALUE;
+    private long lastSpeed = Long.MIN_VALUE, lastGear = Long.MIN_VALUE, lastTurn = Long.MIN_VALUE;
     private final Handler ui = new Handler(Looper.getMainLooper());
     private volatile boolean resumed;
     private SoundPool sounds;
     private int sfxTap, sfxOn, sfxOff;
     private boolean pageReady;
-    private CamView cam, cam2;
+    private CamView cam, cam2, cam3;
+    private Tilt tilt;
+    private static boolean welcomed;
     private CamFeed feed;
     private boolean camPlaced, reversing;
 
@@ -72,13 +74,17 @@ public class MainActivity extends Activity {
         // Live camera pictures, drawn over the page's two camera boxes (see camRects): front and left to start.
         cam = new CamView(this, 0);
         cam2 = new CamView(this, 3);
+        cam3 = new CamView(this, 0);      // big front view at low speed
         cam.setZOrderMediaOverlay(true);
         cam2.setZOrderMediaOverlay(true);
-        feed = new CamFeed(this, t -> pushJs("window.onCamStatus && window.onCamStatus(" + JSONObject.quote(t) + ")"), cam, cam2);
+        cam3.setZOrderMediaOverlay(true);
+        feed = new CamFeed(this, t -> pushJs("window.onCamStatus && window.onCamStatus(" + JSONObject.quote(t) + ")"), cam, cam2, cam3);
+        tilt = new Tilt(this);
         android.widget.FrameLayout root = new android.widget.FrameLayout(this);
         root.addView(web, new android.widget.FrameLayout.LayoutParams(-1, -1));
         root.addView(cam, new android.widget.FrameLayout.LayoutParams(1, 1));
         root.addView(cam2, new android.widget.FrameLayout.LayoutParams(1, 1));
+        root.addView(cam3, new android.widget.FrameLayout.LayoutParams(1, 1));
         setContentView(root);
         web.loadUrl("file:///android_asset/index.html");
 
@@ -135,6 +141,8 @@ public class MainActivity extends Activity {
             if (!resumed) return;
             JSONObject o = car.read();
             try { o.put("media", media.read()); } catch (Exception ignored) { }
+            double[] t = tilt.read();
+            if (t != null) try { o.put("tilt", new JSONObject().put("p", Math.round(t[0] * 10) / 10.0).put("r", Math.round(t[1] * 10) / 10.0)); } catch (Exception ignored) { }
             final String js = "window.onCar && window.onCar(" + JSONObject.quote(o.toString()) + ")";
             ui.post(() -> { if (pageReady) web.evaluateJavascript(js, null); });
             bg.postDelayed(this, POLL_MS);
@@ -147,12 +155,12 @@ public class MainActivity extends Activity {
             if (!resumed) return;
             double[] f = car.fast();
             if (f != null) {
-                long sp = Math.round(f[0]), g = Math.round(f[1]);
-                if (sp != lastSpeed || g != lastGear) {
-                    lastSpeed = sp; lastGear = g;
+                long sp = Math.round(f[0]), g = Math.round(f[1]), tn = Math.round(f[2]);
+                if (sp != lastSpeed || g != lastGear || tn != lastTurn) {
+                    lastSpeed = sp; lastGear = g; lastTurn = tn;
                     boolean r = g == 2; // R: let BYD's reversing camera have the cameras
                     if (r != reversing) { reversing = r; ui.post(MainActivity.this::updateCamera); }
-                    pushJs("window.onFast && window.onFast(" + sp + "," + g + ")");
+                    pushJs("window.onFast && window.onFast(" + sp + "," + g + "," + tn + ")");
                 }
             }
             fastH.postDelayed(this, FAST_MS);
@@ -170,6 +178,8 @@ public class MainActivity extends Activity {
         ui.post(updateTick);
         cam.onResume();
         cam2.onResume();
+        cam3.onResume();
+        tilt.start();
         updateCamera();
     }
 
@@ -177,6 +187,8 @@ public class MainActivity extends Activity {
         super.onPause();
         cam.onPause();
         cam2.onPause();
+        cam3.onPause();
+        tilt.stop();
         resumed = false;
         ui.removeCallbacks(updateTick);
         updateCamera();
@@ -269,7 +281,7 @@ public class MainActivity extends Activity {
             String[] boxes = r.split(";");
             ui.post(() -> {
                 boolean placed = false;
-                CamView[] views = { cam, cam2 };
+                CamView[] views = { cam, cam2, cam3 };
                 for (int i = 0; i < views.length; i++) {
                     String[] p = i < boxes.length ? boxes[i].split(",") : new String[0];
                     int x = 0, y = 0, w = 0, h = 0;
@@ -286,7 +298,11 @@ public class MainActivity extends Activity {
             });
         }
         /** Which camera a tile shows: view 0 = top tile, 1 = bottom; slot 0 front, 1 right, 2 rear, 3 left. */
-        @JavascriptInterface public void camShow(int view, int slot) { (view == 1 ? cam2 : cam).show(slot); }
+        @JavascriptInterface public void camShow(int view, int slot) { (view == 2 ? cam3 : view == 1 ? cam2 : cam).show(slot); }
+        /** True once per app start, so the welcome screen shows when the car starts, not on every return home. */
+        @JavascriptInterface public boolean firstStart() { boolean f = !welcomed; welcomed = true; return f; }
+        @JavascriptInterface public boolean hasTilt() { return tilt.available(); }
+        @JavascriptInterface public void zeroTilt() { tilt.zero(); }
         @JavascriptInterface public void toast(String m) { MainActivity.this.toast(m); }
         @JavascriptInterface public void installUpdate(String url) {
             new Thread(() -> Updater.install(MainActivity.this, url, new Updater.Progress() {

@@ -22,6 +22,7 @@ button{font-family:inherit;cursor:pointer}
 .s6-warm::-webkit-slider-thumb{box-shadow:0 0 0 6px rgba(212,42,58,0.45),0 4px 12px rgba(0,0,0,0.6)}
 .s6-cool::-moz-range-thumb{box-shadow:0 0 0 6px rgba(47,179,255,0.45)}
 .s6-warm::-moz-range-thumb{box-shadow:0 0 0 6px rgba(212,42,58,0.45)}
+.s6-wbar{transform-origin:0 50%;animation:s6w 3.2s linear forwards}@keyframes s6w{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 .s6-spin{transform-box:fill-box;transform-origin:50% 50%;-webkit-animation:s6spin 1.6s linear infinite;animation:s6spin 1.6s linear infinite}
 .s6-spin.s6-slow{-webkit-animation-duration:3s;animation-duration:3s}
 .s6-spin.s6-fast{-webkit-animation-duration:.8s;animation-duration:.8s}
@@ -85,7 +86,7 @@ button{font-family:inherit;cursor:pointer}
   </section>
 
   <!-- MIDDLE: tyres and trip on the top row, range and speed dials below -->
-  <section aria-label="Drive" style="grid-column: span 2; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: 104px minmax(0, 1fr); column-gap: 18px; row-gap: 14px; min-height: 0; min-width: 0;">
+  <section aria-label="Drive" style="grid-column: span 2; position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: 104px minmax(0, 1fr); column-gap: 18px; row-gap: 14px; min-height: 0; min-width: 0;">
 
     <div aria-label="Tyre pressures" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; min-width: 0; overflow: hidden;">
       <div style="display: flex; justify-content: space-between; align-items: baseline;">
@@ -159,10 +160,56 @@ button{font-family:inherit;cursor:pointer}
         <div style="display: flex; justify-content: space-between; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 20px; letter-spacing: 0.04em; color: #A6A6A6;"><span>REGEN</span><span style="color: #F2F2F2; font-size: 36px; line-height: 1;">{{powerLabel}}</span><span>POWER</span></div>
       </div>
     </section>
+
+    <!-- OFF-ROAD (Mud, Sand or Snow): terrain, tyres, pitch and roll -->
+    <sc-if value="{{offroad}}">
+      <div aria-label="Off-road view" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 5; background: #050505; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: 104px minmax(0, 1fr); column-gap: 18px; row-gap: 14px;">
+        <div aria-label="Terrain. Hold to zero the tilt on flat ground" onPointerDown="{{tiltHoldStart}}" onPointerUp="{{tiltHoldEnd}}" onPointerLeave="{{tiltHoldEnd}}" onPointerCancel="{{tiltHoldEnd}}" style="background: #111111; border: 1px solid #262626; border-radius: 8px; box-sizing: border-box; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden;">
+          <div style="display: flex; justify-content: space-between;"><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: {{accent}};">TERRAIN</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.12em; color: #A6A6A6;">{{tiltNote}}</span></div>
+          <div style="display: flex; align-items: baseline; gap: 14px;"><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 48px; line-height: 1; color: {{accent}};">{{terrainName}}</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 18px; color: #A6A6A6; letter-spacing: 0.08em;">{{terrainSub}}</span></div>
+          <div style="position: absolute; left: 0; bottom: 0; height: 4px; width: {{tiltHoldPct}}%; background: {{accent}}; transition: {{tiltHoldAnim}};"></div>
+        </div>
+        <div style="background: #111111; border: 1px solid #262626; border-radius: 8px; box-sizing: border-box; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between;">
+          <div style="display: flex; justify-content: space-between;"><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: {{accent}};">TYRES</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.12em; color: #A6A6A6; text-transform: uppercase;">{{tyreNote}}</span></div>
+          <div style="display: flex; justify-content: space-around; align-items: flex-end;"><div style="display: flex; flex-direction: column; align-items: center; gap: 4px;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.14em; color: #6B6B6B;">FL</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 34px; color: {{tyreFLc}};">{{tyreFL}}</span></div><div style="display: flex; flex-direction: column; align-items: center; gap: 4px;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.14em; color: #6B6B6B;">FR</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 34px; color: {{tyreFRc}};">{{tyreFR}}</span></div><div style="width: 1px; align-self: stretch; background: #262626;"></div><div style="display: flex; flex-direction: column; align-items: center; gap: 4px;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.14em; color: #6B6B6B;">RL</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 34px; color: {{tyreRLc}};">{{tyreRL}}</span></div><div style="display: flex; flex-direction: column; align-items: center; gap: 4px;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.14em; color: #6B6B6B;">RR</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 34px; color: {{tyreRRc}};">{{tyreRR}}</span></div></div>
+        </div>
+        <div style="grid-column: 1 / span 2; display: flex; padding: 46px 20px 0;">
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+          <svg width="300" height="300" viewBox="0 0 300 300" aria-hidden="true">
+            <circle cx="150" cy="150" r="132" fill="none" stroke="#1C1C1C" stroke-width="2"></circle><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(-60 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(-45 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(-30 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(-15 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(0 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(15 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(30 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(45 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(60 150 150)"></path>
+            <path d="M30 150 L270 150" stroke="#262626" stroke-width="2" stroke-dasharray="6 8"></path>
+            <g transform="{{pitchRot}}"><path d="M150 18 L150 36" stroke="{{accent}}" stroke-width="5"></path><path d="M30 150 L270 150" stroke="{{accent}}" stroke-width="2" opacity="0.6"></path><path d="M72 148 L72 122 L118 120 L136 98 L178 98 L186 120 L230 122 L230 148 Z" fill="#2A2A2A" stroke="#BDBDBD" stroke-width="3" stroke-linejoin="round"></path><circle cx="100" cy="150" r="16" fill="#111" stroke="#BDBDBD" stroke-width="3"></circle><circle cx="204" cy="150" r="16" fill="#111" stroke="#BDBDBD" stroke-width="3"></circle></g>
+          </svg>
+          <div style="display: flex; align-items: baseline; gap: 10px; margin-top: -18px;"><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 20px; letter-spacing: 0.12em; color: #A6A6A6;">PITCH</span><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 56px; line-height: 1;">{{pitchText}}</span></div>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+          <svg width="300" height="300" viewBox="0 0 300 300" aria-hidden="true">
+            <circle cx="150" cy="150" r="132" fill="none" stroke="#1C1C1C" stroke-width="2"></circle><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(-60 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(-45 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(-30 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(-15 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(0 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(15 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(30 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(45 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(60 150 150)"></path>
+            <path d="M30 150 L270 150" stroke="#262626" stroke-width="2" stroke-dasharray="6 8"></path>
+            <g transform="{{rollRot}}"><path d="M150 18 L150 36" stroke="{{accent}}" stroke-width="5"></path><path d="M30 150 L270 150" stroke="{{accent}}" stroke-width="2" opacity="0.6"></path><path d="M100 150 L100 112 L114 86 L186 86 L200 112 L200 150 Z" fill="#2A2A2A" stroke="#BDBDBD" stroke-width="3" stroke-linejoin="round"></path><rect x="94" y="140" width="22" height="34" rx="5" fill="#111" stroke="#BDBDBD" stroke-width="3"></rect><rect x="184" y="140" width="22" height="34" rx="5" fill="#111" stroke="#BDBDBD" stroke-width="3"></rect><path d="M122 100 L178 100" stroke="#555" stroke-width="3"></path></g>
+          </svg>
+          <div style="display: flex; align-items: baseline; gap: 10px; margin-top: -18px;"><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 20px; letter-spacing: 0.12em; color: #A6A6A6;">ROLL</span><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 56px; line-height: 1;">{{rollText}}</span></div>
+        </div>
+        </div>
+      </div>
+    </sc-if>
+    <!-- LOW SPEED: the front camera takes over the dials under 10 km/h in drive -->
+    <sc-if value="{{lowCam}}">
+      <div aria-label="Front camera, shown at low speed" style="position: absolute; top: 118px; left: 0; right: 0; bottom: 0; z-index: 6; background: #111111; border: 1px solid #262626; border-radius: 8px; box-sizing: border-box; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <span style="display: flex; align-items: baseline; gap: 18px;"><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: {{accent}};">FRONT CAMERA</span><span><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 30px; line-height: 1;">{{speed}}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; color: #A6A6A6;">KM/H</span></span></span>
+          <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.12em; color: #A6A6A6;">AUTO · UNDER 10 KM/H</span>
+        </div>
+        <div id="s6-cam3" style="flex: 1; min-height: 0; position: relative; background: #000; border-radius: 6px; overflow: hidden;">
+          <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 17px; color: #A6A6A6;">{{camStatus}}</div>
+        </div>
+      </div>
+    </sc-if>
   </section>
 
   <!-- RIGHT: two live cameras (front/rear on top, left/right below; tap to switch) -->
   <section aria-label="Cameras" style="display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; min-height: 0; min-width: 0; overflow: hidden;">
+  <sc-if value="{{camsNormal}}">
 
     <div aria-label="Camera: {{camName}}. Tap to switch front and rear" onClick="{{camNext}}" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; overflow: hidden; cursor: pointer;">
       <div style="display: flex; justify-content: space-between; align-items: baseline;">
@@ -185,6 +232,16 @@ button{font-family:inherit;cursor:pointer}
         <div style="position: absolute; left: 8px; bottom: 8px; display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.55); border-radius: 4px; padding: 3px 8px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{accent}};"></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.1em;">LIVE</span></div>
       </div>
     </div>
+  </sc-if>
+  <sc-if value="{{camRightBig}}">
+    <div aria-label="Right camera, shown while the right indicator is on" style="grid-row: 1 / span 2; background: #111111; border: 1px solid #262626; border-radius: 8px; box-sizing: border-box; border-color: #FFB020; box-shadow: 0 0 0 2px rgba(255,176,32,0.35); padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: hidden;">
+      <div style="display: flex; justify-content: space-between; align-items: center;"><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: {{accent}};">CAMERA</span><span style="display: flex; align-items: center; gap: 8px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: #FFB020;">RIGHT <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h9V4l8 8-8 8v-5H4z" fill="#FFB020"></path></svg></span></div>
+      <div id="s6-cam" style="flex: 1; min-height: 0; position: relative; background: #000; border-radius: 6px; overflow: hidden;">
+        <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; padding: 0 16px; text-align: center; font-size: 17px; color: #A6A6A6;">{{camStatus}}</div>
+      </div>
+      <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.12em; color: #FFB020;">● RIGHT INDICATOR ON</div>
+    </div>
+  </sc-if>
   </section>
 
   <!-- CLIMATE + SEATS -->
@@ -264,6 +321,30 @@ button{font-family:inherit;cursor:pointer}
     <button type="button" onClick="{{showNow}}" style="height: 36px; padding: 0 18px; border: 0; border-radius: 18px; background: {{nowBg}}; color: {{nowFg}}; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.1em;">NOW</button>
   </div>
   <!-- /DESIGN-ONLY -->
+  <!-- TRIP COMPLETE (shown when you shift to P after a drive) -->
+  <sc-if value="{{tripCard}}">
+    <div role="dialog" aria-label="Trip complete" onClick="{{tripDone}}" style="position: absolute; top: 0; left: 0; width: 1600px; height: 900px; z-index: 70; background: rgba(0,0,0,0.72); display: flex; align-items: center; justify-content: center;">
+      <div style="width: 760px; background: #111111; border: 1px solid #262626; border-radius: 8px; box-sizing: border-box; border-radius: 14px; padding: 28px 34px 30px; display: flex; flex-direction: column; gap: 26px; box-shadow: 0 30px 80px rgba(0,0,0,0.6);">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;"><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 26px; letter-spacing: 0.12em; color: {{accent}};">TRIP COMPLETE</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 18px; letter-spacing: 0.08em; color: #A6A6A6;">{{tcWhen}}</span></div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 26px;"><div style="display: flex; flex-direction: column; gap: 6px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 52px;">{{tcKm}}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">KM</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.14em; color: #6B6B6B;">DISTANCE</span></div><div style="display: flex; flex-direction: column; gap: 6px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 52px;">{{tcMin}}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">MIN</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.14em; color: #6B6B6B;">DRIVE TIME</span></div><div style="display: flex; flex-direction: column; gap: 6px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 52px;">{{tcAvg}}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">KM/H</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.14em; color: #6B6B6B;">AVERAGE</span></div><div style="display: flex; flex-direction: column; gap: 6px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 52px;">{{tcKwh}}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">KWH</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.14em; color: #6B6B6B;">ELECTRICITY</span></div><div style="display: flex; flex-direction: column; gap: 6px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 52px;">{{tcFuel}}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">L</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.14em; color: #6B6B6B;">FUEL</span></div><div style="display: flex; flex-direction: column; gap: 6px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 52px;">{{tcCost}}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;"></span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.14em; color: #6B6B6B;">APPROX. COST</span></div></div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 0.14em; color: #4ADE80;">ELECTRIC {{tcEv}}%</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 0.14em; color: #A6A6A6;">ENGINE {{tcEng}}%</span></div>
+          <div style="height: 10px; border-radius: 5px; background: #2A2A2A; overflow: hidden;"><div style="width: {{tcEv}}%; height: 10px; background: #4ADE80;"></div></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;"><span style="font-size: 15px; color: #6B6B6B;">Cost uses $0.30/kWh and $2.00/L.</span><button type="button" onClick="{{tripDone}}" style="height: 52px; padding: 0 34px; border: 0; border-radius: 8px; background: {{accent}}; color: #F2F2F2; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 20px; letter-spacing: 0.12em;">DONE</button></div>
+      </div>
+    </div>
+  </sc-if>
+  <!-- WELCOME (when the car starts) -->
+  <sc-if value="{{welcome}}">
+    <div role="dialog" aria-label="Welcome" onClick="{{skipWelcome}}" class="s6-welcome" style="position: absolute; top: 0; left: 0; width: 1600px; height: 900px; z-index: 80; background: radial-gradient(ellipse at 50% 42%, #1a0709 0%, #050505 60%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px;">
+      <svg width="120" height="80" viewBox="0 0 120 80" aria-hidden="true"><path d="M10 74 C40 70 62 52 74 6 C80 34 96 60 112 74 Z" fill="{{accent}}"></path></svg>
+      <div style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 84px; line-height: 1; letter-spacing: 0.02em;">{{welcomeGreet}}</div>
+      <div style="display: flex; align-items: center;"><div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 34px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 46px;">{{wRange}}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">KM</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.16em; color: #6B6B6B;">RANGE</span></div><div style="width: 1px; height: 64px; background: #262626;"></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 34px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 46px;">{{wBatt}}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">%</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.16em; color: #6B6B6B;">BATTERY</span></div><div style="width: 1px; height: 64px; background: #262626;"></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 34px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 46px;">{{wFuel}}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">%</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.16em; color: #6B6B6B;">FUEL</span></div><div style="width: 1px; height: 64px; background: #262626;"></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 34px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 46px;">{{wOut}}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">°</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.16em; color: #6B6B6B;">OUTSIDE</span></div><div style="width: 1px; height: 64px; background: #262626;"></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 34px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 46px;">{{wTyres}}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;"></span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.16em; color: #6B6B6B;">TYRES</span></div></div>
+      <div style="font-size: 18px; color: #A6A6A6;">{{wNote}}</div>
+      <div style="width: 360px; height: 4px; border-radius: 2px; background: #1C1C1C; overflow: hidden; margin-top: 16px;"><div class="s6-wbar" style="width: 100%; height: 4px; background: {{accent}};"></div></div>
+    </div>
+  </sc-if>
   <!-- UPDATE BAR (over-the-air update offer) -->
   <sc-if value="{{updateOpen}}">
     <div role="dialog" aria-label="Update available" class="s6-sheet" style="position: absolute; left: 28px; right: 28px; bottom: 28px; height: 140px; z-index: 12; box-sizing: border-box; background: #111111; border: 1px solid #333333; border-radius: 8px; padding: 0 20px 0 28px; display: flex; align-items: center; gap: 24px; overflow: hidden;">
@@ -407,7 +488,7 @@ class Component extends DCLogic {
     ];
     const m = modes[s.mode];
     return {
-      accent,
+      accent, camsNormal: true,
       battPct: count(battPct, kBars), fuelPct: count(fuelPct, kBars),
       evRange: count(evRange, kBars), fuelRange: count(fuelRange, kBars), totalRange: count(totalRange, kRange),
       rangeDash: Math.round(641 * Math.min(1, totalRange / 1000) * kRange) + ' 1000',

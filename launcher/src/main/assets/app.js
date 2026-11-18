@@ -10,6 +10,13 @@ const Bridge = window.Car || {
 const GEARS = { 1: 'P', 2: 'R', 3: 'N', 4: 'D', 5: 'D', 6: 'D' };
 const ENERGY = { 0: 'STANDBY', 1: 'EV MODE', 2: 'EV ONLY', 3: 'HYBRID', 4: 'FUEL', 5: 'HOLD' };
 const DRIVE = { 1: 'Normal', 2: 'Eco', 3: 'Sport', 4: 'Snow', 5: 'Mud', 6: 'Sand' };
+// The accent colour follows the drive mode.
+const MODE_ACCENT = { 1: '#D42A3A', 2: '#2FBF71', 3: '#FF2D2D', 4: '#5AC8FA', 5: '#FF8A00', 6: '#E8B04A' };
+const TERRAIN_SUB = { 4: 'GRIP ON SNOW AND ICE', 5: 'TRACTION IN MUD', 6: 'FLOAT ON SAND' };
+const KWH_PRICE = 0.30, FUEL_PRICE = 2.00, BATT_KWH = 29.6, TANK_L = 60;
+const call = (name, ...a) => { try { return Bridge[name] ? Bridge[name](...a) : undefined; } catch (e) { return undefined; } };
+function readJson(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+function writeJson(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 
 // Button sounds. Commands pick on/off/tap; any other button or link gets a tap.
 let lastSfx = 0;
@@ -30,44 +37,110 @@ const num = (v, d = 0) => (typeof v === 'number' && isFinite(v) ? v : d);
 class Home extends Component {
   constructor(props) {
     super(props);
-    this.state = { car: {}, boot: 0, slider: null, live: false };
+    this.state = { car: {}, boot: 0, slider: null, live: false, welcome: false };
+  }
+  // ---- Drive tracking: trip card when you shift to P, low-speed front camera, right indicator ----
+  track(car) {
+    const now = Date.now(), gear = car.gear, sp = num(car.speed);
+    const t = this.trip;
+    if (gear >= 2 && gear <= 6) {
+      if (!t) {
+        this.trip = { t0: now, last: now, km: 0, engKm: 0, kwh0: car.tripKwh, fuel0: car.tripFuel, batt0: car.battPct, fuelPct0: car.fuelPct };
+        if (this.state.tripCard) this.setState({ tripCard: null });
+      } else {
+        const dt = Math.min(5, (now - t.last) / 1000);
+        t.last = now;
+        const d = sp * dt / 3600;
+        t.km += d;
+        if (num(car.engineKw) >= 3) t.engKm += d;
+      }
+    } else if (gear === 1 && t) {
+      this.trip = null;
+      if (t.km >= 0.5) this.showTripCard(t, car);
+    }
+  }
+  showTripCard(t, car) {
+    const delta = (a, b) => (typeof a === 'number' && typeof b === 'number' && b - a >= 0 ? b - a : null);
+    let kwh = delta(t.kwh0, car.tripKwh);
+    if (kwh == null) kwh = Math.max(0, (num(t.batt0) - num(car.battPct)) / 100 * BATT_KWH);
+    let fuel = delta(t.fuel0, car.tripFuel);
+    if (fuel == null) fuel = Math.max(0, (num(t.fuelPct0) - num(car.fuelPct)) / 100 * TANK_L);
+    const mins = Math.max(1, Math.round((t.last - t.t0) / 60000));
+    const ev = Math.round(Math.max(0, Math.min(1, (t.km - t.engKm) / t.km)) * 100);
+    const hm = (ms) => { const d = new Date(ms), h = d.getHours(); return ((h % 12) || 12) + ':' + ('0' + d.getMinutes()).slice(-2) + (h < 12 ? ' AM' : ' PM'); };
+    const card = {
+      when: 'TODAY · ' + hm(t.t0) + ' – ' + hm(t.last),
+      km: t.km.toFixed(1), min: mins, avg: Math.round(t.km / (mins / 60)),
+      kwh: kwh.toFixed(1), fuel: fuel.toFixed(1), cost: '$' + (kwh * KWH_PRICE + fuel * FUEL_PRICE).toFixed(2),
+      ev, at: Date.now()
+    };
+    writeJson('s6-last-trip', card);
+    this.setState({ tripCard: card });
+    clearTimeout(this.tripCardT);
+    this.tripCardT = setTimeout(() => this.setState({ tripCard: null }), 60000);
+  }
+  // Front camera takes over the dials in drive under 8 km/h; off above 12, out of drive, or after 5 s stopped.
+  evalLow() {
+    const c = this.state.car || {}, sp = num(c.speed), drive = c.gear >= 4 && c.gear <= 6, now = Date.now();
+    if (sp > 0) this.stoppedAt = 0; else if (!this.stoppedAt) this.stoppedAt = now;
+    const stoppedLong = this.stoppedAt && now - this.stoppedAt > 5000;
+    let on = !!this.state.lowCam;
+    if (!drive || sp > 12 || stoppedLong) on = false;
+    else if (sp > 0 && sp < 8) on = true;
+    if (on !== !!this.state.lowCam) this.setState({ lowCam: on });
   }
   componentDidMount() {
     window.onCar = (json) => {
       let car;
       try { car = typeof json === 'string' ? JSON.parse(json) : json; } catch (e) { return; }
       const first = !this.state.live && car.ok;
+      if (this.state.car && typeof this.state.car.gear === 'number' && !(car.gear >= 0)) car.gear = this.state.car.gear;
       this.setState({ car, live: !!car.ok });
-      if (first) this.playBoot();
+      if (first && !this.state.welcome) this.playBoot();
+      if (car.ok) this.track(car);
+      this.evalLow();
     };
     // Live speedo: Android pushes speed + gear every 100 ms when they change.
-    window.onFast = (speed, gear) => {
+    window.onFast = (speed, gear, turn) => {
       if (!this.state.live) return;
       const car = Object.assign({}, this.state.car);
       if (speed >= 0) car.speed = speed;
       if (gear >= 0) car.gear = gear;
-      this.setState({ car });
+      // Right indicator: hold the right camera up for 1.5 s after it stops, so it doesn't flicker.
+      if (turn === 2) { clearTimeout(this.turnT); if (!this.state.rightCam) this.setState({ rightCam: true }); }
+      else if (this.state.rightCam && !this.turnT) this.turnT = setTimeout(() => { this.turnT = null; this.setState({ rightCam: false }); }, 1500);
+      if (turn === 2 && this.turnT) { clearTimeout(this.turnT); this.turnT = null; }
+      this.setState({ car }, () => this.evalLow());
     };
     window.replayBoot = () => this.playBoot();
     // Live camera: Android draws the picture over #s6-cam, so tell it where that box is on screen.
     window.onCamStatus = (t) => this.setState({ camStatus: t || '' });
     this.camTimer = setInterval(() => {
       const k = window.devicePixelRatio || 1;
-      const key = ['s6-cam', 's6-cam2'].map((id) => {
-        const el = document.getElementById(id);
+      const covered = this.state.welcome || this.state.tripCard;
+      const key = ['s6-cam', 's6-cam2', 's6-cam3'].map((id) => {
+        const el = covered ? null : document.getElementById(id);
         if (!el) return '0,0,0,0';
         const r = el.getBoundingClientRect();
         return [r.left, r.top, r.width, r.height].map((v) => Math.round(v * k)).join(',');
       }).join(';');
       if (key !== this.camKey) { this.camKey = key; try { Bridge.camRects(key); } catch (e) {} }
-    }, 500);
+      // Which camera each view shows: the top tile turns into the right camera while indicating right.
+      const s = this.state, want = [s.rightCam && s.car.gear !== 2 ? 1 : (s.camA == null ? 0 : s.camA), s.camB == null ? 3 : s.camB, 0].join(',');
+      if (want !== this.camWant) { this.camWant = want; want.split(',').forEach((slot, view) => { try { Bridge.camShow(view, +slot); } catch (e) {} }); }
+    }, 250);
     window.onCommandResult = (id, r) => this.commandResult(id, r);
     // OTA: Android tells us when a newer build is out, then reports download progress.
     window.onUpdate = (json) => { try { this.setState({ update: JSON.parse(json), updPct: -1, updErr: '' }); } catch (e) {} };
     window.onUpdateProgress = (p) => this.setState({ updPct: p });
     window.onUpdateFailed = (m) => this.setState({ updPct: -1, updErr: 'Update failed. Try again later.' });
-    this.playBoot();
+    // Welcome screen once per car start; the dials sweep in after it.
+    if (call('firstStart')) {
+      this.setState({ welcome: true });
+      this.welcomeT = setTimeout(() => this.endWelcome(), 3600);
+    } else this.playBoot();
   }
+  endWelcome() { clearTimeout(this.welcomeT); if (this.state.welcome) { this.setState({ welcome: false }); this.playBoot(); } }
   playBoot() {
     if (this.raf) cancelAnimationFrame(this.raf);
     const dur = 1800, delay = 250;
@@ -132,7 +205,7 @@ class Home extends Component {
   }
   renderVals() {
     const s = this.state, c = s.car || {};
-    const accent = '#D42A3A';
+    const accent = MODE_ACCENT[c.opMode] || '#D42A3A';
     const set = (o) => this.setState(o);
     const kRange = this.stage(0), kBars = this.stage(0.1), kClimate = this.stage(0.25), kMusic = this.stage(0.35);
     const count = (v, k) => Math.round(v * k);
@@ -223,10 +296,51 @@ class Home extends Component {
       modeColor: em === 1 || em === 2 ? '#4ADE80' : '#F2F2F2',
       tyreNote: tyres.length ? (tyreLow ? 'psi · CHECK' : 'psi · all OK') : 'psi',
       ...(() => {
+        // Right indicator camera, low-speed front camera, off-road view.
+        const rightBig = !!s.rightCam && c.gear !== 2;
+        const off = c.opMode >= 4 && c.opMode <= 6;
+        const tl = c.tilt, has = tl && typeof tl.p === 'number';
+        const deg = (v) => (has ? Math.round(Math.abs(v)) + '°' : '—');
+        return {
+          camsNormal: !rightBig, camRightBig: rightBig, lowCam: !!s.lowCam,
+          offroad: off, terrainName: (DRIVE[c.opMode] || '').toUpperCase(), terrainSub: TERRAIN_SUB[c.opMode] || '',
+          pitchText: deg(has ? tl.p : 0), rollText: deg(has ? tl.r : 0),
+          pitchRot: 'rotate(' + (has ? Math.max(-45, Math.min(45, -tl.p)) : 0) + ' 150 150)',
+          rollRot: 'rotate(' + (has ? Math.max(-45, Math.min(45, tl.r)) : 0) + ' 150 150)',
+          tiltNote: call('hasTilt') === false ? 'NO TILT SENSOR' : 'HOLD TO ZERO',
+          tiltHoldPct: s.tiltHold ? 100 : 0, tiltHoldAnim: s.tiltHold ? 'width 1s linear' : 'none',
+          tiltHoldStart: () => {
+            clearTimeout(this.tiltT); this.setState({ tiltHold: true });
+            this.tiltT = setTimeout(() => { this.setState({ tiltHold: false }); sfx('on'); call('zeroTilt'); call('toast', 'Tilt zeroed. Do this on flat ground.'); }, 1000);
+          },
+          tiltHoldEnd: () => { clearTimeout(this.tiltT); if (this.state.tiltHold) this.setState({ tiltHold: false }); }
+        };
+      })(),
+      ...(() => {
+        // Trip complete card and the welcome screen.
+        const tc = s.tripCard;
+        const hr = new Date().getHours();
+        const last = readJson('s6-last-trip');
+        const tyreOk = tyres.length ? (tyreLow ? 'CHECK' : 'OK') : '—';
+        const dual = c.dual === 1;
+        const cabin = typeof c.drvTemp === 'number' ? 'Cabin ' + Math.round(c.drvTemp) + '°' + (dual && typeof c.pasTemp === 'number' ? ' / ' + Math.round(c.pasTemp) + '°' : '') + (c.compressor ? ', A/C on' : '') : '';
+        const lastTxt = last && last.km ? 'Last trip ' + last.km + ' km, about ' + last.cost : '';
+        return {
+          tripCard: !!tc, tcWhen: tc ? tc.when : '', tcKm: tc ? tc.km : '', tcMin: tc ? tc.min : '', tcAvg: tc ? tc.avg : '',
+          tcKwh: tc ? tc.kwh : '', tcFuel: tc ? tc.fuel : '', tcCost: tc ? tc.cost : '', tcEv: tc ? tc.ev : 0, tcEng: tc ? 100 - tc.ev : 0,
+          tripDone: () => { clearTimeout(this.tripCardT); this.setState({ tripCard: null }); },
+          welcome: !!s.welcome, skipWelcome: () => this.endWelcome(),
+          welcomeGreet: hr < 12 ? 'GOOD MORNING' : hr < 17 ? 'GOOD AFTERNOON' : 'GOOD EVENING',
+          wRange: s.live ? Math.round(totalRange) : '—', wBatt: s.live ? Math.round(battPct) : '—', wFuel: s.live ? Math.round(fuelPct) : '—',
+          wOut: typeof c.outside === 'number' ? Math.round(c.outside) : '—', wTyres: tyreOk,
+          wNote: [cabin, lastTxt].filter(Boolean).join(' · ')
+        };
+      })(),
+      ...(() => {
         // Two camera tiles: top switches front/rear, bottom switches left/right. Android draws the pictures.
         const NAMES = ['FRONT', 'RIGHT', 'REAR', 'LEFT'];
         const a = s.camA == null ? 0 : s.camA, b = s.camB == null ? 3 : s.camB, st = s.camStatus || '';
-        const pick = (view, slot, key) => { this.setState({ [key]: slot }); try { Bridge.camShow(view, slot); } catch (e) {} };
+        const pick = (view, slot, key) => this.setState({ [key]: slot });
         return { camName: NAMES[a], camImage: 'none', camStatus: st, camNext: () => pick(0, a === 0 ? 2 : 0, 'camA'),
           cam2Name: NAMES[b], cam2Image: 'none', cam2Status: st, cam2Next: () => pick(1, b === 3 ? 1 : 3, 'camB') };
       })(),
@@ -370,7 +484,7 @@ class Home extends Component {
   </section>
 
   
-  <section aria-label="Drive" style="grid-column: span 2; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: 104px minmax(0, 1fr); column-gap: 18px; row-gap: 14px; min-height: 0; min-width: 0;">
+  <section aria-label="Drive" style="grid-column: span 2; position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: 104px minmax(0, 1fr); column-gap: 18px; row-gap: 14px; min-height: 0; min-width: 0;">
 
     <div aria-label="Tyre pressures" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; min-width: 0; overflow: hidden;">
       <div style="display: flex; justify-content: space-between; align-items: baseline;">
@@ -444,10 +558,56 @@ class Home extends Component {
         <div style="display: flex; justify-content: space-between; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 20px; letter-spacing: 0.04em; color: #A6A6A6;"><span>REGEN</span><span style="color: #F2F2F2; font-size: 36px; line-height: 1;">${v.powerLabel}</span><span>POWER</span></div>
       </div>
     </section>
+
+    
+    ${v.offroad ? html`
+      <div aria-label="Off-road view" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 5; background: #050505; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: 104px minmax(0, 1fr); column-gap: 18px; row-gap: 14px;">
+        <div aria-label="Terrain. Hold to zero the tilt on flat ground" onPointerDown=${v.tiltHoldStart} onPointerUp=${v.tiltHoldEnd} onPointerLeave=${v.tiltHoldEnd} onPointerCancel=${v.tiltHoldEnd} style="background: #111111; border: 1px solid #262626; border-radius: 8px; box-sizing: border-box; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden;">
+          <div style="display: flex; justify-content: space-between;"><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">TERRAIN</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.12em; color: #A6A6A6;">${v.tiltNote}</span></div>
+          <div class="gx-14" style="display: flex; align-items: baseline;"><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 48px; line-height: 1; color: ${v.accent};">${v.terrainName}</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 18px; color: #A6A6A6; letter-spacing: 0.08em;">${v.terrainSub}</span></div>
+          <div style="position: absolute; left: 0; bottom: 0; height: 4px; width: ${v.tiltHoldPct}%; background: ${v.accent}; transition: ${v.tiltHoldAnim};"></div>
+        </div>
+        <div style="background: #111111; border: 1px solid #262626; border-radius: 8px; box-sizing: border-box; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between;">
+          <div style="display: flex; justify-content: space-between;"><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">TYRES</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.12em; color: #A6A6A6; text-transform: uppercase;">${v.tyreNote}</span></div>
+          <div style="display: flex; justify-content: space-around; align-items: flex-end;"><div class="gy-4" style="display: flex; flex-direction: column; align-items: center;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.14em; color: #6B6B6B;">FL</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 34px; color: ${v.tyreFLc};">${v.tyreFL}</span></div><div class="gy-4" style="display: flex; flex-direction: column; align-items: center;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.14em; color: #6B6B6B;">FR</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 34px; color: ${v.tyreFRc};">${v.tyreFR}</span></div><div style="width: 1px; align-self: stretch; background: #262626;"></div><div class="gy-4" style="display: flex; flex-direction: column; align-items: center;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.14em; color: #6B6B6B;">RL</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 34px; color: ${v.tyreRLc};">${v.tyreRL}</span></div><div class="gy-4" style="display: flex; flex-direction: column; align-items: center;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.14em; color: #6B6B6B;">RR</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 34px; color: ${v.tyreRRc};">${v.tyreRR}</span></div></div>
+        </div>
+        <div style="grid-column: 1 / span 2; display: flex; padding: 46px 20px 0;">
+        <div class="gy-6" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+          <svg width="300" height="300" viewBox="0 0 300 300" aria-hidden="true">
+            <circle cx="150" cy="150" r="132" fill="none" stroke="#1C1C1C" stroke-width="2"></circle><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(-60 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(-45 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(-30 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(-15 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(0 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(15 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(30 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(45 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(60 150 150)"></path>
+            <path d="M30 150 L270 150" stroke="#262626" stroke-width="2" stroke-dasharray="6 8"></path>
+            <g transform=${v.pitchRot}><path d="M150 18 L150 36" stroke=${v.accent} stroke-width="5"></path><path d="M30 150 L270 150" stroke=${v.accent} stroke-width="2" opacity="0.6"></path><path d="M72 148 L72 122 L118 120 L136 98 L178 98 L186 120 L230 122 L230 148 Z" fill="#2A2A2A" stroke="#BDBDBD" stroke-width="3" stroke-linejoin="round"></path><circle cx="100" cy="150" r="16" fill="#111" stroke="#BDBDBD" stroke-width="3"></circle><circle cx="204" cy="150" r="16" fill="#111" stroke="#BDBDBD" stroke-width="3"></circle></g>
+          </svg>
+          <div class="gx-10" style="display: flex; align-items: baseline;  margin-top: -18px;"><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 20px; letter-spacing: 0.12em; color: #A6A6A6;">PITCH</span><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 56px; line-height: 1;">${v.pitchText}</span></div>
+        </div>
+        <div class="gy-6" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+          <svg width="300" height="300" viewBox="0 0 300 300" aria-hidden="true">
+            <circle cx="150" cy="150" r="132" fill="none" stroke="#1C1C1C" stroke-width="2"></circle><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(-60 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(-45 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(-30 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(-15 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(0 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(15 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(30 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(45 150 150)"></path><path d="M150 18 L150 30" stroke="#3A3A3A" stroke-width="3" transform="rotate(60 150 150)"></path>
+            <path d="M30 150 L270 150" stroke="#262626" stroke-width="2" stroke-dasharray="6 8"></path>
+            <g transform=${v.rollRot}><path d="M150 18 L150 36" stroke=${v.accent} stroke-width="5"></path><path d="M30 150 L270 150" stroke=${v.accent} stroke-width="2" opacity="0.6"></path><path d="M100 150 L100 112 L114 86 L186 86 L200 112 L200 150 Z" fill="#2A2A2A" stroke="#BDBDBD" stroke-width="3" stroke-linejoin="round"></path><rect x="94" y="140" width="22" height="34" rx="5" fill="#111" stroke="#BDBDBD" stroke-width="3"></rect><rect x="184" y="140" width="22" height="34" rx="5" fill="#111" stroke="#BDBDBD" stroke-width="3"></rect><path d="M122 100 L178 100" stroke="#555" stroke-width="3"></path></g>
+          </svg>
+          <div class="gx-10" style="display: flex; align-items: baseline;  margin-top: -18px;"><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 20px; letter-spacing: 0.12em; color: #A6A6A6;">ROLL</span><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 56px; line-height: 1;">${v.rollText}</span></div>
+        </div>
+        </div>
+      </div>
+    ` : null}
+    
+    ${v.lowCam ? html`
+      <div aria-label="Front camera, shown at low speed" class="gy-10" style="position: absolute; top: 118px; left: 0; right: 0; bottom: 0; z-index: 6; background: #111111; border: 1px solid #262626; border-radius: 8px; box-sizing: border-box; padding: 14px 16px 16px; display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <span class="gx-18" style="display: flex; align-items: baseline;"><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">FRONT CAMERA</span><span><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 30px; line-height: 1;">${v.speed}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; color: #A6A6A6;">KM/H</span></span></span>
+          <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.12em; color: #A6A6A6;">AUTO · UNDER 10 KM/H</span>
+        </div>
+        <div id="s6-cam3" style="flex: 1; min-height: 0; position: relative; background: #000; border-radius: 6px; overflow: hidden;">
+          <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 17px; color: #A6A6A6;">${v.camStatus}</div>
+        </div>
+      </div>
+    ` : null}
   </section>
 
   
   <section aria-label="Cameras" style="display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; min-height: 0; min-width: 0; overflow: hidden;">
+  ${v.camsNormal ? html`
 
     <div aria-label="Camera: ${v.camName}. Tap to switch front and rear" onClick=${v.camNext} class="gy-10" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 14px 14px; display: flex; flex-direction: column;  min-height: 0; min-width: 0; overflow: hidden; cursor: pointer;">
       <div style="display: flex; justify-content: space-between; align-items: baseline;">
@@ -470,6 +630,16 @@ class Home extends Component {
         <div class="gx-6" style="position: absolute; left: 8px; bottom: 8px; display: flex; align-items: center;  background: rgba(0,0,0,0.55); border-radius: 4px; padding: 3px 8px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: ${v.accent};"></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.1em;">LIVE</span></div>
       </div>
     </div>
+  ` : null}
+  ${v.camRightBig ? html`
+    <div aria-label="Right camera, shown while the right indicator is on" class="gy-10" style="grid-row: 1 / span 2; background: #111111; border: 1px solid #262626; border-radius: 8px; box-sizing: border-box; border-color: #FFB020; box-shadow: 0 0 0 2px rgba(255,176,32,0.35); padding: 12px 14px 14px; display: flex; flex-direction: column;  min-height: 0; overflow: hidden;">
+      <div style="display: flex; justify-content: space-between; align-items: center;"><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">CAMERA</span><span class="gx-8" style="display: flex; align-items: center;  font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: #FFB020;">RIGHT <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h9V4l8 8-8 8v-5H4z" fill="#FFB020"></path></svg></span></div>
+      <div id="s6-cam" style="flex: 1; min-height: 0; position: relative; background: #000; border-radius: 6px; overflow: hidden;">
+        <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; padding: 0 16px; text-align: center; font-size: 17px; color: #A6A6A6;">${v.camStatus}</div>
+      </div>
+      <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.12em; color: #FFB020;">● RIGHT INDICATOR ON</div>
+    </div>
+  ` : null}
   </section>
 
   
@@ -541,6 +711,30 @@ class Home extends Component {
 
   </section>
   
+  
+  ${v.tripCard ? html`
+    <div role="dialog" aria-label="Trip complete" onClick=${v.tripDone} style="position: absolute; top: 0; left: 0; width: 1600px; height: 900px; z-index: 70; background: rgba(0,0,0,0.72); display: flex; align-items: center; justify-content: center;">
+      <div class="gy-26" style="width: 760px; background: #111111; border: 1px solid #262626; border-radius: 8px; box-sizing: border-box; border-radius: 14px; padding: 28px 34px 30px; display: flex; flex-direction: column;  box-shadow: 0 30px 80px rgba(0,0,0,0.6);">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;"><span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 26px; letter-spacing: 0.12em; color: ${v.accent};">TRIP COMPLETE</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 18px; letter-spacing: 0.08em; color: #A6A6A6;">${v.tcWhen}</span></div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 26px;"><div class="gy-6" style="display: flex; flex-direction: column;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 52px;">${v.tcKm}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">KM</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.14em; color: #6B6B6B;">DISTANCE</span></div><div class="gy-6" style="display: flex; flex-direction: column;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 52px;">${v.tcMin}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">MIN</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.14em; color: #6B6B6B;">DRIVE TIME</span></div><div class="gy-6" style="display: flex; flex-direction: column;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 52px;">${v.tcAvg}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">KM/H</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.14em; color: #6B6B6B;">AVERAGE</span></div><div class="gy-6" style="display: flex; flex-direction: column;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 52px;">${v.tcKwh}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">KWH</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.14em; color: #6B6B6B;">ELECTRICITY</span></div><div class="gy-6" style="display: flex; flex-direction: column;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 52px;">${v.tcFuel}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">L</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.14em; color: #6B6B6B;">FUEL</span></div><div class="gy-6" style="display: flex; flex-direction: column;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 52px;">${v.tcCost}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;"></span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.14em; color: #6B6B6B;">APPROX. COST</span></div></div>
+        <div class="gy-10" style="display: flex; flex-direction: column;">
+          <div style="display: flex; justify-content: space-between;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 0.14em; color: #4ADE80;">ELECTRIC ${v.tcEv}%</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 0.14em; color: #A6A6A6;">ENGINE ${v.tcEng}%</span></div>
+          <div style="height: 10px; border-radius: 5px; background: #2A2A2A; overflow: hidden;"><div style="width: ${v.tcEv}%; height: 10px; background: #4ADE80;"></div></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;"><span style="font-size: 15px; color: #6B6B6B;">Cost uses $0.30/kWh and $2.00/L.</span><button type="button" onClick=${v.tripDone} style="height: 52px; padding: 0 34px; border: 0; border-radius: 8px; background: ${v.accent}; color: #F2F2F2; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 20px; letter-spacing: 0.12em;">DONE</button></div>
+      </div>
+    </div>
+  ` : null}
+  
+  ${v.welcome ? html`
+    <div role="dialog" aria-label="Welcome" onClick=${v.skipWelcome} class="s6-welcome" class="gy-30" style="position: absolute; top: 0; left: 0; width: 1600px; height: 900px; z-index: 80; background: radial-gradient(ellipse at 50% 42%, #1a0709 0%, #050505 60%); display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <svg width="120" height="80" viewBox="0 0 120 80" aria-hidden="true"><path d="M10 74 C40 70 62 52 74 6 C80 34 96 60 112 74 Z" fill=${v.accent}></path></svg>
+      <div style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 84px; line-height: 1; letter-spacing: 0.02em;">${v.welcomeGreet}</div>
+      <div style="display: flex; align-items: center;"><div class="gy-6" style="display: flex; flex-direction: column; align-items: center;  padding: 0 34px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 46px;">${v.wRange}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">KM</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.16em; color: #6B6B6B;">RANGE</span></div><div style="width: 1px; height: 64px; background: #262626;"></div><div class="gy-6" style="display: flex; flex-direction: column; align-items: center;  padding: 0 34px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 46px;">${v.wBatt}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">%</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.16em; color: #6B6B6B;">BATTERY</span></div><div style="width: 1px; height: 64px; background: #262626;"></div><div class="gy-6" style="display: flex; flex-direction: column; align-items: center;  padding: 0 34px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 46px;">${v.wFuel}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">%</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.16em; color: #6B6B6B;">FUEL</span></div><div style="width: 1px; height: 64px; background: #262626;"></div><div class="gy-6" style="display: flex; flex-direction: column; align-items: center;  padding: 0 34px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 46px;">${v.wOut}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;">°</span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.16em; color: #6B6B6B;">OUTSIDE</span></div><div style="width: 1px; height: 64px; background: #262626;"></div><div class="gy-6" style="display: flex; flex-direction: column; align-items: center;  padding: 0 34px;"><span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 46px;">${v.wTyres}</span> <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.1em; color: #A6A6A6;"></span></span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.16em; color: #6B6B6B;">TYRES</span></div></div>
+      <div style="font-size: 18px; color: #A6A6A6;">${v.wNote}</div>
+      <div style="width: 360px; height: 4px; border-radius: 2px; background: #1C1C1C; overflow: hidden; margin-top: 16px;"><div class="s6-wbar" style="width: 100%; height: 4px; background: ${v.accent};"></div></div>
+    </div>
+  ` : null}
   
   ${v.updateOpen ? html`
     <div role="dialog" aria-label="Update available" class="s6-sheet" class="gx-24" style="position: absolute; left: 28px; right: 28px; bottom: 28px; height: 140px; z-index: 12; box-sizing: border-box; background: #111111; border: 1px solid #333333; border-radius: 8px; padding: 0 20px 0 28px; display: flex; align-items: center;  overflow: hidden;">

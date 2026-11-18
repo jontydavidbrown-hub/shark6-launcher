@@ -10,6 +10,13 @@ const Bridge = window.Car || {
 const GEARS = { 1: 'P', 2: 'R', 3: 'N', 4: 'D', 5: 'D', 6: 'D' };
 const ENERGY = { 0: 'STANDBY', 1: 'EV MODE', 2: 'EV ONLY', 3: 'HYBRID', 4: 'FUEL', 5: 'HOLD' };
 const DRIVE = { 1: 'Normal', 2: 'Eco', 3: 'Sport', 4: 'Snow', 5: 'Mud', 6: 'Sand' };
+// The accent colour follows the drive mode.
+const MODE_ACCENT = { 1: '#D42A3A', 2: '#2FBF71', 3: '#FF2D2D', 4: '#5AC8FA', 5: '#FF8A00', 6: '#E8B04A' };
+const TERRAIN_SUB = { 4: 'GRIP ON SNOW AND ICE', 5: 'TRACTION IN MUD', 6: 'FLOAT ON SAND' };
+const KWH_PRICE = 0.30, FUEL_PRICE = 2.00, BATT_KWH = 29.6, TANK_L = 60;
+const call = (name, ...a) => { try { return Bridge[name] ? Bridge[name](...a) : undefined; } catch (e) { return undefined; } };
+function readJson(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+function writeJson(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 
 // Button sounds. Commands pick on/off/tap; any other button or link gets a tap.
 let lastSfx = 0;
@@ -30,44 +37,110 @@ const num = (v, d = 0) => (typeof v === 'number' && isFinite(v) ? v : d);
 class Home extends Component {
   constructor(props) {
     super(props);
-    this.state = { car: {}, boot: 0, slider: null, live: false };
+    this.state = { car: {}, boot: 0, slider: null, live: false, welcome: false };
+  }
+  // ---- Drive tracking: trip card when you shift to P, low-speed front camera, right indicator ----
+  track(car) {
+    const now = Date.now(), gear = car.gear, sp = num(car.speed);
+    const t = this.trip;
+    if (gear >= 2 && gear <= 6) {
+      if (!t) {
+        this.trip = { t0: now, last: now, km: 0, engKm: 0, kwh0: car.tripKwh, fuel0: car.tripFuel, batt0: car.battPct, fuelPct0: car.fuelPct };
+        if (this.state.tripCard) this.setState({ tripCard: null });
+      } else {
+        const dt = Math.min(5, (now - t.last) / 1000);
+        t.last = now;
+        const d = sp * dt / 3600;
+        t.km += d;
+        if (num(car.engineKw) >= 3) t.engKm += d;
+      }
+    } else if (gear === 1 && t) {
+      this.trip = null;
+      if (t.km >= 0.5) this.showTripCard(t, car);
+    }
+  }
+  showTripCard(t, car) {
+    const delta = (a, b) => (typeof a === 'number' && typeof b === 'number' && b - a >= 0 ? b - a : null);
+    let kwh = delta(t.kwh0, car.tripKwh);
+    if (kwh == null) kwh = Math.max(0, (num(t.batt0) - num(car.battPct)) / 100 * BATT_KWH);
+    let fuel = delta(t.fuel0, car.tripFuel);
+    if (fuel == null) fuel = Math.max(0, (num(t.fuelPct0) - num(car.fuelPct)) / 100 * TANK_L);
+    const mins = Math.max(1, Math.round((t.last - t.t0) / 60000));
+    const ev = Math.round(Math.max(0, Math.min(1, (t.km - t.engKm) / t.km)) * 100);
+    const hm = (ms) => { const d = new Date(ms), h = d.getHours(); return ((h % 12) || 12) + ':' + ('0' + d.getMinutes()).slice(-2) + (h < 12 ? ' AM' : ' PM'); };
+    const card = {
+      when: 'TODAY · ' + hm(t.t0) + ' – ' + hm(t.last),
+      km: t.km.toFixed(1), min: mins, avg: Math.round(t.km / (mins / 60)),
+      kwh: kwh.toFixed(1), fuel: fuel.toFixed(1), cost: '$' + (kwh * KWH_PRICE + fuel * FUEL_PRICE).toFixed(2),
+      ev, at: Date.now()
+    };
+    writeJson('s6-last-trip', card);
+    this.setState({ tripCard: card });
+    clearTimeout(this.tripCardT);
+    this.tripCardT = setTimeout(() => this.setState({ tripCard: null }), 60000);
+  }
+  // Front camera takes over the dials in drive under 8 km/h; off above 12, out of drive, or after 5 s stopped.
+  evalLow() {
+    const c = this.state.car || {}, sp = num(c.speed), drive = c.gear >= 4 && c.gear <= 6, now = Date.now();
+    if (sp > 0) this.stoppedAt = 0; else if (!this.stoppedAt) this.stoppedAt = now;
+    const stoppedLong = this.stoppedAt && now - this.stoppedAt > 5000;
+    let on = !!this.state.lowCam;
+    if (!drive || sp > 12 || stoppedLong) on = false;
+    else if (sp > 0 && sp < 8) on = true;
+    if (on !== !!this.state.lowCam) this.setState({ lowCam: on });
   }
   componentDidMount() {
     window.onCar = (json) => {
       let car;
       try { car = typeof json === 'string' ? JSON.parse(json) : json; } catch (e) { return; }
       const first = !this.state.live && car.ok;
+      if (this.state.car && typeof this.state.car.gear === 'number' && !(car.gear >= 0)) car.gear = this.state.car.gear;
       this.setState({ car, live: !!car.ok });
-      if (first) this.playBoot();
+      if (first && !this.state.welcome) this.playBoot();
+      if (car.ok) this.track(car);
+      this.evalLow();
     };
     // Live speedo: Android pushes speed + gear every 100 ms when they change.
-    window.onFast = (speed, gear) => {
+    window.onFast = (speed, gear, turn) => {
       if (!this.state.live) return;
       const car = Object.assign({}, this.state.car);
       if (speed >= 0) car.speed = speed;
       if (gear >= 0) car.gear = gear;
-      this.setState({ car });
+      // Right indicator: hold the right camera up for 1.5 s after it stops, so it doesn't flicker.
+      if (turn === 2) { clearTimeout(this.turnT); if (!this.state.rightCam) this.setState({ rightCam: true }); }
+      else if (this.state.rightCam && !this.turnT) this.turnT = setTimeout(() => { this.turnT = null; this.setState({ rightCam: false }); }, 1500);
+      if (turn === 2 && this.turnT) { clearTimeout(this.turnT); this.turnT = null; }
+      this.setState({ car }, () => this.evalLow());
     };
     window.replayBoot = () => this.playBoot();
     // Live camera: Android draws the picture over #s6-cam, so tell it where that box is on screen.
     window.onCamStatus = (t) => this.setState({ camStatus: t || '' });
     this.camTimer = setInterval(() => {
       const k = window.devicePixelRatio || 1;
-      const key = ['s6-cam', 's6-cam2'].map((id) => {
-        const el = document.getElementById(id);
+      const covered = this.state.welcome || this.state.tripCard;
+      const key = ['s6-cam', 's6-cam2', 's6-cam3'].map((id) => {
+        const el = covered ? null : document.getElementById(id);
         if (!el) return '0,0,0,0';
         const r = el.getBoundingClientRect();
         return [r.left, r.top, r.width, r.height].map((v) => Math.round(v * k)).join(',');
       }).join(';');
       if (key !== this.camKey) { this.camKey = key; try { Bridge.camRects(key); } catch (e) {} }
-    }, 500);
+      // Which camera each view shows: the top tile turns into the right camera while indicating right.
+      const s = this.state, want = [s.rightCam && s.car.gear !== 2 ? 1 : (s.camA == null ? 0 : s.camA), s.camB == null ? 3 : s.camB, 0].join(',');
+      if (want !== this.camWant) { this.camWant = want; want.split(',').forEach((slot, view) => { try { Bridge.camShow(view, +slot); } catch (e) {} }); }
+    }, 250);
     window.onCommandResult = (id, r) => this.commandResult(id, r);
     // OTA: Android tells us when a newer build is out, then reports download progress.
     window.onUpdate = (json) => { try { this.setState({ update: JSON.parse(json), updPct: -1, updErr: '' }); } catch (e) {} };
     window.onUpdateProgress = (p) => this.setState({ updPct: p });
     window.onUpdateFailed = (m) => this.setState({ updPct: -1, updErr: 'Update failed. Try again later.' });
-    this.playBoot();
+    // Welcome screen once per car start; the dials sweep in after it.
+    if (call('firstStart')) {
+      this.setState({ welcome: true });
+      this.welcomeT = setTimeout(() => this.endWelcome(), 3600);
+    } else this.playBoot();
   }
+  endWelcome() { clearTimeout(this.welcomeT); if (this.state.welcome) { this.setState({ welcome: false }); this.playBoot(); } }
   playBoot() {
     if (this.raf) cancelAnimationFrame(this.raf);
     const dur = 1800, delay = 250;
@@ -132,7 +205,7 @@ class Home extends Component {
   }
   renderVals() {
     const s = this.state, c = s.car || {};
-    const accent = '#D42A3A';
+    const accent = MODE_ACCENT[c.opMode] || '#D42A3A';
     const set = (o) => this.setState(o);
     const kRange = this.stage(0), kBars = this.stage(0.1), kClimate = this.stage(0.25), kMusic = this.stage(0.35);
     const count = (v, k) => Math.round(v * k);
@@ -223,10 +296,51 @@ class Home extends Component {
       modeColor: em === 1 || em === 2 ? '#4ADE80' : '#F2F2F2',
       tyreNote: tyres.length ? (tyreLow ? 'psi · CHECK' : 'psi · all OK') : 'psi',
       ...(() => {
+        // Right indicator camera, low-speed front camera, off-road view.
+        const rightBig = !!s.rightCam && c.gear !== 2;
+        const off = c.opMode >= 4 && c.opMode <= 6;
+        const tl = c.tilt, has = tl && typeof tl.p === 'number';
+        const deg = (v) => (has ? Math.round(Math.abs(v)) + '°' : '—');
+        return {
+          camsNormal: !rightBig, camRightBig: rightBig, lowCam: !!s.lowCam,
+          offroad: off, terrainName: (DRIVE[c.opMode] || '').toUpperCase(), terrainSub: TERRAIN_SUB[c.opMode] || '',
+          pitchText: deg(has ? tl.p : 0), rollText: deg(has ? tl.r : 0),
+          pitchRot: 'rotate(' + (has ? Math.max(-45, Math.min(45, -tl.p)) : 0) + ' 150 150)',
+          rollRot: 'rotate(' + (has ? Math.max(-45, Math.min(45, tl.r)) : 0) + ' 150 150)',
+          tiltNote: call('hasTilt') === false ? 'NO TILT SENSOR' : 'HOLD TO ZERO',
+          tiltHoldPct: s.tiltHold ? 100 : 0, tiltHoldAnim: s.tiltHold ? 'width 1s linear' : 'none',
+          tiltHoldStart: () => {
+            clearTimeout(this.tiltT); this.setState({ tiltHold: true });
+            this.tiltT = setTimeout(() => { this.setState({ tiltHold: false }); sfx('on'); call('zeroTilt'); call('toast', 'Tilt zeroed. Do this on flat ground.'); }, 1000);
+          },
+          tiltHoldEnd: () => { clearTimeout(this.tiltT); if (this.state.tiltHold) this.setState({ tiltHold: false }); }
+        };
+      })(),
+      ...(() => {
+        // Trip complete card and the welcome screen.
+        const tc = s.tripCard;
+        const hr = new Date().getHours();
+        const last = readJson('s6-last-trip');
+        const tyreOk = tyres.length ? (tyreLow ? 'CHECK' : 'OK') : '—';
+        const dual = c.dual === 1;
+        const cabin = typeof c.drvTemp === 'number' ? 'Cabin ' + Math.round(c.drvTemp) + '°' + (dual && typeof c.pasTemp === 'number' ? ' / ' + Math.round(c.pasTemp) + '°' : '') + (c.compressor ? ', A/C on' : '') : '';
+        const lastTxt = last && last.km ? 'Last trip ' + last.km + ' km, about ' + last.cost : '';
+        return {
+          tripCard: !!tc, tcWhen: tc ? tc.when : '', tcKm: tc ? tc.km : '', tcMin: tc ? tc.min : '', tcAvg: tc ? tc.avg : '',
+          tcKwh: tc ? tc.kwh : '', tcFuel: tc ? tc.fuel : '', tcCost: tc ? tc.cost : '', tcEv: tc ? tc.ev : 0, tcEng: tc ? 100 - tc.ev : 0,
+          tripDone: () => { clearTimeout(this.tripCardT); this.setState({ tripCard: null }); },
+          welcome: !!s.welcome, skipWelcome: () => this.endWelcome(),
+          welcomeGreet: hr < 12 ? 'GOOD MORNING' : hr < 17 ? 'GOOD AFTERNOON' : 'GOOD EVENING',
+          wRange: s.live ? Math.round(totalRange) : '—', wBatt: s.live ? Math.round(battPct) : '—', wFuel: s.live ? Math.round(fuelPct) : '—',
+          wOut: typeof c.outside === 'number' ? Math.round(c.outside) : '—', wTyres: tyreOk,
+          wNote: [cabin, lastTxt].filter(Boolean).join(' · ')
+        };
+      })(),
+      ...(() => {
         // Two camera tiles: top switches front/rear, bottom switches left/right. Android draws the pictures.
         const NAMES = ['FRONT', 'RIGHT', 'REAR', 'LEFT'];
         const a = s.camA == null ? 0 : s.camA, b = s.camB == null ? 3 : s.camB, st = s.camStatus || '';
-        const pick = (view, slot, key) => { this.setState({ [key]: slot }); try { Bridge.camShow(view, slot); } catch (e) {} };
+        const pick = (view, slot, key) => this.setState({ [key]: slot });
         return { camName: NAMES[a], camImage: 'none', camStatus: st, camNext: () => pick(0, a === 0 ? 2 : 0, 'camA'),
           cam2Name: NAMES[b], cam2Image: 'none', cam2Status: st, cam2Next: () => pick(1, b === 3 ? 1 : 3, 'camB') };
       })(),
