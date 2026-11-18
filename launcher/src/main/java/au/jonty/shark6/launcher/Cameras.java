@@ -8,7 +8,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 
 import dadb.AdbKeyPair;
-import dadb.AdbShellResponse;
+import dadb.AdbShellStream;
 import dadb.Dadb;
 
 /**
@@ -23,36 +23,50 @@ final class Cameras {
 
     private Cameras() { }
 
-    /** Starts the helper if it isn't already listening. Returns null when ready, or why it failed. Not on the UI thread. */
-    static String start(Context c) {
+    /** A running helper. Closing it ends the ADB session, which stops the helper and frees the cameras. */
+    static final class Session implements AutoCloseable {
+        private final Dadb adb;
+        private final AdbShellStream shell;
+        Session(Dadb adb, AdbShellStream shell) { this.adb = adb; this.shell = shell; }
+        @Override public void close() {
+            try { if (shell != null) shell.close(); } catch (Exception ignored) { }
+            try { if (adb != null) adb.close(); } catch (Exception ignored) { }
+        }
+    }
+
+    /**
+     * Starts the helper and keeps its ADB session open (the car kills it the moment the session
+     * closes). Returns the session once the helper is listening, or null if one is already running
+     * (started by hand). Throws with a readable reason. Not on the UI thread.
+     */
+    static Session start(Context c) throws Exception {
         if (portOpen(PORT, 200)) return null;
         if (!portOpen(ADB_PORT, 300)) {
             enableAdb(c);
-            if (!portOpen(ADB_PORT, 1500)) return "ADB is switched off in the car";
+            if (!portOpen(ADB_PORT, 1500)) throw new Exception("ADB is switched off in the car");
         }
         String lib = c.getApplicationInfo().nativeLibraryDir + "/libshark6cam.so";
-        if (!new File(lib).exists()) return "camera helper missing from this build";
+        if (!new File(lib).exists()) throw new Exception("camera helper missing from this build");
         Dadb adb = null;
+        AdbShellStream shell = null;
         try {
             File priv = new File(c.getFilesDir(), "adbkey"), pub = new File(c.getFilesDir(), "adbkey.pub");
             if (!priv.exists() || !pub.exists()) AdbKeyPair.generate(priv, pub);
-            adb = Dadb.create(ADB_HOST, ADB_PORT, AdbKeyPair.read(priv, pub), 3000, 30000);
-            // Own session (setsid) so the helper outlives this short ADB shell.
-            AdbShellResponse r = adb.shell("cd /data/local/tmp && (LD_LIBRARY_PATH=/vendor/lib64:/system/lib64 setsid nohup "
-                    + lib + " > /data/local/tmp/shark6cam.log 2>&1 < /dev/null &) ; echo started");
-            String out = r.getAllOutput().trim();
-            if (r.getExitCode() != 0 || !out.contains("started")) return "helper didn't start (" + r.getExitCode() + "): " + out;
+            adb = Dadb.create(ADB_HOST, ADB_PORT, AdbKeyPair.read(priv, pub), 3000, 0);
+            shell = adb.openShell("cd /data/local/tmp && LD_LIBRARY_PATH=/vendor/lib64:/system/lib64 exec "
+                    + lib + " 2> /data/local/tmp/shark6cam.log");
         } catch (Throwable t) {
-            return "couldn't use the car's ADB: " + t.getClass().getSimpleName() + (t.getMessage() == null ? "" : " " + t.getMessage())
-                    + ". Allow debugging on the car screen if asked";
-        } finally {
-            if (adb != null) try { adb.close(); } catch (Exception ignored) { }
+            new Session(adb, shell).close();
+            throw new Exception("couldn't use the car's ADB: " + t.getClass().getSimpleName()
+                    + (t.getMessage() == null ? "" : " " + t.getMessage()));
         }
-        for (int i = 0; i < 30; i++) {
-            if (portOpen(PORT, 100)) return null;
-            try { Thread.sleep(100); } catch (InterruptedException e) { return "interrupted"; }
+        Session session = new Session(adb, shell);
+        for (int i = 0; i < 40; i++) {
+            if (portOpen(PORT, 100)) return session;
+            Thread.sleep(100);
         }
-        return "camera helper didn't come up (log: /data/local/tmp/shark6cam.log)";
+        session.close();
+        throw new Exception("camera helper didn't come up (log: /data/local/tmp/shark6cam.log)");
     }
 
     /** Needs `adb shell pm grant au.jonty.shark6.launcher android.permission.WRITE_SECURE_SETTINGS`. */

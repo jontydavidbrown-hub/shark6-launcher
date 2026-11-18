@@ -64,6 +64,7 @@ final class CamView extends GLSurfaceView implements GLSurfaceView.Renderer {
         if (s != null) try { s.close(); } catch (Exception ignored) { }
         if (reader != null) reader.interrupt();
         reader = null;
+        new Thread(this::closeHelper, "cam-stop").start();
         post(() -> setVisibility(INVISIBLE));
     }
 
@@ -71,13 +72,18 @@ final class CamView extends GLSurfaceView implements GLSurfaceView.Renderer {
         int backoff = 0;
         while (wanted) {
             status.status("Starting cameras…");
-            String err = Cameras.start(getContext());
-            if (err != null) {
-                status.status("Camera unavailable: " + err);
+            Cameras.Session session;
+            try {
+                session = Cameras.start(getContext());
+            } catch (InterruptedException e) {
+                return;
+            } catch (Exception e) {
+                status.status("Camera unavailable: " + e.getMessage());
                 if (!sleep(Math.min(30000, 3000 + backoff))) return;
                 backoff += 3000;
                 continue;
             }
+            helper = session;
             try (Socket s = new Socket()) {
                 sock = s;
                 s.connect(new InetSocketAddress("127.0.0.1", Cameras.PORT), 2000);
@@ -115,8 +121,17 @@ final class CamView extends GLSurfaceView implements GLSurfaceView.Renderer {
                 if (!sleep(1000)) return;
             } finally {
                 sock = null;
+                closeHelper();
             }
         }
+    }
+
+    private volatile Cameras.Session helper;
+
+    private void closeHelper() {
+        Cameras.Session h = helper;
+        helper = null;
+        if (h != null) h.close();
     }
 
     private static boolean sleep(int ms) {
