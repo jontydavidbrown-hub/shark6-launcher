@@ -184,10 +184,11 @@ class Home extends Component {
     this.cmdSeq = (this.cmdSeq || 0) + 1;
     this.cmdKeys = this.cmdKeys || {};
     this.cmdKeys[this.cmdSeq] = key;
+    if (args && args.quiet) (this.cmdQuiet = this.cmdQuiet || {})[this.cmdSeq] = true;
     Bridge.command(name, JSON.stringify(Object.assign({ id: this.cmdSeq }, args || {})));
   }
   commandResult(id, r) {
-    if (r === 'ok') return;
+    if (r === 'ok' || (this.cmdQuiet || {})[id]) return;
     const key = (this.cmdKeys || {})[id];
     if (key && this.pending) { delete this.pending[key]; this.forceUpdate(); }
     if (r === 'disabled') Bridge.toast('Climate and seat controls are switched off in this build');
@@ -250,7 +251,9 @@ class Home extends Component {
     const tyreColor = (i) => (Array.isArray(c.tyreStates) && c.tyreStates[i] && c.tyreStates[i] !== 0 ? '#FF8A00' : '#F2F2F2');
 
     const tripKm = num(c.tripKm), tripKwh = num(c.tripKwh);
-    const per100 = tripKm >= 1 ? (tripKwh / tripKm) * 100 : 0;
+    const offA = ((this.tripOff || {}).A) || 0, kmA = Math.max(0, tripKm - offA);
+    // After a local reset the car's per-drive kWh no longer matches the trip, so use the car's average.
+    const per100 = offA ? num(c.avgElec) : kmA >= 1 ? (tripKwh / kmA) * 100 : 0;
 
     const m = c.media || {};
     const hasMedia = !!m.title;
@@ -369,8 +372,13 @@ class Home extends Component {
       })(),
       ...(() => {
         // Trip tile: tap switches A/B, hold 1 s resets the trip shown (car's own trip meters).
-        const b = s.trip === 'B';
-        const km = b ? num(c.trip2Km) : tripKm;
+        // A reset also zeroes a local offset, so the tile reads 0 even if the car ignores the reset.
+        // If the car's meter does reset (drops below the offset), the offset is dropped.
+        const b = s.trip === 'B', which = b ? 'B' : 'A';
+        const raw = b ? num(c.trip2Km) : tripKm;
+        const off = this.tripOff || (this.tripOff = readJson('s6-trip-off') || {});
+        if (off[which] != null && raw < off[which] - 0.05) { delete off[which]; writeJson('s6-trip-off', off); }
+        const km = Math.max(0, raw - (off[which] || 0));
         return {
           tripName: b ? 'B' : 'A', tripAColor: b ? '#555555' : '#F2F2F2', tripBColor: b ? '#F2F2F2' : '#555555',
           tripKm: (km * kBars).toFixed(1), tripKwh: b ? '—' : (per100 * kBars).toFixed(1),
@@ -380,7 +388,8 @@ class Home extends Component {
             clearTimeout(this.tripT); this.tripDidReset = false; this.setState({ tripHold: true });
             this.tripT = setTimeout(() => {
               this.tripDidReset = true; this.setState({ tripHold: false }); sfx('off');
-              this.send('resetTrip', { trip: b ? 'B' : 'A' });
+              off[which] = raw; writeJson('s6-trip-off', off);
+              this.send('resetTrip', { trip: which, quiet: true });
             }, 1000);
           },
           tripHoldEnd: () => { clearTimeout(this.tripT); if (this.state.tripHold) this.setState({ tripHold: false }); }

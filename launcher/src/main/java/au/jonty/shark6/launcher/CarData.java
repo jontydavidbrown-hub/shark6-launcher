@@ -52,6 +52,9 @@ final class CarData {
     private final Map<String, Method> methods = java.util.Collections.synchronizedMap(new HashMap<>());
     private final StringBuilder openLog = new StringBuilder();
     private boolean opened;
+    /** Set after permissions are granted through ADB, so devices that failed to open are retried. */
+    static volatile boolean permissionsChanged;
+    private boolean tripMeterSeen;
 
     CarData(Context ctx) { this.ctx = ctx.getApplicationContext(); }
 
@@ -71,7 +74,17 @@ final class CarData {
             openLog.append("no BYD client package\n");
             return false;
         }
+        openDevices(loader);
+        Log.i(TAG, openLog.toString());
+        return !devices.isEmpty();
+    }
+
+    private ClassLoader sdk;
+
+    private void openDevices(ClassLoader loader) {
+        sdk = loader;
         for (String[] d : DEVICES) {
+            if (devices.containsKey(d[0])) continue;
             try {
                 Class<?> c = Class.forName(d[1], true, loader);
                 Object inst = c.getMethod("getInstance", Context.class).invoke(null, ctx);
@@ -81,8 +94,6 @@ final class CarData {
                 openLog.append(d[0]).append(": ").append(root(t)).append('\n');
             }
         }
-        Log.i(TAG, openLog.toString());
-        return !devices.isEmpty();
     }
 
     String openReport() { return openLog.toString(); }
@@ -156,6 +167,10 @@ final class CarData {
     /** One snapshot of everything the home screen shows. Blocking: call off the main thread. */
     JSONObject read() {
         JSONObject o = new JSONObject();
+        if (permissionsChanged && sdk != null) {
+            permissionsChanged = false;
+            synchronized (this) { methods.clear(); openDevices(sdk); }
+        }
         try {
             o.put("ok", !devices.isEmpty());
             // Range and energy (statistic needs BYDAUTO_STATISTIC_COMMON, granted with adb).
@@ -166,7 +181,9 @@ final class CarData {
             put(o, "totalRange", num("statistic", "getDrivingRangeAll"), 0, 4000);
             // Trip: the cluster's trip meter (statistic MILEAGE_ONE = 0); this-drive distance as a fallback.
             Double trip1 = num("statistic", "getMileageNumber", 0);
-            put(o, "tripKm", trip1 != null && trip1 > 0 ? trip1 : num("statistic", "getCurrentTripMileage"), 0, 100000);
+            // Once the trip meter has read above 0, keep it even at 0 (just reset) instead of falling back.
+            if (trip1 != null && trip1 > 0) tripMeterSeen = true;
+            put(o, "tripKm", trip1 != null && (trip1 > 0 || tripMeterSeen) ? trip1 : num("statistic", "getCurrentTripMileage"), 0, 100000);
             put(o, "trip2Km", num("statistic", "getMileageNumber", 1), 0, 1000000);
             put(o, "tripKwh", num("statistic", "getCurrentTripElec"), 0, 100000);
             put(o, "tripFuel", num("statistic", "getCurrentTripFuel"), 0, 100000);
@@ -185,7 +202,9 @@ final class CarData {
                 dm = op == null ? null : op == 1 ? 2.0 : op == 2 ? 3.0 : op == 3 ? 1.0 : null;
             }
             put(o, "opMode", dm, 1, 20);
-            put(o, "motorKw", num("motor", "getMotorPower"), -400, 400);
+            Double motor = num("motor", "getMotorPower");
+            if (motor == null) motor = num("engine", "getMotorPower");
+            put(o, "motorKw", motor, -400, 400);
             put(o, "engineKw", num("engine", "getEnginePower"), 0, 400);
             // Tyres: psi x10 on this car (ByType), else kPa.
             JSONArray tyres = new JSONArray(), states = new JSONArray();

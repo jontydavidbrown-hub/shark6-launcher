@@ -8,6 +8,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.provider.Settings;
@@ -33,10 +34,29 @@ public class Wake extends Service {
         try { c.startActivity(open); } catch (Exception ignored) { }
     }
 
-    /** Opening screens from the background needs "draw over apps"; grant it through the car's ADB. */
+    /**
+     * Opening screens from the background needs "draw over apps", and BYD's motor and instrument
+     * readings need their permissions granted (power/regen, trip reset). Grant whatever is missing
+     * through the car's own ADB, in one shell call.
+     */
     static void ensureCanOpen(Context c) {
-        if (Settings.canDrawOverlays(c)) return;
-        new Thread(() -> Cameras.shell(c, "appops set " + c.getPackageName() + " SYSTEM_ALERT_WINDOW allow"), "grant-overlay").start();
+        StringBuilder cmd = new StringBuilder();
+        String pkg = c.getPackageName();
+        if (!Settings.canDrawOverlays(c)) cmd.append("appops set ").append(pkg).append(" SYSTEM_ALERT_WINDOW allow;");
+        try {
+            String[] req = c.getPackageManager().getPackageInfo(pkg, PackageManager.GET_PERMISSIONS).requestedPermissions;
+            if (req != null) for (String p : req) {
+                if (p.startsWith("android.permission.BYDAUTO_")
+                        && c.checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) {
+                    cmd.append("pm grant ").append(pkg).append(' ').append(p).append(" 2>/dev/null;");
+                }
+            }
+        } catch (Exception ignored) { }
+        if (cmd.length() == 0) return;
+        new Thread(() -> {
+            Cameras.shell(c, cmd.toString());
+            CarData.permissionsChanged = true;
+        }, "grant-perms").start();
     }
 
     private final BroadcastReceiver screen = new BroadcastReceiver() {

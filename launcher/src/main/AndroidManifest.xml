@@ -32,6 +32,8 @@
     <uses-permission android:name="android.permission.BYDAUTO_GEARBOX_GET" />
     <uses-permission android:name="android.permission.BYDAUTO_GEARBOX_SET" />
     <uses-permission android:name="android.permission.BYDAUTO_GEARBOX_COMMON" />
+    <uses-permission android:name="android.permission.BYDAUTO_MOTOR_GET" />
+    <uses-permission android:name="android.permission.BYDAUTO_MOTOR_COMMON" />
     <uses-permission android:name="android.permission.BYDAUTO_ENGINE_GET" />
     <uses-permission android:name="android.permission.BYDAUTO_ENGINE_SET" />
     <uses-permission android:name="android.permission.BYDAUTO_ENGINE_COMMON" />
