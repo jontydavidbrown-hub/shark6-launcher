@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;1,600;1,700&amp;family=Barlow:wght@400;500;600&amp;display=swap">
 <style>
 body{margin:0;background:#000}
-a{color:#FF5A5F}a:hover{color:#FF8A8D}
+a{color:#D42A3A}a:hover{color:#FF8A8D}
 button{font-family:inherit;cursor:pointer}
 .s6-range{-webkit-appearance:none;appearance:none;display:block;height:56px;background:transparent;margin:0}
 .s6-range::-webkit-slider-runnable-track{height:8px;background:transparent}
@@ -19,9 +19,9 @@ button{font-family:inherit;cursor:pointer}
 .s6-range::-moz-range-track{height:8px;background:transparent}
 .s6-range::-moz-range-thumb{width:56px;height:56px;border-radius:50%;background:#F2F2F2;border:0;box-shadow:0 0 0 6px rgba(242,242,242,0.18),0 4px 12px rgba(0,0,0,0.6)}
 .s6-cool::-webkit-slider-thumb{box-shadow:0 0 0 6px rgba(47,179,255,0.45),0 4px 12px rgba(0,0,0,0.6)}
-.s6-warm::-webkit-slider-thumb{box-shadow:0 0 0 6px rgba(255,90,95,0.45),0 4px 12px rgba(0,0,0,0.6)}
+.s6-warm::-webkit-slider-thumb{box-shadow:0 0 0 6px rgba(212,42,58,0.45),0 4px 12px rgba(0,0,0,0.6)}
 .s6-cool::-moz-range-thumb{box-shadow:0 0 0 6px rgba(47,179,255,0.45)}
-.s6-warm::-moz-range-thumb{box-shadow:0 0 0 6px rgba(255,90,95,0.45)}
+.s6-warm::-moz-range-thumb{box-shadow:0 0 0 6px rgba(212,42,58,0.45)}
 .s6-sheet{-webkit-animation:s6up .18s ease-out;animation:s6up .18s ease-out}
 @-webkit-keyframes s6up{from{-webkit-transform:translateY(24px);opacity:0}to{-webkit-transform:none;opacity:1}}
 @keyframes s6up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
@@ -242,12 +242,12 @@ button{font-family:inherit;cursor:pointer}
       <button type="button" onClick="{{sliderStepDown}}" aria-label="Down" style="width: 72px; height: 72px; flex-shrink: 0; border: 0; border-radius: 50%; background: #1E1E1E; color: #F2F2F2; font-size: 34px; line-height: 1;">–</button>
       <div style="flex: 1 1 0; min-width: 0; position: relative; height: 96px;">
         <sc-if value="{{sliderIsTemp}}" hint-placeholder-val="{{true}}">
-          <div style="position: absolute; top: 28px; left: 28px; right: 28px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #2FB3FF 0%, rgba(47,179,255,0.18) 31.25%, rgba(255,90,95,0.18) 31.25%, #FF5A5F 100%);"></div>
+          <div style="position: absolute; top: 28px; left: 28px; right: 28px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #2FB3FF 0%, rgba(47,179,255,0.18) 31.25%, rgba(212,42,58,0.18) 31.25%, #D42A3A 100%);"></div>
           <div style="position: absolute; top: 18px; left: 28px; right: 28px; height: 28px;"><div style="position: absolute; top: 0; left: 31.25%; width: 2px; height: 28px; margin-left: -1px; background: #F2F2F2; opacity: 0.7;"></div></div>
           <div style="position: absolute; top: 62px; left: 28px; right: 28px; height: 24px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 20px; letter-spacing: 0.06em; color: #6B6B6B;">
             <span style="position: absolute; left: 0; color: #2FB3FF;">17°</span>
             <span style="position: absolute; left: 31.25%; width: 60px; margin-left: -30px; text-align: center;">22°</span>
-            <span style="position: absolute; right: 0; color: #FF5A5F;">33°</span>
+            <span style="position: absolute; right: 0; color: #D42A3A;">33°</span>
           </div>
         </sc-if>
         <sc-if value="{{sliderIsFan}}" hint-placeholder-val="{{false}}">
@@ -266,7 +266,7 @@ button{font-family:inherit;cursor:pointer}
   </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#FF5A5F","options":["#FF5A5F","#FF8A00","#2FB3FF","#C6FF3D"]},"$preview":{"width":1600,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#D42A3A","options":["#D42A3A","#FF8A00","#2FB3FF","#C6FF3D"]},"$preview":{"width":1600,"height":900}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
@@ -333,7 +333,7 @@ class Component extends DCLogic {
   armClose() { clearTimeout(this.closeT); this.closeT = setTimeout(() => this.setState({ slider: null }), 5000); }
   renderVals() {
     const s = this.state;
-    const accent = this.props.accent ?? '#FF5A5F';
+    const accent = this.props.accent ?? '#D42A3A';
     const set = (o) => this.setState(o);
     const clamp = (v) => Math.max(17, Math.min(33, Math.round(v * 2) / 2));
     const battPct = 64, fuelPct = 72, evRange = 64, fuelRange = 610;
@@ -371,7 +371,7 @@ class Component extends DCLogic {
       sliderMin: s.slider === 'fan' ? 1 : 17, sliderMax: s.slider === 'fan' ? 7 : 33, sliderStep: 1,
       sliderValue: s.slider === 'fan' ? s.fan : (s.slider === 'pas' ? s.pasTemp : s.drvTemp),
       sliderText: s.slider === 'fan' ? String(s.fan) : (s.slider === 'pas' ? s.pasTemp : s.drvTemp) + '°',
-      sliderTextColor: s.slider === 'fan' || !s.slider ? '#F2F2F2' : (s.slider === 'pas' ? s.pasTemp : s.drvTemp) < 22 ? '#2FB3FF' : (s.slider === 'pas' ? s.pasTemp : s.drvTemp) > 22 ? '#FF5A5F' : '#F2F2F2',
+      sliderTextColor: s.slider === 'fan' || !s.slider ? '#F2F2F2' : (s.slider === 'pas' ? s.pasTemp : s.drvTemp) < 22 ? '#2FB3FF' : (s.slider === 'pas' ? s.pasTemp : s.drvTemp) > 22 ? '#D42A3A' : '#F2F2F2',
       thumbClass: s.slider === 'fan' || !s.slider ? 's6-fan' : (s.slider === 'pas' ? s.pasTemp : s.drvTemp) < 22 ? 's6-cool' : (s.slider === 'pas' ? s.pasTemp : s.drvTemp) > 22 ? 's6-warm' : '',
       fanPct: Math.round((Math.max(1, s.fan) - 1) / 6 * 100),
       sliderStepDown: () => { this.armClose(); if (s.slider === 'fan') (l => set({ fan: l, auto: false }))(Math.max(1, s.fan - 1)); else ((z, t) => set(z === 2 ? { pasTemp: t } : { drvTemp: t }))(s.slider === 'pas' ? 2 : 1, Math.max(17, (s.slider === 'pas' ? s.pasTemp : s.drvTemp) - 1)); },
