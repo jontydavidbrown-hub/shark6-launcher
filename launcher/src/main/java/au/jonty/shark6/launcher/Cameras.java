@@ -37,11 +37,14 @@ final class Cameras {
             File priv = new File(c.getFilesDir(), "adbkey"), pub = new File(c.getFilesDir(), "adbkey.pub");
             if (!priv.exists() || !pub.exists()) AdbKeyPair.generate(priv, pub);
             adb = Dadb.create(ADB_HOST, ADB_PORT, AdbKeyPair.read(priv, pub), 3000, 30000);
-            AdbShellResponse r = adb.shell("cd /data/local/tmp && LD_LIBRARY_PATH=/vendor/lib64:/system/lib64 nohup "
-                    + lib + " > /data/local/tmp/shark6cam.log 2>&1 & echo started");
-            if (r.getExitCode() != 0) return "helper didn't start: " + r.getAllOutput().trim();
+            // Own session (setsid) so the helper outlives this short ADB shell.
+            AdbShellResponse r = adb.shell("cd /data/local/tmp && (LD_LIBRARY_PATH=/vendor/lib64:/system/lib64 setsid nohup "
+                    + lib + " > /data/local/tmp/shark6cam.log 2>&1 < /dev/null &) ; echo started");
+            String out = r.getAllOutput().trim();
+            if (r.getExitCode() != 0 || !out.contains("started")) return "helper didn't start (" + r.getExitCode() + "): " + out;
         } catch (Throwable t) {
-            return "couldn't reach the car's ADB (allow debugging on the car screen, then try again)";
+            return "couldn't use the car's ADB: " + t.getClass().getSimpleName() + (t.getMessage() == null ? "" : " " + t.getMessage())
+                    + ". Allow debugging on the car screen if asked";
         } finally {
             if (adb != null) try { adb.close(); } catch (Exception ignored) { }
         }
@@ -49,7 +52,7 @@ final class Cameras {
             if (portOpen(PORT, 100)) return null;
             try { Thread.sleep(100); } catch (InterruptedException e) { return "interrupted"; }
         }
-        return "camera helper didn't come up";
+        return "camera helper didn't come up (log: /data/local/tmp/shark6cam.log)";
     }
 
     /** Needs `adb shell pm grant au.jonty.shark6.launcher android.permission.WRITE_SECURE_SETTINGS`. */

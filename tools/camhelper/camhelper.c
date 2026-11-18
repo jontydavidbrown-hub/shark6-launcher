@@ -200,19 +200,35 @@ int main(void) {
     a.sin_family = AF_INET;
     a.sin_port = htons(PORT);
     a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    if (bind(srv, (struct sockaddr *)&a, sizeof(a)) != 0 || listen(srv, 1) != 0) {
+    fprintf(stderr, "shark6cam starting, uid %d\n", getuid());
+    if (bind(srv, (struct sockaddr *)&a, sizeof(a)) != 0 || listen(srv, 4) != 0) {
         fprintf(stderr, "port %d busy: %s\n", PORT, strerror(errno));
         return 1;
     }
 
-    // Wait up to 10 s for the launcher before touching the cameras.
-    fd_set rs;
-    FD_ZERO(&rs); FD_SET(srv, &rs);
-    struct timeval tv = { 10, 0 };
-    if (select(srv + 1, &rs, NULL, NULL, &tv) <= 0) return 0;
-    int cl = accept(srv, NULL, NULL);
+    // Wait for the launcher before touching the cameras. Connections that close without sending
+    // the frame-rate byte (the launcher's "is it up yet?" check) don't count. Give up after 10 s idle.
+    int cl = -1;
+    for (;;) {
+        fd_set rs;
+        FD_ZERO(&rs); FD_SET(srv, &rs);
+        struct timeval tv = { 10, 0 };
+        if (select(srv + 1, &rs, NULL, NULL, &tv) <= 0) { fprintf(stderr, "no launcher connection, exiting\n"); return 0; }
+        int c = accept(srv, NULL, NULL);
+        if (c < 0) continue;
+        fd_set r1;
+        FD_ZERO(&r1); FD_SET(c, &r1);
+        struct timeval t1 = { 2, 0 };
+        uint8_t b = 0;
+        if (select(c + 1, &r1, NULL, NULL, &t1) > 0 && recv(c, &b, 1, 0) == 1 && b >= 1 && b <= 30) {
+            g_fps = b;
+            cl = c;
+            break;
+        }
+        close(c);
+    }
     close(srv);
-    if (cl < 0) return 1;
+    fprintf(stderr, "launcher connected, %u fps\n", g_fps);
     setsockopt(cl, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
     int big = 4 << 20;
     setsockopt(cl, SOL_SOCKET, SO_SNDBUF, &big, sizeof(big));
@@ -229,6 +245,7 @@ int main(void) {
 
     int ion = open("/dev/ion", O_RDONLY | O_CLOEXEC);
     int opened = 0;
+    fprintf(stderr, "cameras opening\n");
     for (int i = 0; i < NCAM; i++) {
         cams[i].slot = i;
         cams[i].id = CAM_IDS[i];
