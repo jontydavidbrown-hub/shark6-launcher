@@ -21,16 +21,16 @@ rep('<span style="color: #4A4A4A;">P</span><span style="color: #4A4A4A;">R</span
 opt('<button type="button" onClick="{{cycleMode}}" aria-label="Energy flow: {{modeLabel}}. Tap to preview the next mode" style="background: #111111;',
     '<button type="button" onClick="{{openEnergy}}" aria-label="Energy: {{modeLabel}}" style="background: #111111;')
 opt('kPa · all OK','{{tyreNote}}')
-rep('{{evShare}}% electric','{{tripFuel}}')
-rep('<div style="height: 4px; background: #262626;"><div style="height: 4px; width: {{evShare}}%; background: {{accent}};"></div></div>',
+opt('{{evShare}}% electric','{{tripFuel}}')
+opt('<div style="height: 4px; background: #262626;"><div style="height: 4px; width: {{evShare}}%; background: {{accent}};"></div></div>',
     '<div style="font-size: 13px; color: #A6A6A6;">ODO {{odo}} km</div>')
 rep('<a href="#" style="text-decoration: none;','<a href="#" onClick="{{openCarPlay}}" style="text-decoration: none;')
 # now playing
 rep('''<div style="flex: 1; min-height: 0; background: #1E1E1E; border-radius: 6px; display: flex; align-items: center; justify-content: center;">''',
     '''<div style="flex: 1; min-height: 0; background: #1E1E1E center / contain no-repeat; background-image: {{artBg}}; border-radius: 6px; display: flex; align-items: center; justify-content: center;">''')
 rep('<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#4A4A4A"','<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="{{noteColor}}"')
-rep('TRACK TITLE</div><div style="font-size: 16px; color: #A6A6A6;">Artist · Spotify</div>',
-    '{{trackTitle}}</div><div style="font-size: 16px; color: #A6A6A6;">{{trackSub}}</div>')
+rep('TRACK TITLE</div>','{{trackTitle}}</div>')
+rep('>Artist · Spotify</div>','>{{trackSub}}</div>')
 rep('font-size: 30px;">{{trackTitle}}','font-size: 30px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{trackTitle}}')
 rep('<span>1:24</span><span>3:41</span>','<span>{{posText}}</span><span>{{durText}}</span>')
 rep('<button type="button" aria-label="Previous track"','<button type="button" onClick="{{prevTrack}}" aria-label="Previous track"')
