@@ -355,7 +355,7 @@ class Home extends Component {
       </div>
       <a href="#" onClick=${v.openCarPlay} aria-label="Open CarPlay" style="text-decoration: none; flex: 1 1 0; min-width: 0; background: #111111; border: 1px solid #262626; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
         <div class="gy-10" style="display: flex; flex-direction: column; align-items: center;">
-          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="#F2F2F2" stroke-width="2"></rect><path d="M10 8.3v7.4c0 .6.6.9 1.1.6l5.6-3.7c.4-.3.4-.9 0-1.2l-5.6-3.7c-.5-.3-1.1 0-1.1.6z" fill="#F2F2F2"></path></svg>
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="#F2F2F2" stroke-width="2"></rect><path d="M9.2 8.3v7.4c0 .6.6.9 1.1.6l5.6-3.7c.4-.3.4-.9 0-1.2l-5.6-3.7c-.5-.3-1.1 0-1.1.6z" fill="#F2F2F2"></path></svg>
         </div>
       </a>
     </div>
