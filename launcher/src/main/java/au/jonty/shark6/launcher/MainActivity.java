@@ -317,7 +317,7 @@ public class MainActivity extends Activity {
                     + "Shark 6 Home " + ver + "\n" + car.openReport()
                     + "turn: " + (f == null ? "-" : (int) f[2]) + " via " + car.turnSource() + "\n"
                     + "tilt sensor: " + tilt.available() + (t == null ? "" : String.format(" pitch %.1f roll %.1f", t[0], t[1])) + "\n"
-                    + "draw over apps: " + android.provider.Settings.canDrawOverlays(MainActivity.this) + "\n"
+                    + "draw over apps: " + android.provider.Settings.canDrawOverlays(MainActivity.this) + "   last wake: " + Wake.lastWake + "\n"
                     + "media access: " + getSystemService(android.app.NotificationManager.class)
                             .isNotificationListenerAccessGranted(new android.content.ComponentName(MainActivity.this, MediaListener.class)) + "\n"
                     + "reset methods: " + car.resetMethods();

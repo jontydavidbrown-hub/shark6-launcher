@@ -72,6 +72,7 @@ public class Wake extends Service {
             if (Intent.ACTION_SCREEN_OFF.equals(i.getAction())) { screenOffAt = SystemClock.elapsedRealtime(); return; }
             boolean wasOff = screenOffAt != 0 && SystemClock.elapsedRealtime() - screenOffAt > CAR_OFF_MS;
             screenOffAt = 0;
+            if (wasOff) lastWake = "screen back on";
             if (wasOff && !MainActivity.isShowing()) openHome(c);
         }
     };
@@ -88,11 +89,41 @@ public class Wake extends Service {
         registerReceiver(screen, f);
         ensureCanOpen(this);
         Sideload.start(this);
+        startSleepWatch();
     }
+
+    /**
+     * The head unit may sleep without sending screen on/off. While asleep, elapsedRealtime keeps
+     * counting but uptimeMillis stops, so a gap between the two after a short tick means the unit
+     * was suspended: treat a gap over a minute as a car start and bring the home screen up.
+     */
+    private volatile boolean watching;
+    private void startSleepWatch() {
+        if (watching) return;
+        watching = true;
+        Thread t = new Thread(() -> {
+            long er = SystemClock.elapsedRealtime(), up = SystemClock.uptimeMillis();
+            while (watching) {
+                try { Thread.sleep(2000); } catch (InterruptedException e) { return; }
+                long er2 = SystemClock.elapsedRealtime(), up2 = SystemClock.uptimeMillis();
+                long slept = (er2 - er) - (up2 - up);
+                er = er2; up = up2;
+                if (slept > CAR_OFF_MS) {
+                    lastWake = "woke after " + (slept / 1000) + " s asleep";
+                    if (!MainActivity.isShowing()) openHome(this);
+                }
+            }
+        }, "sleep-watch");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    static volatile String lastWake = "no sleep seen yet";
 
     @Override public int onStartCommand(Intent i, int flags, int id) { return START_STICKY; }
 
     @Override public void onDestroy() {
+        watching = false;
         try { unregisterReceiver(screen); } catch (Exception ignored) { }
         super.onDestroy();
     }
