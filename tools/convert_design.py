@@ -36,11 +36,11 @@ rep('font-size: 30px;">{{trackTitle}}','font-size: 30px; white-space: nowrap; ov
 rep('<span>1:24</span><span>3:41</span>','<span>{{posText}}</span><span>{{durText}}</span>')
 rep('<button type="button" aria-label="Previous track"','<button type="button" onClick="{{prevTrack}}" aria-label="Previous track"')
 rep('<button type="button" aria-label="Next track"','<button type="button" onClick="{{nextTrack}}" aria-label="Next track"')
-# Fill the screen width: the page is 838 px tall and as wide as the screen's shape allows.
-rep('width: 1600px; height: 838px; box-sizing: border-box;','width: 100%; height: 838px; box-sizing: border-box;')
+# Fill the screen width: the page is 900 px tall and as wide as the screen's shape allows.
+rep('width: 1600px; height: 900px; box-sizing: border-box;','width: 100%; height: 900px; box-sizing: border-box;')
 rep('grid-template-columns: 340px 400px 400px minmax(0, 1fr);','grid-template-columns: minmax(0, 0.97fr) minmax(0, 1.14fr) minmax(0, 1.14fr) minmax(0, 1fr);')
-m=m.replace('width: 1600px; height: 838px; z-index: 10;','width: 100%; height: 838px; z-index: 10;')
-m=m.replace('top: 0; left: 0; width: 1600px; height: 838px; background:','top: 0; left: 0; width: 100%; height: 838px; background:')
+m=m.replace('width: 1600px; height: 900px; z-index: 10;','width: 100%; height: 900px; z-index: 10;')
+m=m.replace('top: 0; left: 0; width: 1600px; height: 900px; background:','top: 0; left: 0; width: 100%; height: 900px; background:')
 m=m.replace('left: 440px; top: 250px; width: 720px;','left: 50%; margin-left: -360px; top: 250px; width: 720px;')
 # --- template conversion to htm ---
 m=re.sub(r'<!-- DESIGN-ONLY -->.*?<!-- /DESIGN-ONLY -->','',m,flags=re.S)  # artifact-only bits (before/after switch)

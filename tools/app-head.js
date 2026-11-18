@@ -211,6 +211,11 @@ class Home extends Component {
       modeColor: em === 1 || em === 2 ? '#4ADE80' : '#F2F2F2',
       tyreNote: tyres.length ? (tyreLow ? 'psi · CHECK' : 'psi · all OK') : 'psi',
       ...(() => {
+        // Clock (BYD's header is hidden). The car poll re-renders every second, so it stays current.
+        const d = new Date(), hr = d.getHours();
+        return { clockTime: ((hr % 12) || 12) + ':' + ('0' + d.getMinutes()).slice(-2), clockAmPm: hr < 12 ? 'AM' : 'PM' };
+      })(),
+      ...(() => {
         // Trip tile: tap switches A/B, hold 1 s resets the trip shown (car's own trip meters).
         const b = s.trip === 'B';
         const km = b ? num(c.trip2Km) : tripKm;

@@ -43,6 +43,9 @@ public class MainActivity extends Activity {
         super.onCreate(b);
         getWindow().setStatusBarColor(Color.BLACK);
         getWindow().setNavigationBarColor(Color.BLACK);
+        getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(v -> {
+            if ((v & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0) { ui.removeCallbacks(rehide); ui.postDelayed(rehide, 3000); }
+        });
         web = new WebView(this);
         web.setBackgroundColor(Color.parseColor("#050505"));
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);
@@ -163,16 +166,27 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 
-    // Hide only the bottom (navigation) bar; BYD's top header stays. Swipe up from the bottom edge
-    // shows it for a moment. Re-applied whenever the window regains focus.
-    private void hideBottomBar() {
+    // Full screen: hide BYD's header and bottom bar (the page shows its own clock). A swipe from the
+    // top or bottom edge shows them; they hide again after 3 s, or when the screen is tapped.
+    private final Runnable rehide = this::hideBars;
+    private void hideBars() {
         getWindow().getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+                View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
     }
 
     @Override public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
-        if (hasFocus) hideBottomBar();
+        if (hasFocus) hideBars();
+    }
+
+    @Override public boolean dispatchTouchEvent(android.view.MotionEvent e) {
+        if (e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN
+                && (getWindow().getDecorView().getSystemUiVisibility() & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0) {
+            ui.removeCallbacks(rehide);
+            ui.postDelayed(rehide, 300);
+        }
+        return super.dispatchTouchEvent(e);
     }
 
     @Override public void onBackPressed() { /* this is the home screen: nothing to go back to */ }

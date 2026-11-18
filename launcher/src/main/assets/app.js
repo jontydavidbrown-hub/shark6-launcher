@@ -211,6 +211,11 @@ class Home extends Component {
       modeColor: em === 1 || em === 2 ? '#4ADE80' : '#F2F2F2',
       tyreNote: tyres.length ? (tyreLow ? 'psi · CHECK' : 'psi · all OK') : 'psi',
       ...(() => {
+        // Clock (BYD's header is hidden). The car poll re-renders every second, so it stays current.
+        const d = new Date(), hr = d.getHours();
+        return { clockTime: ((hr % 12) || 12) + ':' + ('0' + d.getMinutes()).slice(-2), clockAmPm: hr < 12 ? 'AM' : 'PM' };
+      })(),
+      ...(() => {
         // Trip tile: tap switches A/B, hold 1 s resets the trip shown (car's own trip meters).
         const b = s.trip === 'B';
         const km = b ? num(c.trip2Km) : tripKm;
@@ -297,7 +302,12 @@ class Home extends Component {
   render() {
     const v = this.renderVals();
     return html`
-<div style="width: 100%; height: 838px; box-sizing: border-box; padding: 20px 28px 28px; background: #050505; color: #F2F2F2; font-family: Barlow, system-ui, sans-serif; position: relative; display: grid; grid-template-columns: minmax(0, 0.97fr) minmax(0, 1.14fr) minmax(0, 1.14fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 140px; gap: 18px;">
+<div style="width: 100%; height: 900px; box-sizing: border-box; padding: 20px 28px 28px; background: #050505; color: #F2F2F2; font-family: Barlow, system-ui, sans-serif; position: relative; display: grid; grid-template-columns: minmax(0, 0.97fr) minmax(0, 1.14fr) minmax(0, 1.14fr) minmax(0, 1fr); grid-template-rows: 44px minmax(0, 1fr) 140px; gap: 18px;">
+
+  
+  <div aria-label="Time" style="grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; min-height: 0;">
+    <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px; letter-spacing: 0.02em;">${v.clockTime}</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 20px; color: #A6A6A6; letter-spacing: 0.06em; margin-left: 6px;">${v.clockAmPm}</span>
+  </div>
 
   
   <section aria-label="Now playing" class="gy-14" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 22px 24px; display: flex; flex-direction: column;  min-height: 0; min-width: 0; overflow: hidden;">
@@ -518,7 +528,7 @@ class Home extends Component {
   ` : null}
   
   ${v.sliderOpen ? html`
-    <div onClick=${v.closeSlider} aria-hidden="true" style="position: absolute; top: 0; left: 0; width: 100%; height: 838px; z-index: 10; background: rgba(0,0,0,0.35);"></div>
+    <div onClick=${v.closeSlider} aria-hidden="true" style="position: absolute; top: 0; left: 0; width: 100%; height: 900px; z-index: 10; background: rgba(0,0,0,0.35);"></div>
     <div role="dialog" aria-label=${v.sliderTitle} class="s6-sheet" class="gx-20" style="position: absolute; left: 28px; right: 28px; bottom: 28px; height: 140px; z-index: 11; box-sizing: border-box; background: #111111; border: 1px solid #333333; border-radius: 8px; padding: 0 16px 0 28px; display: flex; align-items: center;">
       <div class="gy-4" style="width: 170px; flex-shrink: 0; display: flex; flex-direction: column;">
         <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 20px; letter-spacing: 0.12em; color: ${v.accent};">${v.sliderTitle}</span>
