@@ -100,7 +100,7 @@ class Home extends Component {
     const span = Math.min(1, Math.abs(kw) / 150) * 50 * kBars;
 
     const em = c.energyMode;
-    const engineOn = engineKw > 0.5;
+    const engineOn = engineKw >= 3;
     const modeLabel = ENERGY[em] || '—';
     const drive = DRIVE[c.opMode];
     const modePower = (drive ? drive + ' · ' : '') + (hasPower
@@ -196,7 +196,7 @@ class Home extends Component {
 <div style="width: 1600px; height: 838px; box-sizing: border-box; padding: 20px 28px 28px; background: #050505; color: #F2F2F2; font-family: Barlow, system-ui, sans-serif; position: relative; display: grid; grid-template-columns: 400px 400px minmax(0, 1fr) 340px; grid-template-rows: minmax(0, 1fr) 184px; gap: 18px;">
 
   
-  <section aria-label="Range" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 18px 24px; display: flex; flex-direction: column; align-items: center; gap: 10px; min-height: 0;">
+  <section aria-label="Range" class="gy-10" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 18px 24px; display: flex; flex-direction: column; align-items: center;  min-height: 0;">
     <div style="align-self: stretch; display: flex; justify-content: space-between; align-items: center;">
       <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">RANGE</span>
       <span style="font-size: 12px; color: ${v.liveColor}; border: 1px solid #333; border-radius: 4px; padding: 2px 8px;">${v.liveLabel}</span>
@@ -208,7 +208,7 @@ class Home extends Component {
         <circle cx="160" cy="160" r="110" fill="none" stroke="#262626" stroke-width="8" stroke-dasharray="518 1000" transform="rotate(135 160 160)"></circle>
         <circle cx="160" cy="160" r="110" fill="none" stroke="#F2F2F2" stroke-width="8" stroke-dasharray=${v.battDash} transform="rotate(135 160 160)"></circle>
       </svg>
-      <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <div style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 96px; line-height: 1;">${v.totalRange}</span>
         <span style="font-size: 16px; letter-spacing: 0.08em; color: #A6A6A6;">KM TOTAL</span>
       </div>
@@ -220,27 +220,27 @@ class Home extends Component {
   </section>
 
   
-  <section aria-label="Speed" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 18px 24px; display: flex; flex-direction: column; align-items: center; gap: 10px; min-height: 0;">
+  <section aria-label="Speed" class="gy-10" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 18px 24px; display: flex; flex-direction: column; align-items: center;  min-height: 0;">
     <div style="align-self: stretch; display: flex; justify-content: space-between; align-items: center;">
       <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">SPEED</span>
-      <div style="display: flex; gap: 10px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 18px; letter-spacing: 0.1em;">
+      <div class="gx-10" style="display: flex;  font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 18px; letter-spacing: 0.1em;">
         <span style="color: ${v.gearP};">P</span><span style="color: ${v.gearR};">R</span><span style="color: ${v.gearN};">N</span><span style="color: ${v.gearD};">D</span>
       </div>
     </div>
     <div style="position: relative; width: 320px; height: 300px; flex-shrink: 0;">
-      <svg width="320" height="300" viewBox="0 0 320 300" aria-hidden="true" style="position: absolute; inset: 0;">
+      <svg width="320" height="300" viewBox="0 0 320 300" aria-hidden="true" style="position: absolute; top: 0; right: 0; bottom: 0; left: 0;">
         <circle cx="160" cy="165" r="140" fill="none" stroke="#1C1C1C" stroke-width="10" stroke-dasharray="586 2000" transform="rotate(150 160 165)"></circle>
         <circle cx="160" cy="165" r="140" fill="none" stroke=${v.accent} stroke-width="10" stroke-dasharray=${v.speedDash} transform="rotate(150 160 165)"></circle>
         <circle cx="160" cy="165" r="125" fill="none" stroke="#2A2A2A" stroke-width="6" stroke-dasharray="1.4 11.69" transform="rotate(150 160 165)"></circle>
         <circle cx="160" cy="165" r="125" fill="none" stroke="#111111" stroke-width="8" stroke-dasharray="0 523.6 261.8 2000" transform="rotate(150 160 165)"></circle>
       </svg>
-      <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 20px;">
+      <div style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 20px;">
         <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 112px; line-height: 0.95;">${v.speed}</span>
         <span style="font-size: 16px; letter-spacing: 0.14em; color: #A6A6A6;">KM/H</span>
       </div>
       <div style="position: absolute; left: 0; right: 0; bottom: 4px; display: flex; justify-content: space-between; padding: 0 34px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 0.08em; color: #6B6B6B;"><span>0</span><span>180</span></div>
     </div>
-    <div style="align-self: stretch; margin-top: auto; display: flex; flex-direction: column; gap: 6px;">
+    <div class="gy-6" style="align-self: stretch; margin-top: auto; display: flex; flex-direction: column;">
       <div style="position: relative; height: 6px; background: #1C1C1C;">
         <div style="position: absolute; top: 0; bottom: 0; left: ${v.powerLeft}%; width: ${v.powerWidth}%; background: ${v.powerColor};"></div>
         <div style="position: absolute; top: -4px; bottom: -4px; left: 50%; width: 2px; background: #4A4A4A;"></div>
@@ -257,7 +257,7 @@ class Home extends Component {
         <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">ENERGY</span>
         <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px;">${v.modeLabel}</span>
       </div>
-      <div style="width: 100%; display: flex; align-items: center; gap: 8px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 16px; letter-spacing: 0.06em;">
+      <div class="gx-8" style="width: 100%; display: flex; align-items: center;  font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 16px; letter-spacing: 0.06em;">
         <span>BATT</span><div style="flex: 1; height: 3px; background: ${v.battLine};"></div><span>WHEELS</span><div style="flex: 1; height: 3px; background: ${v.engLine};"></div><span style="color: ${v.engText};">ENG</span>
       </div>
       <span style="font-size: 13px; color: #A6A6A6;">${v.modePower}</span>
@@ -282,14 +282,14 @@ class Home extends Component {
         <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">TRIP</span>
         <span style="font-size: 13px; color: #A6A6A6;">${v.tripFuel}</span>
       </div>
-      <div style="display: flex; gap: 22px;">
+      <div class="gx-22" style="display: flex;">
         <div><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 26px;">${v.tripKm}</span> <span style="font-size: 13px; color: #A6A6A6;">km</span></div>
         <div><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 26px;">${v.tripKwh}</span> <span style="font-size: 13px; color: #A6A6A6;">kWh/100</span></div>
       </div>
       <div style="font-size: 13px; color: #A6A6A6;">ODO ${v.odo} km</div>
     </div>
 
-    <a href="#" onClick=${v.openCarPlay} style="text-decoration: none; background: #111111; border: 1px solid #262626; border-radius: 8px; color: #F2F2F2; padding: 0 16px 0 0; display: flex; align-items: center; gap: 14px; overflow: hidden; min-height: 0;">
+    <a href="#" onClick=${v.openCarPlay} class="gx-14" style="text-decoration: none; background: #111111; border: 1px solid #262626; border-radius: 8px; color: #F2F2F2; padding: 0 16px 0 0; display: flex; align-items: center;  overflow: hidden; min-height: 0;">
       <div style="width: 12px; align-self: stretch; background: ${v.accent}; transform: skewX(-12deg); margin-left: -5px;"></div>
       <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#F2F2F2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="13" rx="3"></rect><path d="M8 21h8"></path><path d="M9 11.5l2 2 4-4"></path></svg>
       <div style="flex: 1; display: flex; flex-direction: column;">
@@ -300,13 +300,13 @@ class Home extends Component {
   </section>
 
   
-  <section aria-label="Now playing" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; min-height: 0;">
+  <section aria-label="Now playing" class="gy-14" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 22px 24px; display: flex; flex-direction: column;  min-height: 0;">
     <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">NOW PLAYING</span>
     <div style="flex: 1; min-height: 0; background: #1E1E1E center / contain no-repeat; background-image: ${v.artBg}; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
       <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke=${v.noteColor} stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
     </div>
     <div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.trackTitle}</div><div style="font-size: 16px; color: #A6A6A6;">${v.trackSub}</div></div>
-    <div style="display: flex; flex-direction: column; gap: 6px;">
+    <div class="gy-6" style="display: flex; flex-direction: column;">
       <div style="height: 4px; background: #262626;"><div style="width: ${v.musicPct}%; height: 4px; background: ${v.accent};"></div></div>
       <div style="display: flex; justify-content: space-between; font-size: 13px; color: #A6A6A6;"><span>${v.posText}</span><span>${v.durText}</span></div>
     </div>
@@ -323,23 +323,23 @@ class Home extends Component {
   
   <section aria-label="Climate and seats" style="grid-column: 1 / -1; background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 18px 24px; display: grid; grid-template-columns: 1.15fr 1fr 1.7fr 1fr 1.15fr; gap: 18px; align-items: stretch;">
 
-    <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div class="gy-8" style="display: flex; flex-direction: column;">
       <span style="font-size: 14px; letter-spacing: 0.06em; color: #A6A6A6;">DRIVER SEAT</span>
       <div style="flex: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
-        <button type="button" onClick=${v.drvHeat.cycle} aria-label="Driver seat heating, ${v.drvHeat.label}" style="border: ${v.drvHeat.border}; background: transparent; color: #F2F2F2; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;">
+        <button type="button" onClick=${v.drvHeat.cycle} aria-label="Driver seat heating, ${v.drvHeat.label}" class="gy-6" style="border: ${v.drvHeat.border}; background: transparent; color: #F2F2F2; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
           <svg width="32" height="32" viewBox="0 -960 960 960" fill=${v.drvHeat.icon} aria-hidden="true"><path d="M765-490q-11-7-14-19t5-22l8-11q8-11 12-24t4-27q0-18-6.5-34.5T754-658q-21-23-32.5-50.5T710-767q0-22 6.5-43t19.5-39l8-12q7-11 19-12.5t23 5.5q11 7 13 19t-6 22l-8 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T840-591q0 22-6.5 43T814-509l-8 11q-8 10-19 12.5t-22-4.5Zm-173 0q-11-7-14-19t5-22l8-11q8-11 12-23.5t4-26.5q0-19-7-35.5T580-658q-21-23-32.5-50.5T536-767q0-22 6.5-43t19.5-39l8-12q7-11 18.5-13t22.5 5q10 7 12.5 19t-4.5 23l-7 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T667-591q0 22-6.5 43T641-509l-8 11q-8 10-19 12.5t-22-4.5Zm-173 0q-11-7-14-19t5-22l8-11q8-11 12-23.5t4-26.5q0-19-7-35.5T407-658q-21-23-33-50.5T362-767q0-22 6.5-43t20.5-39l9-12q8-10 20-12t22 5q11 7 13 19t-6 22l-8 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T494-591q0 22-6.5 43T468-509l-8 11q-8 10-19 12.5t-22-4.5ZM297-120q-25 0-44-14.5T228-172l-99-386q-5-14-6.5-29t-1.5-30q0-28 6.5-54.5T146-723q8-16 22.5-25.5T200-758q20 0 33.5 14t13.5 34q0 9-2.5 17T234-678q-22 23-26 53.5t9 59.5l17 43q28 65 49 132.5T304-250v54q8-11 24.5-18.5T365-222h260q21 0 36 15t15 36q0 21-15 36t-36 15H297Z"></path></svg>
           <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 20px; line-height: 1;">${v.drvHeat.label}</span>
-          <div style="display: flex; gap: 4px;">${v.drvHeat.segs.map((s) => html`<div style="width: 14px; height: 5px; transform: skewX(-24deg); background: ${s.c};"></div>`)}</div>
+          <div class="gx-4" style="display: flex;">${v.drvHeat.segs.map((s) => html`<div style="width: 14px; height: 5px; transform: skewX(-24deg); background: ${s.c};"></div>`)}</div>
         </button>
-        <button type="button" onClick=${v.drvVent.cycle} aria-label="Driver seat ventilation, ${v.drvVent.label}" style="border: ${v.drvVent.border}; background: transparent; color: #F2F2F2; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;">
+        <button type="button" onClick=${v.drvVent.cycle} aria-label="Driver seat ventilation, ${v.drvVent.label}" class="gy-6" style="border: ${v.drvVent.border}; background: transparent; color: #F2F2F2; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
           <svg width="32" height="32" viewBox="0 -960 960 960" fill=${v.drvVent.icon} aria-hidden="true"><path d="M629.12-478q-22.8 0-34.96-14.25T582-523q0-13 5.31-23.62 5.3-10.61 16.67-18.19 8.34-5.31 14.79-14.03 6.44-8.72 10.23-26.16-2.86-1.56-5.36-3.11-2.5-1.56-4.64-3.89-29 11-42 16t-27.21 5q-28.42 0-50.1-25Q478-641 478-688.88q0-22.8 14.25-34.96T523-736q13 0 23.62 5.31 10.61 5.3 18.19 16.67 5.31 8.34 14.03 14.79 8.72 6.44 26.16 10.23 1.56-2.86 3.11-5.36 1.56-2.5 3.89-4.64-11-29-16-42t-5-27.21q0-28.42 25-50.1Q641-840 688.88-840q22.8 0 34.96 14.25T736-795q0 13-5.31 23.62-5.3 10.61-16.67 18.19-8.34 5.31-14.79 14.03-6.44 8.72-10.23 26.16 2.86 1.56 5.36 3.11 2.5 1.56 4.64 3.89 29-11 42-16t27.21-5q28.42 0 50.1 25Q840-677 840-629.12q0 22.8-14.25 34.96T795-582q-13 0-23.62-5.31-10.61-5.3-18.19-16.67-5.31-8.34-14.03-14.79-8.72-6.44-26.16-10.23-1.56 2.86-3.11 5.36-1.56 2.5-3.89 4.64 11 29 16 42t5 27.21q0 28.42-25 50.1Q677-478 629.12-478Zm51.38-159.68q8.5-8.67 8.5-21.5 0-12.82-8.68-21.32-8.67-8.5-21.5-8.5-12.82 0-21.32 8.68-8.5 8.67-8.5 21.5 0 12.82 8.68 21.32 8.67 8.5 21.5 8.5 12.82 0 21.32-8.68ZM297-120q-24.65 0-43.83-14.5Q234-149 228-172l-99-386q-5-14-6.5-28.84T121-617q0-27.66 6.5-54.33Q134-698 146-723q7.84-16.15 22.2-25.58 14.36-9.42 31.78-9.42 20.02 0 33.52 14.25Q247-729.5 247-710.22q0 9.22-2.5 17.22-2.5 8-10.5 15-21.92 23.01-25.96 53.51Q204-594 217-565l17 43q28 65 49 132.5T304-250v54q8-11 24.5-18.5T365-222h239q30.22 0 51.11 21.15T676-150v30H297Z"></path></svg>
           <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 20px; line-height: 1;">${v.drvVent.label}</span>
-          <div style="display: flex; gap: 4px;">${v.drvVent.segs.map((s) => html`<div style="width: 14px; height: 5px; transform: skewX(-24deg); background: ${s.c};"></div>`)}</div>
+          <div class="gx-4" style="display: flex;">${v.drvVent.segs.map((s) => html`<div style="width: 14px; height: 5px; transform: skewX(-24deg); background: ${s.c};"></div>`)}</div>
         </button>
       </div>
     </div>
 
-    <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div class="gy-8" style="display: flex; flex-direction: column;">
       <span style="font-size: 14px; letter-spacing: 0.06em; color: #A6A6A6;">DRIVER</span>
       <div style="flex: 1; display: flex; align-items: center; justify-content: space-between; border: 1px solid #333; border-radius: 6px; padding: 0 8px;">
         <button type="button" onClick=${v.drvDown} aria-label="Driver temperature down" style="width: 54px; height: 54px; border: 0; background: #1E1E1E; color: #F2F2F2; border-radius: 4px; font-size: 26px;">–</button>
@@ -348,32 +348,32 @@ class Home extends Component {
       </div>
     </div>
 
-    <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div class="gy-8" style="display: flex; flex-direction: column;">
       <span style="font-size: 14px; letter-spacing: 0.06em; color: #A6A6A6;">CLIMATE</span>
       <div style="flex: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;">
-        <button type="button" onClick=${v.toggleDemist} aria-pressed=${v.demist} aria-label="Demist" style="border: ${v.demistBorder}; background: ${v.demistBg}; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+        <button type="button" onClick=${v.toggleDemist} aria-pressed=${v.demist} aria-label="Demist" class="gy-8" style="border: ${v.demistBorder}; background: ${v.demistBg}; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
           <svg width="36" height="36" viewBox="0 -960 960 960" fill=${v.demistIcon} aria-hidden="true"><path d="M152-300q-12 2-22.5-5T117-324L42-739q-2-13 5-23.5T67-777q118-32 219.5-47.5T481-840q93 0 193.5 15.5T894-777q13 4 20 14.5t5 23.5l-75 416q-2 12-12 18.5t-22 4.5q-12-2-19-12t-5-22l69-392q-114-28-203.5-41T481-780q-81 0-171.5 13T106-726l70 392q2 12-5 22t-19 12Zm508 65q0-18-6.5-34.5T634-300q-21-23-32.5-50.5T590-409q0-22 6.5-43t19.5-39l8-12q7-11 19-13t23 5q11 7 12.5 19t-5.5 23l-8 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T720-233q0 22-6.5 43T694-151l-8 11q-7 11-19 13t-23-5q-11-7-13-18.5t5-22.5l8-11q8-11 12-24t4-27Zm-173 1q0-19-7-35.5T460-300q-21-23-32.5-50.5T416-409q0-22 6.5-43t19.5-39l8-12q7-11 19-13t23 5q11 7 12.5 19t-5.5 23l-7 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T547-233q0 22-6.5 43T521-151l-8 11q-7 11-19 13t-23-5q-11-7-13-18.5t5-22.5l8-11q8-11 12-23.5t4-26.5Zm-173 0q0-19-7-35.5T287-300q-21-23-33-50.5T242-409q0-22 6.5-43t20.5-39l9-12q7-11 19-13t23 5q11 7 12.5 19t-5.5 23l-8 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T374-233q0 22-6.5 43T348-151l-8 11q-7 11-19 13t-23-5q-11-7-13-18.5t5-22.5l8-11q8-11 12-23.5t4-26.5Z"></path></svg>
           <span style="font-size: 12px; font-weight: 600; letter-spacing: 0.12em; color: ${v.demistText};">DEMIST</span>
         </button>
-        <button type="button" onClick=${v.toggleAc} aria-pressed=${v.ac} aria-label="A/C" style="border: ${v.acBorder}; background: ${v.acBg}; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+        <button type="button" onClick=${v.toggleAc} aria-pressed=${v.ac} aria-label="A/C" class="gy-8" style="border: ${v.acBorder}; background: ${v.acBg}; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
           <svg width="34" height="34" viewBox="0 -960 960 960" fill=${v.acIcon} aria-hidden="true"><path d="M450-275 321-146q-8 8-20.5 8t-21.5-8q-9-9-9-21.5t9-21.5l171-171v-90h-90L192-282q-8 8-20.5 8.5T150-281q-9-9-9.5-21.5T150-325l125-125H109q-12 0-20.5-8.5T80-480q0-12 8.5-21t21.5-9h165L146-638q-9-9-9-21.5t9-21.5q9-9 21.5-9t21.5 9l171 171h90v-91L282-768q-8-8-8-20.5t8-21.5q9-9 21.5-9t22.5 9l124 124v-164q0-12 8.5-21t21.5-9q12 0 21 9t9 21v164l128-128q9-9 21.5-9t21.5 9q8 9 8 21.5t-9 21.5L510-601v91h91l168-168q8-8 20.5-8t21.5 8q9 9 9 21.5t-9 21.5L686-510h164q12 0 21 9t9 21q0 13-9 21.5t-21 8.5H686l127 129q9 8 9 20.5t-9 20.5q-8 10-20.5 10t-21.5-9L601-450h-91v90l171 173q9 8 9 20.5t-9 20.5q-8 10-20.5 10t-21.5-9L510-275v166q0 12-9 20.5T480-80q-13 0-21.5-8.5T450-110v-165Z"></path></svg>
           <span style="font-size: 12px; font-weight: 600; letter-spacing: 0.12em; color: ${v.acText};">A/C</span>
         </button>
-        <button type="button" onClick=${v.toggleAuto} aria-pressed=${v.auto} aria-label="Auto" style="border: ${v.autoBorder}; background: ${v.autoBg}; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+        <button type="button" onClick=${v.toggleAuto} aria-pressed=${v.auto} aria-label="Auto" class="gy-8" style="border: ${v.autoBorder}; background: ${v.autoBg}; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
           <svg width="34" height="34" viewBox="0 -960 960 960" fill=${v.autoIcon} aria-hidden="true"><path d="m626-546-37 95q-3 8-9.5 12.5T565-434q-14 0-21.5-11.5T541-470l130-333q3-7 9-11.5t14-4.5h19q8 0 14 4.5t9 11.5l130 334q5 13-2.5 24T842-434q-8 0-14.5-4.5T818-451l-37-95H626Zm16-47h123l-54-148h-15l-54 148ZM167-174q-53-53-53-129 0-48 24-90.5t66-68.5v-286q0-38 27-65t65-27q38 0 65 27t27 65v286q42 26 66 68.5t24 90.5q0 76-53 129t-129 53q-76 0-129-53Zm7-129h244q0-40-19-71.5T348-420l-20-9v-319q0-14-9-23t-23-9q-14 0-23 9t-9 23v319l-20 9q-32 14-51 46t-19 71Z"></path></svg>
           <span style="font-size: 12px; font-weight: 600; letter-spacing: 0.12em; color: ${v.autoText};">AUTO</span>
         </button>
-        <button type="button" onClick=${v.openFan} aria-label="Fan speed ${v.fanLabel}, tap for slider" style="border: 1px solid #2A2A2A; background: #161616; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;">
-          <div style="display: flex; align-items: center; gap: 6px;">
+        <button type="button" onClick=${v.openFan} aria-label="Fan speed ${v.fanLabel}, tap for slider" class="gy-6" style="border: 1px solid #2A2A2A; background: #161616; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <div class="gx-6" style="display: flex; align-items: center;">
             <svg width="30" height="30" viewBox="0 -960 960 960" fill="#F2F2F2" aria-hidden="true"><path d="M424-80q-51 0-77.5-30.5T320-180q0-26 11.5-50.5T367-271q22-14 36.5-37.5T425-373q-1 0-1-.5t-2-1.5l-116 41q-17 6-33 10t-33 4q-63 0-111.5-55T80-536q0-51 30.5-77.5T179-640q26 0 51 11.5t41 35.5q14 22 39.5 37.5T373-535q.67-1 1.33-2 .67-1 .67-2l-41-115q-6-17-10-33t-4-32q0-64 55-112.5T536-880q51 0 77.5 30.5T640-781q0 26-11.5 51T593-689q-26 17-40.5 45T536-586q1 1 1.5.5t1.5 1.5l115-43q17-6 32.5-9.5T719-640q81 0 121 67t40 149q0 51-32 77.5T777-320q-25 0-48.5-11.5T689-367q-14-22-37.5-36.5T587-426q-1 2-1.6 3.06-.6 1.06-1.4 1.94l42 115q6 16 10 30.5t4 30.5q1 65-54 115T424-80Zm56-340q25 0 42.5-17.5T540-480q0-25-17.5-42.5T480-540q-25 0-42.5 17.5T420-480q0 25 17.5 42.5T480-420Zm-58-165q12-5 26-9t28-6q8-45 29.5-81t54.5-58q10-7 15-17.5t5-24.5q0-16.42-10.5-27.71T536-820q-43 0-98.5 20.55-55.5 20.54-57.5 80.32 0 11.21 2.5 21.17T388-680l34 95ZM240-380q14 0 40-8l95-34q-8-14-11.5-28t-3.5-26q-45-8-81-29.5T221-560q-7-10-19-15t-23-5q-19 0-29 10.5T140-536q0 61.94 25.63 108.97Q191.25-380 240-380Zm184 240q53.13 0 104.57-23Q580-186 580-242q0-11-2-19t-6-19l-34-95q-13 6-26.5 10t-27.5 5q-8 45-29.5 81T400-221q-9 6-14.5 18.5T380-179q1 15 11 27t33 12Zm353-240q16.83 0 29.91-9.17Q820-398.33 820-424q0-44-20.5-99t-81.33-57q-11.17 0-20.67 2-9.5 2-17.5 5l-95 35q5 8 10 25.5t5 28.5q45 8 81 29.5t58 54.5q6 8 16.67 14 10.66 6 21.33 6ZM600-484ZM476-600ZM360-476Zm124 116Z"></path></svg>
             <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 28px; line-height: 1;">${v.fanLabel}</span>
           </div>
-          <div style="display: flex; gap: 3px;">${v.fanSegs.map((f) => html`<div style="width: 6px; height: 5px; background: ${f.c};"></div>`)}</div>
+          <div class="gx-3" style="display: flex;">${v.fanSegs.map((f) => html`<div style="width: 6px; height: 5px; background: ${f.c};"></div>`)}</div>
         </button>
       </div>
     </div>
 
-    <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div class="gy-8" style="display: flex; flex-direction: column;">
       <span style="font-size: 14px; letter-spacing: 0.06em; color: #A6A6A6;">PASSENGER</span>
       <div style="flex: 1; display: flex; align-items: center; justify-content: space-between; border: 1px solid #333; border-radius: 6px; padding: 0 8px;">
         <button type="button" onClick=${v.pasDown} aria-label="Passenger temperature down" style="width: 54px; height: 54px; border: 0; background: #1E1E1E; color: #F2F2F2; border-radius: 4px; font-size: 26px;">–</button>
@@ -382,18 +382,18 @@ class Home extends Component {
       </div>
     </div>
 
-    <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div class="gy-8" style="display: flex; flex-direction: column;">
       <span style="font-size: 14px; letter-spacing: 0.06em; color: #A6A6A6;">PASSENGER SEAT</span>
       <div style="flex: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
-        <button type="button" onClick=${v.pasHeat.cycle} aria-label="Passenger seat heating, ${v.pasHeat.label}" style="border: ${v.pasHeat.border}; background: transparent; color: #F2F2F2; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;">
+        <button type="button" onClick=${v.pasHeat.cycle} aria-label="Passenger seat heating, ${v.pasHeat.label}" class="gy-6" style="border: ${v.pasHeat.border}; background: transparent; color: #F2F2F2; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
           <svg width="32" height="32" viewBox="0 -960 960 960" fill=${v.pasHeat.icon} aria-hidden="true"><path d="M523-490q-11-7-13.5-19t5.5-22l8-11q8-11 12-24t4-27q0-18-6.5-34.5T513-658q-21-23-33-50.5T468-767q0-22 7-43t20-39l8-12q7-11 18.5-12.5T544-868q11 7 13.5 19t-5.5 22l-8 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T599-591q0 22-6.5 43T573-509l-8 11q-8 10-19.5 12.5T523-490Zm-173 0q-11-7-13.5-19t5.5-22l8-11q8-11 12-23.5t4-26.5q0-19-7-35.5T339-658q-21-23-33-50.5T294-767q0-22 7-43t20-39l8-12q7-11 18.5-13t22.5 5q10 7 12.5 19t-4.5 23l-7 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T426-591q0 22-6.5 43T400-509l-8 11q-8 10-19.5 12.5T350-490Zm-173 0q-11-7-13.5-19t5.5-22l8-11q8-11 12-23.5t4-26.5q0-19-7-35.5T166-658q-21-23-33-50.5T121-767q0-22 6.5-43t20.5-39l9-12q8-10 19.5-12t21.5 5q11 7 13.5 19t-5.5 22l-8 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T253-591q0 22-6.5 43T227-509l-8 11q-8 10-19.5 12.5T177-490Zm159 370q-21 0-36-15t-15-36q0-21 15-36t36-15h260q20 0 36.5 7.5T657-196v-54q0-72 21-139.5T727-522l17-43q13-29 9-59.5T727-678q-8-7-10.5-15t-2.5-17q0-20 13.5-34t33.5-14q17 0 31.5 9.5T815-723q12 25 18.5 51.5T840-617q0 15-1.5 30t-6.5 29l-99 386q-6 23-25 37.5T664-120H336Z"></path></svg>
           <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 20px; line-height: 1;">${v.pasHeat.label}</span>
-          <div style="display: flex; gap: 4px;">${v.pasHeat.segs.map((s) => html`<div style="width: 14px; height: 5px; transform: skewX(-24deg); background: ${s.c};"></div>`)}</div>
+          <div class="gx-4" style="display: flex;">${v.pasHeat.segs.map((s) => html`<div style="width: 14px; height: 5px; transform: skewX(-24deg); background: ${s.c};"></div>`)}</div>
         </button>
-        <button type="button" onClick=${v.pasVent.cycle} aria-label="Passenger seat ventilation, ${v.pasVent.label}" style="border: ${v.pasVent.border}; background: transparent; color: #F2F2F2; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;">
+        <button type="button" onClick=${v.pasVent.cycle} aria-label="Passenger seat ventilation, ${v.pasVent.label}" class="gy-6" style="border: ${v.pasVent.border}; background: transparent; color: #F2F2F2; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
           <svg width="32" height="32" viewBox="0 -960 960 960" fill=${v.pasVent.icon} aria-hidden="true"><path d="M272.12-478q-22.8 0-34.96-14.25T225-523q0-12.84 5.5-23.42 5.5-10.58 16.66-18.33 8.19-5.42 14.51-14.34Q268-588 272-605q-3.08-1.56-5.38-3.11-2.31-1.56-4.62-3.89-29 11-42 16t-27.21 5q-28.42 0-50.1-25Q121-641 121-688.88q0-22.8 14.25-34.96T166-736q13.22 0 23.72 5.31 10.5 5.31 18.28 16.69 5.19 8.33 14.07 14.77 8.89 6.44 25.93 10.23 1.56-2.86 3.11-5.36 1.56-2.5 3.89-4.64-11-29-16-42t-5-27.21q0-28.42 25.11-50.1Q284.23-840 332.17-840 355-840 367-825.75T379-795q0 13-5.31 23.62-5.3 10.61-16.67 18.19-8.34 5.31-14.79 14.03-6.44 8.72-10.23 26.16 3.08 1.56 5.38 3.11 2.31 1.56 4.62 3.89 29-11 42-16t27.21-5q28.42 0 50.1 25Q483-677 483-629.12q0 22.8-14.25 34.96T438-582q-13 0-23.62-5.31-10.61-5.3-18.19-16.67-5.31-8.34-14.03-14.79-8.72-6.44-26.16-10.23-2 3-3.56 5.45T349-619q11 29 16 42t5 27.21q0 28.42-25 50.1Q320-478 272.12-478Zm51.38-159.68q8.5-8.67 8.5-21.5 0-12.82-8.68-21.32-8.67-8.5-21.5-8.5-12.82 0-21.32 8.68-8.5 8.67-8.5 21.5 0 12.82 8.68 21.32 8.67 8.5 21.5 8.5 12.82 0 21.32-8.68ZM285-120v-30q0-29.7 20.89-50.85Q326.78-222 357-222h239q20 0 36.5 7.5T657-196v-54q0-72 21-139.5T727-522l17-43q13-29 8.96-59.49-4.04-30.5-25.96-53.51-8-7-10.5-15t-2.5-17.22q0-19.28 13.5-33.53T760.79-758q17.21 0 31.84 9.42Q807.26-739.15 815-723q12 25 18.5 51.67T840-617q0 15.32-1.5 30.16T832-558l-99 386q-6 23-25.17 37.5Q688.65-120 664-120H285Z"></path></svg>
           <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 20px; line-height: 1;">${v.pasVent.label}</span>
-          <div style="display: flex; gap: 4px;">${v.pasVent.segs.map((s) => html`<div style="width: 14px; height: 5px; transform: skewX(-24deg); background: ${s.c};"></div>`)}</div>
+          <div class="gx-4" style="display: flex;">${v.pasVent.segs.map((s) => html`<div style="width: 14px; height: 5px; transform: skewX(-24deg); background: ${s.c};"></div>`)}</div>
         </button>
       </div>
     </div>
@@ -401,9 +401,9 @@ class Home extends Component {
   </section>
   
   ${v.sliderOpen ? html`
-    <div style="position: absolute; inset: 0; z-index: 10;">
-      <button type="button" onClick=${v.closeSlider} aria-label="Close" style="position: absolute; inset: 0; border: 0; background: rgba(0,0,0,0.6); cursor: default;"></button>
-      <div role="dialog" aria-label=${v.sliderTitle} style="position: absolute; left: 50%; bottom: 236px; width: 680px; margin-left: -340px; box-sizing: border-box; background: #111111; border: 1px solid #333; border-top: 4px solid ${v.accent}; border-radius: 8px; padding: 22px 28px 26px; display: flex; flex-direction: column; gap: 14px;">
+    <div style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 10;">
+      <button type="button" onClick=${v.closeSlider} aria-label="Close" style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; border: 0; background: rgba(0,0,0,0.6); cursor: default;"></button>
+      <div role="dialog" aria-label=${v.sliderTitle} class="gy-14" style="position: absolute; left: 50%; bottom: 236px; width: 680px; margin-left: -340px; box-sizing: border-box; background: #111111; border: 1px solid #333; border-top: 4px solid ${v.accent}; border-radius: 8px; padding: 22px 28px 26px; display: flex; flex-direction: column;">
         <div style="display: flex; justify-content: space-between; align-items: baseline;">
           <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">${v.sliderTitle}</span>
           <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 64px; line-height: 1;">${v.sliderText}</span>

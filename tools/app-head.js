@@ -1,0 +1,195 @@
+// Shark 6 launcher home screen. Ported from the approved design (design/sporty-home.dc.html).
+// Live values arrive from Android through window.onCar(json); actions go out through window.Car.
+'use strict';
+const { html, render, Component } = htmPreact;
+const Bridge = window.Car || {
+  // Browser preview fallback: no car, so nothing happens.
+  command: () => 'no-car', openCarPlay: () => {}, media: () => {}, openApp: () => {}, toast: (m) => console.log(m)
+};
+
+const GEARS = { 1: 'P', 2: 'R', 3: 'N', 4: 'D', 5: 'D', 6: 'D' };
+const ENERGY = { 0: 'STANDBY', 1: 'EV MODE', 2: 'EV ONLY', 3: 'HYBRID', 4: 'FUEL', 5: 'HOLD' };
+const DRIVE = { 1: 'Normal', 2: 'Eco', 3: 'Sport', 4: 'Snow', 5: 'Mud', 6: 'Sand' };
+
+function mmss(ms) {
+  if (!(ms > 0)) return '0:00';
+  const s = Math.floor(ms / 1000);
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+}
+const num = (v, d = 0) => (typeof v === 'number' && isFinite(v) ? v : d);
+
+class Home extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { car: {}, boot: 0, slider: null, live: false };
+  }
+  componentDidMount() {
+    window.onCar = (json) => {
+      let car;
+      try { car = typeof json === 'string' ? JSON.parse(json) : json; } catch (e) { return; }
+      const first = !this.state.live && car.ok;
+      this.setState({ car, live: !!car.ok });
+      if (first) this.playBoot();
+    };
+    window.replayBoot = () => this.playBoot();
+    this.playBoot();
+  }
+  playBoot() {
+    if (this.raf) cancelAnimationFrame(this.raf);
+    const dur = 1800, delay = 250;
+    const t0 = performance.now();
+    const tick = (now) => {
+      const t = Math.max(0, Math.min(1, (now - t0 - delay) / dur));
+      this.setState({ boot: t });
+      if (t < 1) this.raf = requestAnimationFrame(tick);
+    };
+    this.setState({ boot: 0 });
+    this.raf = requestAnimationFrame(tick);
+  }
+  ease(t) { return 1 - Math.pow(1 - t, 3); }
+  stage(start) {
+    const t = Math.max(0, Math.min(1, (this.state.boot - start) / (1 - start)));
+    return this.ease(t);
+  }
+  segs(level, n, color) {
+    const out = [];
+    for (let i = 1; i <= n; i++) out.push({ c: level >= i ? color : '#333333' });
+    return out;
+  }
+  send(name, args) {
+    const r = Bridge.command(name, JSON.stringify(args || {}));
+    if (r === 'disabled') Bridge.toast('Climate and seat controls arrive in the next build');
+    else if (r && r !== 'ok') Bridge.toast('The car said no: ' + r);
+  }
+  seat(kind, level, zone, color, start) {
+    const shown = Math.round(level * this.stage(start));
+    const on = level > 0;
+    return {
+      label: (kind === 'heat' ? 'HEAT ' : 'VENT ') + (on ? level : 'OFF'),
+      border: on ? '2px solid ' + color : '1px solid #333',
+      icon: on ? color : '#A6A6A6',
+      segs: this.segs(shown, 2, color),
+      cycle: () => this.send(kind === 'heat' ? 'seatHeat' : 'seatVent', { zone, level: (level + 1) % 3 })
+    };
+  }
+  renderVals() {
+    const s = this.state, c = s.car || {};
+    const accent = '#FF5A5F';
+    const set = (o) => this.setState(o);
+    const kRange = this.stage(0), kBars = this.stage(0.1), kClimate = this.stage(0.25), kMusic = this.stage(0.35);
+    const count = (v, k) => Math.round(v * k);
+    const tempUp = (v, k) => Math.round((16 + (v - 16) * k) * 2) / 2;
+
+    const battPct = num(c.battPct), fuelPct = num(c.fuelPct);
+    const evRange = num(c.evRange), fuelRange = num(c.fuelRange);
+    const totalRange = num(c.totalRange, evRange + fuelRange);
+    const speedNow = Math.max(0, Math.round(num(c.speed)));
+    const MAX = 180, b = s.boot;
+    const sweep = b < 0.45 ? this.ease(b / 0.45) * MAX
+      : MAX + (Math.min(speedNow, MAX) - MAX) * this.ease(Math.min(1, (b - 0.45) / 0.55));
+    const shownSpeed = b >= 1 ? speedNow : Math.round(sweep);
+
+    const gear = GEARS[c.gear] || '';
+    const gearColor = (g) => (gear === g ? accent : '#4A4A4A');
+
+    // Power: motor kW (negative = regen) plus engine kW when it is running.
+    const motorKw = num(c.motorKw), engineKw = num(c.engineKw);
+    const kw = motorKw + Math.max(0, engineKw);
+    const hasPower = typeof c.motorKw === 'number' || typeof c.engineKw === 'number';
+    const regen = kw < 0;
+    const span = Math.min(1, Math.abs(kw) / 150) * 50 * kBars;
+
+    const em = c.energyMode;
+    const engineOn = engineKw >= 3;
+    const modeLabel = ENERGY[em] || '—';
+    const drive = DRIVE[c.opMode];
+    const modePower = (drive ? drive + ' · ' : '') + (hasPower
+      ? (regen ? Math.round(-kw) + ' kW back to battery' : engineOn ? 'Engine ' + Math.round(engineKw) + ' kW' : Math.round(kw) + ' kW out')
+      : 'Power reading unavailable');
+
+    const tyres = Array.isArray(c.tyres) ? c.tyres : [];
+    const tyre = (i) => (typeof tyres[i] === 'number' ? (tyres[i] * kBars).toFixed(1) : '—');
+    const tyreLow = Array.isArray(c.tyreStates) && c.tyreStates.some((x) => x === 2);
+
+    const tripKm = num(c.tripKm), tripKwh = num(c.tripKwh);
+    const per100 = tripKm >= 1 ? (tripKwh / tripKm) * 100 : 0;
+
+    const m = c.media || {};
+    const hasMedia = !!m.title;
+    const pos = num(m.pos), dur = num(m.dur);
+
+    const drvTemp = num(c.drvTemp, 21), pasTemp = num(c.pasTemp, 21), fan = num(c.fan);
+    const ac = !!c.compressor, auto = !!c.auto, demist = !!c.demist;
+    const st = (on, color) => ({ border: on ? '2px solid ' + color : '1px solid #2A2A2A', bg: on ? '#1A1A1A' : '#161616', icon: on ? color : '#A6A6A6', text: on ? '#F2F2F2' : '#A6A6A6' });
+    const d = st(demist, '#FF8A00'), a = st(ac, '#2FB3FF'), u = st(auto, accent);
+    const seats = c.seats || {};
+    const clampT = (v) => Math.max(17, Math.min(33, Math.round(v)));
+
+    return {
+      accent,
+      liveLabel: s.live ? 'LIVE' : 'NO CAR DATA', liveColor: s.live ? '#4ADE80' : '#A6A6A6',
+      battPct: count(battPct, kBars), fuelPct: count(fuelPct, kBars),
+      evRange: count(evRange, kBars), fuelRange: count(fuelRange, kBars), totalRange: count(totalRange, kRange),
+      rangeDash: Math.round(641 * Math.min(1, totalRange / 1000) * kRange) + ' 1000',
+      battDash: Math.round(518 * battPct / 100 * kBars) + ' 1000',
+      gearP: gearColor('P'), gearR: gearColor('R'), gearN: gearColor('N'), gearD: gearColor('D'),
+      speed: shownSpeed,
+      speedDash: Math.round(586 * Math.min(shownSpeed, MAX) / MAX) + ' 2000',
+      powerLeft: regen ? 50 - span : 50, powerWidth: span,
+      powerColor: regen ? '#4ADE80' : accent,
+      powerLabel: hasPower ? Math.round(kw * kBars) + ' kW' : '— kW',
+      modeLabel, modePower,
+      battLine: em === 4 ? '#262626' : (regen ? '#4ADE80' : accent),
+      engLine: engineOn ? '#F2F2F2' : '#262626', engText: engineOn ? '#F2F2F2' : '#A6A6A6',
+      openEnergy: () => Bridge.openApp('energy'),
+      tyreFL: tyre(0), tyreFR: tyre(1), tyreRL: tyre(2), tyreRR: tyre(3),
+      tyreNote: tyres.length ? (tyreLow ? 'psi · CHECK' : 'psi · all OK') : 'psi',
+      tripKm: (tripKm * kBars).toFixed(1), tripKwh: (per100 * kBars).toFixed(1),
+      tripFuel: num(c.tripFuel) > 0 ? num(c.tripFuel).toFixed(1) + ' L fuel' : 'no fuel used',
+      odo: Math.round(num(c.odo)).toLocaleString('en-AU'),
+      openCarPlay: (e) => { if (e) e.preventDefault(); Bridge.openCarPlay(); },
+      trackTitle: hasMedia ? m.title : 'Nothing playing',
+      trackSub: hasMedia ? [m.artist, m.app].filter(Boolean).join(' · ') : 'Start music in CarPlay',
+      artBg: m.art ? 'url(' + m.art + ')' : 'none', noteColor: m.art ? 'transparent' : '#4A4A4A',
+      musicPct: dur > 0 ? Math.round(Math.min(1, pos / dur) * 100 * kMusic) : 0,
+      posText: mmss(pos), durText: mmss(dur),
+      playing: !!m.playing, paused: !m.playing, playLabel: m.playing ? 'Pause' : 'Play',
+      togglePlay: () => Bridge.media(m.playing ? 'pause' : 'play'),
+      prevTrack: () => Bridge.media('prev'), nextTrack: () => Bridge.media('next'),
+      drvTemp: tempUp(drvTemp, kClimate), pasTemp: tempUp(pasTemp, kClimate),
+      drvUp: () => this.send('temp', { zone: 1, value: clampT(drvTemp + 1) }),
+      drvDown: () => this.send('temp', { zone: 1, value: clampT(drvTemp - 1) }),
+      pasUp: () => this.send('temp', { zone: 2, value: clampT(pasTemp + 1) }),
+      pasDown: () => this.send('temp', { zone: 2, value: clampT(pasTemp - 1) }),
+      fanLabel: auto ? 'AUTO' : String(fan),
+      fanSegs: this.segs(Math.round(fan * kClimate), 7, accent),
+      ac, auto, demist,
+      demistBorder: d.border, demistBg: d.bg, demistIcon: d.icon, demistText: d.text,
+      acBorder: a.border, acBg: a.bg, acIcon: a.icon, acText: a.text,
+      autoBorder: u.border, autoBg: u.bg, autoIcon: u.icon, autoText: u.text,
+      toggleAc: () => this.send('ac', { on: !ac }),
+      toggleAuto: () => this.send('auto', { on: !auto }),
+      toggleDemist: () => this.send('demist', { on: !demist }),
+      drvHeat: this.seat('heat', num(seats.drvHeat), 1, '#FF8A00', 0.3),
+      drvVent: this.seat('vent', num(seats.drvVent), 1, '#2FB3FF', 0.3),
+      pasHeat: this.seat('heat', num(seats.pasHeat), 2, '#FF8A00', 0.4),
+      pasVent: this.seat('vent', num(seats.pasVent), 2, '#2FB3FF', 0.4),
+      // Sliders: temperature in whole degrees (the car's setter takes ints), fan 1-7.
+      openDrv: () => set({ slider: 'drv' }), openPas: () => set({ slider: 'pas' }), openFan: () => set({ slider: 'fan' }),
+      closeSlider: () => set({ slider: null }),
+      sliderOpen: !!s.slider,
+      sliderTitle: s.slider === 'fan' ? 'FAN SPEED' : s.slider === 'pas' ? 'PASSENGER TEMP' : 'DRIVER TEMP',
+      sliderMin: s.slider === 'fan' ? 1 : 17, sliderMax: s.slider === 'fan' ? 7 : 33, sliderStep: 1,
+      sliderValue: s.slider === 'fan' ? fan : s.slider === 'pas' ? pasTemp : drvTemp,
+      sliderText: s.slider === 'fan' ? String(fan) : (s.slider === 'pas' ? pasTemp : drvTemp) + '°',
+      sliderMinLabel: s.slider === 'fan' ? '1 · gentle' : '17° · cool', sliderMaxLabel: s.slider === 'fan' ? 'max · 7' : 'warm · 33°',
+      onSlide: (e) => {
+        const v = parseInt(e.target.value, 10);
+        if (s.slider === 'fan') this.send('fan', { level: v });
+        else this.send('temp', { zone: s.slider === 'pas' ? 2 : 1, value: v });
+      }
+    };
+  }
+  render() {
+    const v = this.renderVals();
+    return html`
