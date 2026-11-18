@@ -42,6 +42,7 @@ m=m.replace('width: 1600px; height: 838px; z-index: 10;','width: 100%; height: 8
 m=m.replace('top: 0; left: 0; width: 1600px; height: 838px; background:','top: 0; left: 0; width: 100%; height: 838px; background:')
 m=m.replace('left: 440px; top: 250px; width: 720px;','left: 50%; margin-left: -360px; top: 250px; width: 720px;')
 # --- template conversion to htm ---
+m=re.sub(r'<!-- DESIGN-ONLY -->.*?<!-- /DESIGN-ONLY -->','',m,flags=re.S)  # artifact-only bits (before/after switch)
 m=re.sub(r'<!--.*?-->','',m,flags=re.S)
 m=re.sub(r'\s+hint-placeholder-[a-z]+="[^"]*"','',m)
 def conv_for(mm):

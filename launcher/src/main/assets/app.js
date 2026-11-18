@@ -354,10 +354,8 @@ class Home extends Component {
         <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 46px; line-height: 1; letter-spacing: 0.04em; color: ${v.modeColor};">${v.modeShort}</span>
       </div>
       <a href="#" onClick=${v.openCarPlay} aria-label="Open CarPlay" style="text-decoration: none; flex: 1 1 0; min-width: 0; background: #111111; border: 1px solid #262626; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
-        <div style="position: absolute; top: -10px; bottom: -10px; left: -5px; width: 10px; background: ${v.accent}; transform: skewX(-12deg);"></div>
         <div class="gy-10" style="display: flex; flex-direction: column; align-items: center;">
-          <svg width="46" height="46" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="#F2F2F2" stroke-width="2"></rect><path d="M10 8.3v7.4c0 .6.6.9 1.1.6l5.6-3.7c.4-.3.4-.9 0-1.2l-5.6-3.7c-.5-.3-1.1 0-1.1.6z" fill="#F2F2F2"></path></svg>
-          <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px; line-height: 1; letter-spacing: 0.08em; color: #A6A6A6;">CARPLAY</span>
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="#F2F2F2" stroke-width="2"></rect><path d="M10 8.3v7.4c0 .6.6.9 1.1.6l5.6-3.7c.4-.3.4-.9 0-1.2l-5.6-3.7c-.5-.3-1.1 0-1.1.6z" fill="#F2F2F2"></path></svg>
         </div>
       </a>
     </div>
@@ -391,11 +389,11 @@ class Home extends Component {
       <div style="display: flex; justify-content: space-between; align-items: baseline;">
         <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">TRIP</span>
       </div>
-      <div class="gx-22" style="display: flex;">
+      <div class="gx-22" style="display: flex; justify-content: center;">
         <div><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px;">${v.tripKm}</span> <span style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KM</span></div>
         <div><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px;">${v.tripKwh}</span> <span style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KWH/100</span></div>
       </div>
-      <div style="font-size: 22px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">ODO ${v.odo} KM</div>
+      <div style="text-align: center; font-size: 22px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">ODO ${v.odo} KM</div>
     </div>
 
 
@@ -469,6 +467,7 @@ class Home extends Component {
     </div>
 
   </section>
+  
   
   ${v.updateOpen ? html`
     <div role="dialog" aria-label="Update available" class="s6-sheet" class="gx-24" style="position: absolute; left: 28px; right: 28px; bottom: 28px; height: 140px; z-index: 12; box-sizing: border-box; background: #111111; border: 1px solid #333333; border-radius: 8px; padding: 0 20px 0 28px; display: flex; align-items: center;  overflow: hidden;">
