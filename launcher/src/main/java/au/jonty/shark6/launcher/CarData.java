@@ -1,0 +1,231 @@
+package au.jonty.shark6.launcher;
+
+import android.content.Context;
+import android.util.Log;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.HashMap;
+import java.util.Map;
+
+import dalvik.system.PathClassLoader;
+
+/**
+ * Reads the car through BYD's vehicle SDK (android.hardware.bydauto.*).
+ *
+ * On the Shark 6 the SDK isn't on an app's classpath; it ships inside BYD's climate app, so we load
+ * it from there. Approach and call encodings from SharkHub (github.com/Peacemaker105/SharkHub, MIT),
+ * checked against our own probe on build SOC_260811_S. Never open the audio device: its background
+ * thread needs a car audio permission and crashes the app.
+ */
+final class CarData {
+    private static final String TAG = "Shark6Car";
+
+    /** Off until Jonty has seen live readings working. Then the climate and seat buttons go live. */
+    static final boolean CONTROLS_ENABLED = false;
+
+    private static final String[] CLIENT_PACKAGES = {"com.byd.hvac", "com.byd.autoservice"};
+    private static final String[][] DEVICES = {
+            {"ac", "android.hardware.bydauto.ac.BYDAutoAcDevice"},
+            {"setting", "android.hardware.bydauto.setting.BYDAutoSettingDevice"},
+            {"statistic", "android.hardware.bydauto.statistic.BYDAutoStatisticDevice"},
+            {"speed", "android.hardware.bydauto.speed.BYDAutoSpeedDevice"},
+            {"energy", "android.hardware.bydauto.energy.BYDAutoEnergyDevice"},
+            {"tyre", "android.hardware.bydauto.tyre.BYDAutoTyreDevice"},
+            {"gearbox", "android.hardware.bydauto.gearbox.BYDAutoGearboxDevice"},
+            {"engine", "android.hardware.bydauto.engine.BYDAutoEngineDevice"},
+            {"motor", "android.hardware.bydauto.motor.BYDAutoMotorDevice"},
+    };
+
+    // AC constants (SharkHub's Byd object, confirmed from the car's own constants).
+    private static final int SOURCE_UI = 0, UNIT_C = 1, ON = 1, OFF = 0;
+    private static final int ZONE_DRIVER = 1, ZONE_PASSENGER = 2, ZONE_OUTSIDE = 4;
+    private static final int CTRL_AUTO = 0, CTRL_MANUAL = 1, DEFROST_FRONT = 1;
+
+    private final Context ctx;
+    private final Map<String, Object> devices = new HashMap<>();
+    private final Map<String, Method> methods = new HashMap<>();
+    private final StringBuilder openLog = new StringBuilder();
+    private boolean opened;
+
+    CarData(Context ctx) { this.ctx = ctx.getApplicationContext(); }
+
+    synchronized boolean open() {
+        if (opened) return !devices.isEmpty();
+        opened = true;
+        ClassLoader loader = null;
+        for (String pkg : CLIENT_PACKAGES) {
+            try {
+                String apk = ctx.getPackageManager().getApplicationInfo(pkg, 0).sourceDir;
+                loader = new PathClassLoader(apk, ctx.getClassLoader());
+                openLog.append("sdk from ").append(pkg).append('\n');
+                break;
+            } catch (Throwable ignored) { }
+        }
+        if (loader == null) {
+            openLog.append("no BYD client package\n");
+            return false;
+        }
+        for (String[] d : DEVICES) {
+            try {
+                Class<?> c = Class.forName(d[1], true, loader);
+                Object inst = c.getMethod("getInstance", Context.class).invoke(null, ctx);
+                if (inst != null) devices.put(d[0], inst);
+                openLog.append(d[0]).append(": ok\n");
+            } catch (Throwable t) {
+                openLog.append(d[0]).append(": ").append(root(t)).append('\n');
+            }
+        }
+        Log.i(TAG, openLog.toString());
+        return !devices.isEmpty();
+    }
+
+    String openReport() { return openLog.toString(); }
+
+    /** Call an int-argument method on a device; null if the device or method isn't there or it throws. */
+    private Object call(String device, String name, int... args) {
+        Object dev = devices.get(device);
+        if (dev == null) return null;
+        String key = device + "." + name + "/" + args.length;
+        Method m = methods.get(key);
+        if (m == null && !methods.containsKey(key)) {
+            for (Method cand : dev.getClass().getMethods()) {
+                if (!cand.getName().equals(name) || Modifier.isStatic(cand.getModifiers())) continue;
+                Class<?>[] p = cand.getParameterTypes();
+                if (p.length != args.length) continue;
+                boolean allInt = true;
+                for (Class<?> x : p) if (x != int.class) { allInt = false; break; }
+                if (allInt) { m = cand; break; }
+            }
+            methods.put(key, m);
+        }
+        if (m == null) return null;
+        try {
+            Object[] boxed = new Object[args.length];
+            for (int i = 0; i < args.length; i++) boxed[i] = args[i];
+            return m.invoke(dev, boxed);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    private Double num(String device, String name, int... args) {
+        Object v = call(device, name, args);
+        return v instanceof Number ? ((Number) v).doubleValue() : null;
+    }
+
+    private static void put(JSONObject o, String k, Double v, double min, double max) {
+        if (v == null || v.isNaN() || v < min || v > max) return;
+        try { o.put(k, v); } catch (Exception ignored) { }
+    }
+
+    /** One snapshot of everything the home screen shows. Blocking: call off the main thread. */
+    JSONObject read() {
+        JSONObject o = new JSONObject();
+        try {
+            o.put("ok", !devices.isEmpty());
+            // Range and energy (statistic needs BYDAUTO_STATISTIC_COMMON, granted with adb).
+            put(o, "battPct", num("statistic", "getElecPercentageValue"), 0, 100);
+            put(o, "fuelPct", num("statistic", "getFuelPercentageValue"), 0, 100);
+            put(o, "evRange", num("statistic", "getElecDrivingRangeValue"), 0, 2000);
+            put(o, "fuelRange", num("statistic", "getFuelDrivingRangeValue"), 0, 3000);
+            put(o, "totalRange", num("statistic", "getDrivingRangeAll"), 0, 4000);
+            put(o, "tripKm", num("statistic", "getCurrentTripMileage"), 0, 100000);
+            put(o, "tripKwh", num("statistic", "getCurrentTripElec"), 0, 100000);
+            put(o, "tripFuel", num("statistic", "getCurrentTripFuel"), 0, 100000);
+            put(o, "odo", num("statistic", "getTotalMileageValue"), 0, 10000000);
+            // Driving
+            put(o, "speed", num("speed", "getCurrentSpeed"), 0, 300);
+            put(o, "gear", num("gearbox", "getGearboxAutoModeLevel"), 1, 6);
+            put(o, "energyMode", num("energy", "getEnergyMode"), 0, 10);
+            put(o, "opMode", num("energy", "getOperationMode"), 0, 10);
+            put(o, "motorKw", num("motor", "getMotorPower"), -400, 400);
+            put(o, "engineKw", num("engine", "getEnginePower"), 0, 400);
+            // Tyres: psi x10 on this car (ByType), else kPa.
+            JSONArray tyres = new JSONArray(), states = new JSONArray();
+            for (int area = 1; area <= 4; area++) {
+                Double t = num("tyre", "getTyrePressureValueByType", area);
+                Double psi = null;
+                if (t != null && t / 10 >= 15 && t / 10 <= 90) psi = t / 10;
+                else {
+                    Double kpa = num("tyre", "getTyrePressureValue", area);
+                    if (kpa != null && kpa > 50 && kpa < 600) psi = kpa * 0.1450377;
+                }
+                tyres.put(psi == null ? JSONObject.NULL : Math.round(psi * 10) / 10.0);
+                Double st = num("tyre", "getTyrePressureState", area);
+                states.put(st == null ? 0 : st.intValue());
+            }
+            if (devices.containsKey("tyre")) { o.put("tyres", tyres); o.put("tyreStates", states); }
+            // Climate
+            put(o, "outside", num("ac", "getTemprature", ZONE_OUTSIDE), -40, 60);
+            put(o, "drvTemp", num("ac", "getTemprature", ZONE_DRIVER), 17, 33);
+            put(o, "pasTemp", num("ac", "getTemprature", ZONE_PASSENGER), 17, 33);
+            put(o, "fan", num("ac", "getAcWindLevel"), 0, 7);
+            Double power = num("ac", "getAcStartState");
+            Double comp = num("ac", "getAcCompressorMode");
+            Double ctrl = num("ac", "getAcControlMode");
+            Double defrost = num("ac", "getAcDefrostState", DEFROST_FRONT);
+            if (power != null) o.put("acPower", power.intValue() == ON ? 1 : 0);
+            if (comp != null) o.put("compressor", comp.intValue() == ON ? 1 : 0);
+            if (ctrl != null) o.put("auto", ctrl.intValue() == CTRL_AUTO ? 1 : 0);
+            if (defrost != null) o.put("demist", defrost.intValue() == ON ? 1 : 0);
+            // Seats: OFF=1, LOW=2, HIGH=3 on the car; 0 means not reported.
+            JSONObject seats = new JSONObject();
+            seats.put("drvHeat", seatLevel(num("setting", "getSeatHeatingState", 1)));
+            seats.put("drvVent", seatLevel(num("setting", "getSeatVentilatingState", 1)));
+            seats.put("pasHeat", seatLevel(num("setting", "getSeatHeatingState", 2)));
+            seats.put("pasVent", seatLevel(num("setting", "getSeatVentilatingState", 2)));
+            o.put("seats", seats);
+        } catch (Exception e) {
+            Log.w(TAG, "read failed", e);
+        }
+        return o;
+    }
+
+    private static int seatLevel(Double code) {
+        if (code == null) return 0;
+        int c = code.intValue();
+        return c >= 1 && c <= 3 ? c - 1 : 0;
+    }
+
+    /** Climate and seat commands. Returns "ok", "disabled", or why the car refused. */
+    String command(String name, JSONObject a) {
+        if (!CONTROLS_ENABLED) return "disabled";
+        Object r;
+        switch (name) {
+            case "temp":
+                r = call("ac", "setAcTemperature", a.optInt("zone", ZONE_DRIVER), a.optInt("value", 21), SOURCE_UI, UNIT_C);
+                break;
+            case "fan":
+                r = call("ac", "setAcWindLevel", SOURCE_UI, Math.max(1, Math.min(7, a.optInt("level", 1))));
+                break;
+            case "ac":
+                r = call("ac", "setAcCompressorMode", SOURCE_UI, a.optBoolean("on") ? ON : OFF);
+                break;
+            case "auto":
+                r = call("ac", "setAcControlMode", SOURCE_UI, a.optBoolean("on") ? CTRL_AUTO : CTRL_MANUAL);
+                break;
+            case "demist":
+                r = call("ac", "setAcDefrostState", SOURCE_UI, DEFROST_FRONT, a.optBoolean("on") ? ON : OFF);
+                break;
+            case "seatHeat":
+                r = call("setting", "setSeatHeatingState", a.optInt("zone", 1), Math.max(0, Math.min(2, a.optInt("level"))) + 1);
+                break;
+            case "seatVent":
+                r = call("setting", "setSeatVentilatingState", a.optInt("zone", 1), Math.max(0, Math.min(2, a.optInt("level"))) + 1);
+                break;
+            default:
+                return "unknown command";
+        }
+        if (r instanceof Integer && (Integer) r < 0) return "code " + r;
+        return "ok";
+    }
+
+    private static String root(Throwable t) {
+        while (t.getCause() != null) t = t.getCause();
+        return t.getClass().getSimpleName() + (t.getMessage() == null ? "" : ": " + t.getMessage());
+    }
+}

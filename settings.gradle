@@ -6,4 +6,4 @@ dependencyResolutionManagement {
     repositories { google(); mavenCentral() }
 }
 rootProject.name = "shark6-launcher"
-include ':probe'
+include ':probe', ':launcher'

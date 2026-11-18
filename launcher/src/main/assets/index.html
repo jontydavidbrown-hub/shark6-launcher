@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Shark 6</title>
+<style>
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:500;src:url(fonts/barlow-condensed-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:600;src:url(fonts/barlow-condensed-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:700;src:url(fonts/barlow-condensed-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-style:italic;font-weight:600;src:url(fonts/barlow-condensed-latin-600-italic.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-style:italic;font-weight:700;src:url(fonts/barlow-condensed-latin-700-italic.woff2) format('woff2')}
+@font-face{font-family:'Barlow';font-style:normal;font-weight:400;src:url(fonts/barlow-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Barlow';font-style:normal;font-weight:500;src:url(fonts/barlow-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'Barlow';font-style:normal;font-weight:600;src:url(fonts/barlow-latin-600-normal.woff2) format('woff2')}
+html,body{margin:0;height:100%;background:#050505;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#fit{position:absolute;left:0;top:0;width:1600px;height:838px;transform-origin:0 0}
+a{color:#FF5A5F}
+button{font-family:inherit;cursor:pointer}
+button:active,a:active{filter:brightness(1.3)}
+.s6-range{-webkit-appearance:none;appearance:none;width:100%;height:56px;background:transparent;margin:0}
+.s6-range::-webkit-slider-runnable-track{height:10px;background:#262626;border-radius:5px}
+.s6-range::-webkit-slider-thumb{-webkit-appearance:none;width:44px;height:44px;margin-top:-17px;border-radius:6px;background:#F2F2F2;border:0}
+</style>
+</head>
+<body>
+<div id="fit"><div id="stage"></div></div>
+<script>
+// The design is 1600x838 (BYD's own header bar stays visible above it). Scale it to fit the window.
+(function () {
+  var fit = document.getElementById('fit');
+  function size() {
+    var w = window.innerWidth, h = window.innerHeight;
+    var k = Math.min(w / 1600, h / 838);
+    fit.style.transform = 'translate(' + Math.round((w - 1600 * k) / 2) + 'px,' + Math.round((h - 838 * k) / 2) + 'px) scale(' + k + ')';
+  }
+  window.addEventListener('resize', size);
+  size();
+})();
+</script>
+<script src="htm-preact.umd.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -25,3 +25,23 @@ A custom home screen for the BYD Shark 6 (DiLink head unit), sporty design.
 
 ## Caution
 Unofficial apps may affect BYD warranty, and a BYD over-the-air update can remove sideloaded apps or close ADB access.
+
+## Shark 6 Home (the launcher)
+
+`launcher/` is the home screen app. The UI is the approved design (`design/sporty-home.dc.html`)
+ported to plain HTML/JS in `launcher/src/main/assets/` (Preact + htm, fonts bundled, works offline),
+fed live car data by `CarData.java` twice a second. BYD's header bar stays visible (not full screen).
+
+Install (car on Wi-Fi with ADB on):
+
+```
+adb install -r shark6-home.apk
+for p in STATISTIC GEARBOX BODYWORK ENGINE MOTOR; do adb shell pm grant au.jonty.shark6.launcher android.permission.BYDAUTO_${p}_COMMON; done
+adb shell cmd notification allow_listener au.jonty.shark6.launcher/au.jonty.shark6.launcher.MediaListener
+```
+
+Errors from `pm grant` for permissions that aren't "dangerous" on this car are harmless.
+Climate and seat buttons are off until `CarData.CONTROLS_ENABLED` is switched on.
+
+Vehicle SDK loading and call encodings follow SharkHub (github.com/Peacemaker105/SharkHub, MIT).
+Bundled: htm/Preact (Apache-2.0 / MIT), Barlow and Barlow Condensed (OFL-1.1), Material Symbols paths (Apache-2.0).

@@ -22,18 +22,24 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Build
-        run: gradle --no-daemon :probe:assembleDebug
+        run: gradle --no-daemon :probe:assembleDebug :launcher:assembleDebug
       - name: Rename APK
-        run: cp probe/build/outputs/apk/debug/probe-debug.apk shark6-probe.apk
+        run: |
+          cp probe/build/outputs/apk/debug/probe-debug.apk shark6-probe.apk
+          cp launcher/build/outputs/apk/debug/launcher-debug.apk shark6-home.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: shark6-probe
-          path: shark6-probe.apk
+          name: shark6-apks
+          path: |
+            shark6-probe.apk
+            shark6-home.apk
       - name: Publish release
         if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: probe-build-${{ github.run_number }}
-          name: Shark 6 Probe (build ${{ github.run_number }})
-          body: Read-only test app. Install with `adb install -r shark6-probe.apk`.
-          files: shark6-probe.apk
+          tag_name: build-${{ github.run_number }}
+          name: Shark 6 (build ${{ github.run_number }})
+          body: Home screen (shark6-home.apk) and read-only probe (shark6-probe.apk). See README for install steps.
+          files: |
+            shark6-probe.apk
+            shark6-home.apk
