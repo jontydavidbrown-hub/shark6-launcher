@@ -49,6 +49,15 @@ class Home extends Component {
       this.setState({ car });
     };
     window.replayBoot = () => this.playBoot();
+    // Live camera: Android draws the picture over #s6-cam, so tell it where that box is on screen.
+    window.onCamStatus = (t) => this.setState({ camStatus: t || '' });
+    this.camTimer = setInterval(() => {
+      const el = document.getElementById('s6-cam');
+      if (!el) return;
+      const r = el.getBoundingClientRect(), k = window.devicePixelRatio || 1;
+      const key = [r.left, r.top, r.width, r.height].map((v) => Math.round(v * k)).join(',');
+      if (key !== this.camKey) { this.camKey = key; try { Bridge.camRect(key); } catch (e) {} }
+    }, 500);
     window.onCommandResult = (id, r) => this.commandResult(id, r);
     // OTA: Android tells us when a newer build is out, then reports download progress.
     window.onUpdate = (json) => { try { this.setState({ update: JSON.parse(json), updPct: -1, updErr: '' }); } catch (e) {} };
@@ -210,6 +219,13 @@ class Home extends Component {
       modeSub: hasPower ? (regen ? 'Regen ' + Math.round(-kw) + ' kW' : engineOn ? 'Engine running' : 'Electric drive') : (em === 3 ? 'Hybrid' : em === 1 || em === 2 ? 'Electric' : ''),
       modeColor: em === 1 || em === 2 ? '#4ADE80' : '#F2F2F2',
       tyreNote: tyres.length ? (tyreLow ? 'psi · CHECK' : 'psi · all OK') : 'psi',
+      ...(() => {
+        // Camera tile: tap cycles front, right, rear, left. The live picture is drawn by Android.
+        const names = ['FRONT', 'RIGHT', 'REAR', 'LEFT'];
+        const i = s.cam || 0;
+        return { camName: names[i], camImage: 'none', camStatus: s.camStatus || '',
+          camNext: () => { const n = (i + 1) % 4; this.setState({ cam: n }); try { Bridge.camShow(n); } catch (e) {} } };
+      })(),
       ...(() => {
         // Clock (BYD's header is hidden). The car poll re-renders every second, so it stays current.
         const d = new Date(), hr = d.getHours();

@@ -37,6 +37,14 @@ public class MainActivity extends Activity {
     private SoundPool sounds;
     private int sfxTap, sfxOn, sfxOff;
     private boolean pageReady;
+    private CamView cam;
+    private boolean camPlaced, reversing;
+
+    /** Cameras run only while the home screen is showing, has placed the camera box, and the car isn't in reverse. */
+    private void updateCamera() {
+        if (cam == null) return;
+        if (resumed && camPlaced && !reversing) cam.startStream(); else cam.stopStream();
+    }
 
     @Override
     protected void onCreate(Bundle b) {
@@ -60,7 +68,13 @@ public class MainActivity extends Activity {
         web.setWebViewClient(new WebViewClient() {
             @Override public void onPageFinished(WebView view, String url) { pageReady = true; }
         });
-        setContentView(web);
+        // Live camera picture, drawn over the page's camera box (see camRect).
+        cam = new CamView(this, t -> pushJs("window.onCamStatus && window.onCamStatus(" + JSONObject.quote(t) + ")"));
+        cam.setZOrderMediaOverlay(true);
+        android.widget.FrameLayout root = new android.widget.FrameLayout(this);
+        root.addView(web, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        root.addView(cam, new android.widget.FrameLayout.LayoutParams(1, 1));
+        setContentView(root);
         web.loadUrl("file:///android_asset/index.html");
 
         // Button sounds: sonification usage, so they mix over music instead of pausing it.
@@ -131,6 +145,8 @@ public class MainActivity extends Activity {
                 long sp = Math.round(f[0]), g = Math.round(f[1]);
                 if (sp != lastSpeed || g != lastGear) {
                     lastSpeed = sp; lastGear = g;
+                    boolean r = g == 2; // R: let BYD's reversing camera have the cameras
+                    if (r != reversing) { reversing = r; ui.post(MainActivity.this::updateCamera); }
                     pushJs("window.onFast && window.onFast(" + sp + "," + g + ")");
                 }
             }
@@ -147,12 +163,16 @@ public class MainActivity extends Activity {
         fastH.post(fastPoll);
         ui.removeCallbacks(updateTick);
         ui.post(updateTick);
+        cam.onResume();
+        updateCamera();
     }
 
     @Override protected void onPause() {
         super.onPause();
+        cam.onPause();
         resumed = false;
         ui.removeCallbacks(updateTick);
+        updateCamera();
         bg.removeCallbacks(poll);
         fastH.removeCallbacks(fastPoll);
     }
@@ -237,6 +257,20 @@ public class MainActivity extends Activity {
             int id = "on".equals(name) ? sfxOn : "off".equals(name) ? sfxOff : sfxTap;
             sounds.play(id, 0.6f, 0.6f, 1, 0, 1f);
         }
+        /** Where the page's camera box is, in screen pixels: "left,top,width,height". */
+        @JavascriptInterface public void camRect(String r) {
+            String[] p = r.split(",");
+            if (p.length != 4) return;
+            ui.post(() -> {
+                int x = Integer.parseInt(p[0]), y = Integer.parseInt(p[1]), w = Integer.parseInt(p[2]), h = Integer.parseInt(p[3]);
+                android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(Math.max(1, w), Math.max(1, h));
+                lp.leftMargin = x; lp.topMargin = y;
+                cam.setLayoutParams(lp);
+                camPlaced = w > 10 && h > 10;
+                updateCamera();
+            });
+        }
+        @JavascriptInterface public void camShow(int slot) { cam.show(slot); }
         @JavascriptInterface public void toast(String m) { MainActivity.this.toast(m); }
         @JavascriptInterface public void installUpdate(String url) {
             new Thread(() -> Updater.install(MainActivity.this, url, new Updater.Progress() {

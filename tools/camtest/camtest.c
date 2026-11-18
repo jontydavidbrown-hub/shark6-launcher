@@ -112,7 +112,7 @@ static void dummy_cb(void *h, unsigned int e, void *p) { (void)h; (void)e; (void
 #define SYM(var, name) do { *(void **)&var = dlsym(lib, name); if (!var) { printf("missing symbol %s\n", name); return 1; } } while (0)
 
 int main(int argc, char **argv) {
-    const char *ids = argc > 1 ? argv[1] : "8,9,5,4";
+    const char *ids = argc > 1 ? argv[1] : "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15";
     setvbuf(stdout, NULL, _IONBF, 0);
     printf("shark6-camtest  uid=%d  cameras=%s\n", getuid(), ids);
     char ctx[128] = {0};

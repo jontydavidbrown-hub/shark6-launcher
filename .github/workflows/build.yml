@@ -2,7 +2,7 @@ name: Build APKs
 
 on:
   push:
-    branches: [main]
+    branches: [main, next]
   pull_request:
   workflow_dispatch:
 
@@ -27,6 +27,8 @@ jobs:
           mkdir -p probe/src/main/jniLibs/arm64-v8a
           "$CC" -O2 -Wall -fPIE -pie -o probe/src/main/jniLibs/arm64-v8a/libshark6camtest.so tools/camtest/camtest.c -ldl
           file probe/src/main/jniLibs/arm64-v8a/libshark6camtest.so
+          mkdir -p launcher/src/main/jniLibs/arm64-v8a
+          "$CC" -O2 -Wall -fPIE -pie -o launcher/src/main/jniLibs/arm64-v8a/libshark6cam.so tools/camhelper/camhelper.c -ldl -lpthread
       - name: Build
         run: gradle --no-daemon :probe:assembleDebug :launcher:assembleDebug
       - name: Rename APK
@@ -46,12 +48,25 @@ jobs:
             shark6-probe.apk
             shark6-home.apk
       - name: Publish release
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
           name: Shark 6 (build ${{ github.run_number }})
           body: Home screen (shark6-home.apk) and read-only probe (shark6-probe.apk). See README for install steps.
+          files: |
+            shark6-probe.apk
+            shark6-home.apk
+            version.json
+      # Held work on the next branch: a pre-release, which the launcher's update check ignores.
+      - name: Publish test build
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/next'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: next-${{ github.run_number }}
+          name: Shark 6 test build ${{ github.run_number }} (not offered as an update)
+          prerelease: true
+          body: Test build from the next branch. Install by hand with adb; the launcher's update check skips pre-releases.
           files: |
             shark6-probe.apk
             shark6-home.apk

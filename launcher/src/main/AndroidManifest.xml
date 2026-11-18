@@ -84,6 +84,8 @@
     <!-- Start on boot: the receiver opens the home screen; drawing over apps lets it do so from the background. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Lets the launcher switch the car's ADB back on for the cameras (granted once with adb pm grant). -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
 
     <application
         android:label="Shark 6 Home"
