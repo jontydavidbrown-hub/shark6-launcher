@@ -52,7 +52,7 @@ public class ProbeActivity extends Activity {
     /** Words that hint a getter is relevant to the launcher tiles. */
     private static final String[] INTEREST = {
             "soc", "elec", "battery", "mileage", "range", "endurance", "fuel", "oil", "power",
-            "energy", "mode", "temp", "wind", "fan", "defrost", "demist", "seat", "heat", "vent", "cool"
+            "mile", "trip", "pano", "cam", "view", "energy", "mode", "temp", "wind", "fan", "defrost", "demist", "seat", "heat", "vent", "cool"
     };
 
     private static final String[] WANTED_DEVICES = {
@@ -68,6 +68,7 @@ public class ProbeActivity extends Activity {
             "android.hardware.bydauto.gearbox.BYDAutoGearboxDevice",
             "android.hardware.bydauto.bodywork.BYDAutoBodyworkDevice",
             "android.hardware.bydauto.sensor.BYDAutoSensorDevice",
+            "android.hardware.bydauto.panorama.BYDAutoPanoramaDevice",
     };
 
     private final StringBuilder summary = new StringBuilder();
@@ -109,6 +110,7 @@ public class ProbeActivity extends Activity {
             permissions();
             homeScreen();
             carPlay();
+            cameras();
             discoverClasses();
             save();
             // Only the devices the launcher needs (same list SharkHub opens on this build).
@@ -212,6 +214,38 @@ public class ProbeActivity extends Activity {
     }
 
     /** Finds the CarPlay / phone-projection app and checks whether it shares "now playing" info. */
+    /** Which cameras Android exposes, and which camera/360-view apps are installed. */
+    private void cameras() {
+        full.append("\n== Cameras ==\n");
+        summary.append("\nCameras:\n");
+        try {
+            android.hardware.camera2.CameraManager cm = (android.hardware.camera2.CameraManager) getSystemService(CAMERA_SERVICE);
+            String[] ids = cm.getCameraIdList();
+            summary.append("  Android camera IDs: ").append(Arrays.toString(ids)).append('\n');
+            for (String id : ids) {
+                android.hardware.camera2.CameraCharacteristics ch = cm.getCameraCharacteristics(id);
+                Integer facing = ch.get(android.hardware.camera2.CameraCharacteristics.LENS_FACING);
+                android.hardware.camera2.params.StreamConfigurationMap map = ch.get(android.hardware.camera2.CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+                String sizes = map == null ? "?" : Arrays.toString(map.getOutputSizes(android.graphics.SurfaceTexture.class));
+                full.append("  camera ").append(id).append(" facing=").append(facing).append(" sizes=").append(sizes).append('\n');
+            }
+        } catch (Throwable t) {
+            summary.append("  camera list failed: ").append(root(t)).append('\n');
+        }
+        try {
+            for (android.content.pm.PackageInfo pi : getPackageManager().getInstalledPackages(android.content.pm.PackageManager.GET_ACTIVITIES)) {
+                String n = pi.packageName.toLowerCase();
+                if (!(n.contains("avm") || n.contains("pano") || n.contains("camera") || n.contains("360") || n.contains("rvc") || n.contains("video") || n.contains("dvr"))) continue;
+                summary.append("  app ").append(pi.packageName).append('\n');
+                if (pi.activities != null) for (android.content.pm.ActivityInfo ai : pi.activities)
+                    full.append("    activity ").append(ai.name).append(ai.exported ? " (exported)" : "").append('\n');
+            }
+        } catch (Throwable t) {
+            summary.append("  app list failed: ").append(root(t)).append('\n');
+        }
+        save();
+    }
+
     private void carPlay() {
         full.append("\n== CarPlay / media apps ==\n");
         PackageManager pm = getPackageManager();
@@ -378,7 +412,7 @@ public class ProbeActivity extends Activity {
                     .append(Arrays.toString(m.getParameterTypes()).replace("class ", "")).append('\n');
             if (!isSafeGetter(m)) continue;
             Class<?>[] pt = m.getParameterTypes();
-            int[][] argSets = pt.length == 0 ? new int[][]{{}} : new int[][]{{1}, {2}, {3}, {4}};
+            int[][] argSets = pt.length == 0 ? new int[][]{{}} : new int[][]{{0}, {1}, {2}, {3}, {4}};
             for (int[] args : argSets) {
                 String label = name + (args.length == 0 ? "()" : "(" + args[0] + ")");
                 String result = call(inst, m, args);

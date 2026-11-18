@@ -140,7 +140,10 @@ final class CarData {
             put(o, "evRange", num("statistic", "getElecDrivingRangeValue"), 0, 2000);
             put(o, "fuelRange", num("statistic", "getFuelDrivingRangeValue"), 0, 3000);
             put(o, "totalRange", num("statistic", "getDrivingRangeAll"), 0, 4000);
-            put(o, "tripKm", num("statistic", "getCurrentTripMileage"), 0, 100000);
+            // Trip: the cluster's trip meter (statistic MILEAGE_ONE = 0); this-drive distance as a fallback.
+            Double trip1 = num("statistic", "getMileageNumber", 0);
+            put(o, "tripKm", trip1 != null && trip1 > 0 ? trip1 : num("statistic", "getCurrentTripMileage"), 0, 100000);
+            put(o, "trip2Km", num("statistic", "getMileageNumber", 1), 0, 1000000);
             put(o, "tripKwh", num("statistic", "getCurrentTripElec"), 0, 100000);
             put(o, "tripFuel", num("statistic", "getCurrentTripFuel"), 0, 100000);
             put(o, "odo", num("statistic", "getTotalMileageValue"), 0, 10000000);
