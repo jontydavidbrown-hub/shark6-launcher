@@ -38,6 +38,8 @@ class Home extends Component {
   constructor(props) {
     super(props);
     this.state = { car: {}, boot: 0, slider: null, live: false, welcome: false };
+    this.hasTilt = call('hasTilt');
+    this.lastTrip = readJson('s6-last-trip');
   }
   // ---- Drive tracking: trip card when you shift to P, low-speed front camera, right indicator ----
   track(car) {
@@ -75,6 +77,7 @@ class Home extends Component {
       ev, at: Date.now()
     };
     writeJson('s6-last-trip', card);
+    this.lastTrip = card;
     this.setState({ tripCard: card });
     clearTimeout(this.tripCardT);
     this.tripCardT = setTimeout(() => this.setState({ tripCard: null }), 60000);
@@ -117,7 +120,8 @@ class Home extends Component {
     window.onCamStatus = (t) => this.setState({ camStatus: t || '' });
     this.camTimer = setInterval(() => {
       const k = window.devicePixelRatio || 1;
-      const covered = this.state.welcome || this.state.tripCard;
+      // Cameras start once the welcome and the start-up animation are done, so they don't slow it down.
+      const covered = this.state.welcome || this.state.tripCard || this.state.boot < 1;
       const key = ['s6-cam', 's6-cam2', 's6-cam3'].map((id) => {
         const el = covered ? null : document.getElementById(id);
         if (!el) return '0,0,0,0';
@@ -307,7 +311,7 @@ class Home extends Component {
           pitchText: deg(has ? tl.p : 0), rollText: deg(has ? tl.r : 0),
           pitchRot: 'rotate(' + (has ? Math.max(-45, Math.min(45, -tl.p)) : 0) + ' 150 150)',
           rollRot: 'rotate(' + (has ? Math.max(-45, Math.min(45, tl.r)) : 0) + ' 150 150)',
-          tiltNote: call('hasTilt') === false ? 'NO TILT SENSOR' : 'HOLD TO ZERO',
+          tiltNote: this.hasTilt === false ? 'NO TILT SENSOR' : 'HOLD TO ZERO',
           tiltHoldPct: s.tiltHold ? 100 : 0, tiltHoldAnim: s.tiltHold ? 'width 1s linear' : 'none',
           tiltHoldStart: () => {
             clearTimeout(this.tiltT); this.setState({ tiltHold: true });
@@ -320,7 +324,7 @@ class Home extends Component {
         // Trip complete card and the welcome screen.
         const tc = s.tripCard;
         const hr = new Date().getHours();
-        const last = readJson('s6-last-trip');
+        const last = this.lastTrip;
         const tyreOk = tyres.length ? (tyreLow ? 'CHECK' : 'OK') : '—';
         const dual = c.dual === 1;
         const cabin = typeof c.drvTemp === 'number' ? 'Cabin ' + Math.round(c.drvTemp) + '°' + (dual && typeof c.pasTemp === 'number' ? ' / ' + Math.round(c.pasTemp) + '°' : '') + (c.compressor ? ', A/C on' : '') : '';

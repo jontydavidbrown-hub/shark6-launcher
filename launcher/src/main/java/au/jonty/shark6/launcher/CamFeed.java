@@ -18,6 +18,9 @@ final class CamFeed {
 
     private static final int MAGIC = 0x5336434D;
     private static final int FPS = 15;
+    private static final int POOL = 3;
+    private final ByteBuffer[] pool = new ByteBuffer[4 * POOL];
+    private final int[] turn = new int[4];
 
     private final Context context;
     private final Status status;
@@ -90,7 +93,11 @@ final class CamFeed {
                     for (CamView v : views) {
                         if (v.slot() != cam) continue;
                         if (frame == null) {
-                            frame = ByteBuffer.allocateDirect(n);
+                            // Reuse a few direct buffers per camera instead of allocating 1.2 MB a frame.
+                            int k = (cam & 3) * POOL + (turn[cam & 3]++ % POOL);
+                            if (pool[k] == null || pool[k].capacity() < n) pool[k] = ByteBuffer.allocateDirect(n);
+                            frame = pool[k];
+                            frame.clear();
                             frame.put(buf, 0, n).position(0);
                         }
                         v.frame(frame, w, ht);
