@@ -13,7 +13,8 @@ const DRIVE = { 1: 'Normal', 2: 'Eco', 3: 'Sport', 4: 'Snow', 5: 'Mud', 6: 'Sand
 
 // Button sounds. Commands pick on/off/tap; any other button or link gets a tap.
 let lastSfx = 0;
-function sfx(name) { lastSfx = Date.now(); try { Bridge.sfx(name); } catch (e) {} }
+// Only the on/off sounds play; the plain tap sound is switched off (Jonty, 0.22).
+function sfx(name) { lastSfx = Date.now(); if (name === 'tap') return; try { Bridge.sfx(name); } catch (e) {} }
 document.addEventListener('click', (e) => {
   const t = e.target && e.target.closest ? e.target.closest('button, a, input') : null;
   if (t && Date.now() - lastSfx > 80 && t.type !== 'range') sfx('tap');
