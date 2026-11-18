@@ -112,6 +112,13 @@ final class CarData {
         }
     }
 
+    /** Speed and gear only: cheap enough to read ten times a second for a live speedo. */
+    double[] fast() {
+        if (!open()) return null;
+        Double sp = num("speed", "getCurrentSpeed"), g = num("gearbox", "getGearboxAutoModeLevel");
+        return new double[] { sp == null ? -1 : sp, g == null ? -1 : g };
+    }
+
     private Double num(String device, String name, int... args) {
         Object v = call(device, name, args);
         return v instanceof Number ? ((Number) v).doubleValue() : null;

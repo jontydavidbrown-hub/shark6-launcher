@@ -39,6 +39,14 @@ class Home extends Component {
       this.setState({ car, live: !!car.ok });
       if (first) this.playBoot();
     };
+    // Live speedo: Android pushes speed + gear every 100 ms when they change.
+    window.onFast = (speed, gear) => {
+      if (!this.state.live) return;
+      const car = Object.assign({}, this.state.car);
+      if (speed >= 0) car.speed = speed;
+      if (gear >= 0) car.gear = gear;
+      this.setState({ car });
+    };
     window.replayBoot = () => this.playBoot();
     window.onCommandResult = (id, r) => this.commandResult(id, r);
     // OTA: Android tells us when a newer build is out, then reports download progress.

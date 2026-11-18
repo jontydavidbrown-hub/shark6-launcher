@@ -28,8 +28,10 @@ public class MainActivity extends Activity {
     private WebView web;
     private CarData car;
     private Media media;
-    private HandlerThread worker, cmdWorker;
-    private Handler bg, cmd;
+    private HandlerThread worker, cmdWorker, fastWorker;
+    private Handler bg, cmd, fastH;
+    private static final long FAST_MS = 100;
+    private long lastSpeed = Long.MIN_VALUE, lastGear = Long.MIN_VALUE;
     private final Handler ui = new Handler(Looper.getMainLooper());
     private volatile boolean resumed;
     private SoundPool sounds;
@@ -75,6 +77,9 @@ public class MainActivity extends Activity {
         cmdWorker = new HandlerThread("car-cmd");
         cmdWorker.start();
         cmd = new Handler(cmdWorker.getLooper());
+        fastWorker = new HandlerThread("car-fast");
+        fastWorker.start();
+        fastH = new Handler(fastWorker.getLooper());
 
         // OTA: look for a newer build once per launch, a few seconds after start (lets Wi-Fi/4G come up).
         bg.postDelayed(() -> {
@@ -96,20 +101,40 @@ public class MainActivity extends Activity {
         }
     };
 
+    /** Live speedo: speed and gear every 100 ms, sent to the page only when they change. */
+    private final Runnable fastPoll = new Runnable() {
+        @Override public void run() {
+            if (!resumed) return;
+            double[] f = car.fast();
+            if (f != null) {
+                long sp = Math.round(f[0]), g = Math.round(f[1]);
+                if (sp != lastSpeed || g != lastGear) {
+                    lastSpeed = sp; lastGear = g;
+                    pushJs("window.onFast && window.onFast(" + sp + "," + g + ")");
+                }
+            }
+            fastH.postDelayed(this, FAST_MS);
+        }
+    };
+
     @Override protected void onResume() {
         super.onResume();
         resumed = true;
         bg.removeCallbacks(poll);
         bg.post(poll);
+        fastH.removeCallbacks(fastPoll);
+        fastH.post(fastPoll);
     }
 
     @Override protected void onPause() {
         super.onPause();
         resumed = false;
         bg.removeCallbacks(poll);
+        fastH.removeCallbacks(fastPoll);
     }
 
     @Override protected void onDestroy() {
+        fastWorker.quitSafely();
         worker.quitSafely();
         cmdWorker.quitSafely();
         web.destroy();
