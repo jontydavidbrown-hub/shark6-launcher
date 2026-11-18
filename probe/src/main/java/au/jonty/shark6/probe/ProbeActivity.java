@@ -34,6 +34,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import dalvik.system.DexFile;
+import dalvik.system.PathClassLoader;
 
 /**
  * Read-only survey of what BYD's vehicle software exposes to a sideloaded app.
@@ -240,6 +241,28 @@ public class ProbeActivity extends Activity {
         }
     }
 
+    // BYD's vehicle SDK ships inside BYD's own apps, not the app classpath (per SharkHub, same build).
+    private static final String[] BYD_CLIENT_PACKAGES = {"com.byd.hvac", "com.byd.autoservice"};
+    private ClassLoader bydLoader;
+
+    private ClassLoader bydLoader() {
+        if (bydLoader != null) return bydLoader;
+        for (String pkg : BYD_CLIENT_PACKAGES) {
+            try {
+                String apk = getPackageManager().getApplicationInfo(pkg, 0).sourceDir;
+                bydLoader = new PathClassLoader(apk, getClassLoader());
+                summary.append("BYD SDK loaded from ").append(pkg).append(" (").append(apk).append(")\n");
+                full.append("BYD SDK loader: ").append(pkg).append(" -> ").append(apk).append('\n');
+                return bydLoader;
+            } catch (Throwable t) {
+                full.append("BYD SDK loader: ").append(pkg).append(" not usable: ").append(root(t)).append('\n');
+            }
+        }
+        summary.append("BYD SDK: no BYD client package found, using app classpath\n");
+        bydLoader = getClassLoader();
+        return bydLoader;
+    }
+
     private List<String> discoverClasses() {
         full.append("\n== BYD classes found ==\n");
         TreeSet<String> found = new TreeSet<>();
@@ -272,7 +295,7 @@ public class ProbeActivity extends Activity {
                     "android.hardware.bydauto." + s + ".BYDAuto" + camel + "Device",
                     "android.hardware.bydauto.BYDAuto" + camel + "Device"}) {
                 try {
-                    Class.forName(n);
+                    Class.forName(n, false, bydLoader());
                     found.add(n);
                 } catch (Throwable ignored) { }
             }
@@ -290,7 +313,7 @@ public class ProbeActivity extends Activity {
         Object inst;
         Class<?> cls;
         try {
-            cls = Class.forName(className);
+            cls = Class.forName(className, true, bydLoader());
             Method gi = cls.getMethod("getInstance", Context.class);
             inst = gi.invoke(null, this);
         } catch (Throwable t) {
