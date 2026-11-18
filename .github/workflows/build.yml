@@ -23,6 +23,11 @@ jobs:
           gradle-version: '8.9'
       - name: Build
         run: gradle --no-daemon :probe:assembleDebug :launcher:assembleDebug
+      - name: Camera test tool (native, run over adb)
+        run: |
+          CC="$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android30-clang"
+          "$CC" -O2 -Wall -fPIE -pie -o shark6-camtest tools/camtest/camtest.c -ldl
+          file shark6-camtest
       - name: Rename APK
         run: |
           cp probe/build/outputs/apk/debug/probe-debug.apk shark6-probe.apk
@@ -39,6 +44,7 @@ jobs:
           path: |
             shark6-probe.apk
             shark6-home.apk
+            shark6-camtest
       - name: Publish release
         if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
@@ -49,4 +55,5 @@ jobs:
           files: |
             shark6-probe.apk
             shark6-home.apk
+            shark6-camtest
             version.json
