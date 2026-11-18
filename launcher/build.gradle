@@ -34,5 +34,10 @@ android {
 
 dependencies {
     // Talks to the car's own ADB to start the camera helper as the shell user (Apache-2.0).
-    implementation 'dev.mobile:dadb:1.2.8'
+    implementation('dev.mobile:dadb:1.2.8') {
+        // dadb 1.2.8 wrongly ships its test runner as a runtime dependency.
+        exclude group: 'org.junit.platform'
+        exclude group: 'org.junit.jupiter'
+        exclude group: 'org.graalvm.buildtools'
+    }
 }
