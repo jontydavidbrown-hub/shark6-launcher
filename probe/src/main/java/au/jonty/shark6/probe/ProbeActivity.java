@@ -157,6 +157,22 @@ public class ProbeActivity extends Activity {
         full.append("default: ").append(d).append('\n');
         boolean settingsPage = new Intent(android.provider.Settings.ACTION_HOME_SETTINGS).resolveActivity(pm) != null;
         full.append("'Default home app' settings page exists: ").append(settingsPage).append('\n');
+        // Which sideloaded apps start themselves at boot (how Sharkware likely auto-launches).
+        StringBuilder bootApps = new StringBuilder();
+        for (String action : new String[]{Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_LOCKED_BOOT_COMPLETED,
+                "android.intent.action.QUICKBOOT_POWERON", "android.intent.action.USER_PRESENT",
+                "android.intent.action.ACC_ON", "com.byd.action.ACC_ON"}) {
+            for (ResolveInfo r : pm.queryBroadcastReceivers(new Intent(action), 0)) {
+                android.content.pm.ApplicationInfo ai = r.activityInfo.applicationInfo;
+                boolean system = (ai.flags & android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0;
+                full.append(system ? "  boot(system) " : "  boot(USER APP) ").append(action).append(" -> ")
+                        .append(r.activityInfo.packageName).append('/').append(r.activityInfo.name).append('\n');
+                if (!system && bootApps.indexOf(ai.packageName) < 0) {
+                    bootApps.append(pm.getApplicationLabel(ai)).append(" (").append(ai.packageName).append(") ");
+                }
+            }
+        }
+        summary.append("Sideloaded apps that start at boot: ").append(bootApps.length() == 0 ? "none" : bootApps.toString()).append('\n');
         summary.append("Home apps installed: ").append(list.size()).append(", current: ").append(d)
                 .append(", home-app settings page: ").append(settingsPage ? "yes" : "no").append('\n');
     }
