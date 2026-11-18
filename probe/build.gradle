@@ -8,8 +8,8 @@ android {
         // Shark 6 runs Android 11 (API 30); targeting 29 keeps package visibility open.
         minSdk 29
         targetSdk 29
-        versionCode 7
-        versionName '0.7'
+        versionCode 8
+        versionName '0.8'
         ndk { abiFilters 'arm64-v8a' }
     }
     // Fixed debug key, committed on purpose, so every CI build can update the installed app.
@@ -27,4 +27,7 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     lint { abortOnError false; checkReleaseBuilds false }
+    // The camera test (libshark6camtest.so, built by CI) must sit unpacked in the app's lib folder,
+    // the one place on the car that adb's shell is allowed to run programs from.
+    packagingOptions { jniLibs { useLegacyPackaging true } }
 }
