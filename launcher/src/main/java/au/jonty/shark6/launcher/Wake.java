@@ -52,6 +52,14 @@ public class Wake extends Service {
                 }
             }
         } catch (Exception ignored) { }
+        // Now playing reads other apps' media sessions, which needs notification access.
+        try {
+            android.content.ComponentName ml = new android.content.ComponentName(c, MediaListener.class);
+            NotificationManager nm = c.getSystemService(NotificationManager.class);
+            if (!nm.isNotificationListenerAccessGranted(ml)) {
+                cmd.append("cmd notification allow_listener ").append(ml.flattenToString()).append(';');
+            }
+        } catch (Exception ignored) { }
         if (cmd.length() == 0) return;
         new Thread(() -> {
             Cameras.shell(c, cmd.toString());

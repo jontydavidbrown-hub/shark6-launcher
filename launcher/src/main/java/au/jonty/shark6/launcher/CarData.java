@@ -98,6 +98,20 @@ final class CarData {
 
     String openReport() { return openLog.toString(); }
 
+    /** Diagnostics: every reset/clear-style method the car's devices offer, to find the trip reset. */
+    String resetMethods() {
+        StringBuilder b = new StringBuilder();
+        for (Map.Entry<String, Object> e : devices.entrySet()) {
+            for (Method m : e.getValue().getClass().getMethods()) {
+                String n = m.getName().toLowerCase();
+                if (n.contains("reset") || n.contains("clear") || (n.contains("mileage") && n.startsWith("set"))) {
+                    b.append(e.getKey()).append('.').append(m.getName()).append('/').append(m.getParameterTypes().length).append(' ');
+                }
+            }
+        }
+        return b.toString();
+    }
+
     /** Call an int-argument method on a device; null if the device or method isn't there or it throws. */
     private Object call(String device, String name, int... args) {
         Object dev = devices.get(device);
