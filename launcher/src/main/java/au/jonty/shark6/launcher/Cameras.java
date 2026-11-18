@@ -79,6 +79,26 @@ final class Cameras {
         throw new Exception("camera helper didn't come up. " + diag);
     }
 
+    /**
+     * Runs one command as the shell user through the car's own ADB (same route as the camera
+     * helper). Returns its output, or null when ADB can't be reached. Not on the UI thread.
+     */
+    static String shell(Context c, String cmd) {
+        if (!portOpen(ADB_PORT, 300)) {
+            enableAdb(c);
+            if (!portOpen(ADB_PORT, 1500)) return null;
+        }
+        try {
+            File priv = new File(c.getFilesDir(), "adbkey"), pub = new File(c.getFilesDir(), "adbkey.pub");
+            if (!priv.exists() || !pub.exists()) AdbKeyPair.generate(priv, pub);
+            try (Dadb adb = Dadb.create(ADB_HOST, ADB_PORT, AdbKeyPair.read(priv, pub), 3000, 10000)) {
+                return adb.shell(cmd).getAllOutput();
+            }
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
     /** Needs `adb shell pm grant au.jonty.shark6.launcher android.permission.WRITE_SECURE_SETTINGS`. */
     static void enableAdb(Context c) {
         try {

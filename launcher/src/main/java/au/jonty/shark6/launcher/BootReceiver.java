@@ -5,17 +5,18 @@ import android.content.Context;
 import android.content.Intent;
 
 /**
- * Opens the home screen when the car's head unit finishes starting (same approach as Sharkware).
- * Android 10+ only lets a background app open a screen if it may draw over other apps, so this
- * needs a one-off: adb shell appops set au.jonty.shark6.launcher SYSTEM_ALERT_WINDOW allow
+ * Opens the home screen when the head unit finishes starting, and starts the Wake service that
+ * reopens it on later car starts (the unit usually sleeps instead of rebooting). After an update
+ * it restarts that service and comes back to the home screen.
  */
 public class BootReceiver extends BroadcastReceiver {
     @Override public void onReceive(Context c, Intent i) {
         String a = i.getAction();
-        if (!Intent.ACTION_BOOT_COMPLETED.equals(a) && !"android.intent.action.QUICKBOOT_POWERON".equals(a)
-                && !Intent.ACTION_LOCKED_BOOT_COMPLETED.equals(a)) return;
-        Intent open = new Intent(c, MainActivity.class)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-        try { c.startActivity(open); } catch (Exception ignored) { }
+        boolean boot = Intent.ACTION_BOOT_COMPLETED.equals(a) || "android.intent.action.QUICKBOOT_POWERON".equals(a)
+                || Intent.ACTION_LOCKED_BOOT_COMPLETED.equals(a);
+        boolean updated = Intent.ACTION_MY_PACKAGE_REPLACED.equals(a);
+        if (!boot && !updated) return;
+        Wake.start(c);
+        Wake.openHome(c);
     }
 }

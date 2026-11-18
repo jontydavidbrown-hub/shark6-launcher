@@ -84,6 +84,7 @@
     <!-- Start on boot: the receiver opens the home screen; drawing over apps lets it do so from the background. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- Lets the launcher switch the car's ADB back on for the cameras (granted once with adb pm grant). -->
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
 
@@ -107,8 +108,11 @@
             <intent-filter android:priority="999">
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+        <!-- Stays alive while the head unit sleeps, to reopen the home screen when the car starts. -->
+        <service android:name=".Wake" android:exported="false" />
         <!-- Lets the home screen read and control what's playing (granted once with adb). -->
         <service android:name=".MediaListener" android:exported="true"
             android:label="Shark 6 Home now playing"

@@ -23,6 +23,8 @@ import org.json.JSONObject;
  * Runs as a normal window (not immersive) so BYD's header bar stays visible.
  */
 public class MainActivity extends Activity {
+    private static volatile boolean showing;
+    static boolean isShowing() { return showing; }
     private static final long POLL_MS = 500;
 
     private WebView web;
@@ -52,6 +54,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        Wake.start(this);
         getWindow().setStatusBarColor(Color.BLACK);
         getWindow().setNavigationBarColor(Color.BLACK);
         getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(v -> {
@@ -176,6 +179,7 @@ public class MainActivity extends Activity {
         fastH.post(fastPoll);
         ui.removeCallbacks(updateTick);
         ui.post(updateTick);
+        showing = true;
         cam.onResume();
         cam2.onResume();
         cam3.onResume();
@@ -185,6 +189,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onPause() {
         super.onPause();
+        showing = false;
         cam.onPause();
         cam2.onPause();
         cam3.onPause();
