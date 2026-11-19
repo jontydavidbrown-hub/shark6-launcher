@@ -256,7 +256,11 @@ final class Sideload {
             + "echo; echo '== cluster service'; dumpsys activity service com.ts.appservice.cluster 2>&1 | head -c 4000;"
             + "echo; echo '== carplay package'; dumpsys package com.ts.carplay 2>&1 | grep -E 'Action:|authority|Provider|Service|Receiver' | head -60;"
             + "echo; echo '== carplay.app package'; dumpsys package com.ts.carplay.app 2>&1 | grep -E 'Action:|authority|Provider|Service|Receiver' | head -60;"
-            + "echo; echo '== props'; getprop 2>&1 | grep -i -E 'carplay|iap|airplay' | head -30";
+            + "echo; echo '== props'; getprop 2>&1 | grep -i -E 'carplay|iap|airplay' | head -30;"
+            + "echo; echo '== cluster package'; dumpsys package com.ts.appservice.cluster 2>&1 | grep -E 'Action:|authority|Provider|Service|Receiver' | head -60;"
+            + "echo; echo '== ts services'; dumpsys activity services 2>&1 | grep -E 'ServiceRecord.*com\\.ts\\.' | head -60;"
+            + "echo; echo '== log: song info'; logcat -d -v time -t 20000 2>&1 | grep -i -E 'title|artist|album|song|track|nowplay|metadata|playinfo|mediainfo' | grep -v -i 'shark6' | tail -150;"
+            + "echo; echo '== log: carplay and cluster'; logcat -d -v time -t 8000 2>&1 | grep -i -E 'carplay|cluster|iap2|mediaremote' | tail -150";
 
     private static final String PAGE = "<!doctype html><html><head><meta charset=utf-8>"
             + "<meta name=viewport content='width=device-width,initial-scale=1'><title>Send to Shark 6</title>"
