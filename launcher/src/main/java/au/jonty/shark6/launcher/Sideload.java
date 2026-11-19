@@ -251,7 +251,8 @@ final class Sideload {
             + " echo; echo \"== log of $p\"; for id in $(pidof $p); do logcat -d -v time --pid=$id -t 4000 2>&1 | tail -80; done; done;"
             + "echo; echo '== localmusic package'; dumpsys package com.byd.localmusic 2>&1 | grep -E 'Action:|authority|Provider\\{|Service\\{|Receiver\\{|permission' | head -80;"
             + "echo; echo '== settings with media info'; for t in global system secure; do settings list $t 2>&1 | grep -i -E 'media|music|song|track|artist|title|carplay|playing|cp_' | sed \"s/^/$t: /\"; done | head -60;"
-            + "echo; echo '== car props'; dumpsys car_service 2>&1 | grep -i -E 'media|music|song|title|artist' | head -40";
+            + "echo; echo '== widgets'; dumpsys appwidget 2>&1 | grep -B2 -A6 -i 'localmusic' | head -60;"
+            + "echo; echo '== album files'; ls -la /album 2>&1 | tail -5; find /sdcard/ /storage/emulated/0/ /data/media/0/ /mnt/ -path '*album*' -name '*.png' 2>/dev/null | tail -10";
 
     private static final String PAGE = "<!doctype html><html><head><meta charset=utf-8>"
             + "<meta name=viewport content='width=device-width,initial-scale=1'><title>Send to Shark 6</title>"

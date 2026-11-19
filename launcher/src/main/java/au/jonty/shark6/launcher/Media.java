@@ -68,7 +68,11 @@ final class Media {
     // BYD's media center logs CarPlay's real play state ("isPlaying = true/false"); CarPlay itself
     // keeps its audio stream open while paused, so that log is the reliable signal.
     private static final String CP_CMD = "dumpsys audio | grep -A12 'Audio Focus stack entries'; echo '=='; dumpsys audio | grep -E 'state:(started|paused)';"
-            + " echo '=='; for id in $(pidof com.byd.localmusic); do logcat -d -t 3000 --pid=$id 2>/dev/null | grep 'onPropertyChanged: isPlaying' | tail -1; done";
+            + " echo '=='; for id in $(pidof com.byd.localmusic); do logcat -d -t 3000 --pid=$id 2>/dev/null | grep -E 'onPropertyChanged: isPlaying|notifyAlbumRunnable' | tail -6; done";
+    // Album art: BYD's media center saves each CarPlay cover as "/album/<hash>.png" and logs it.
+    static volatile String albumPath, albumReport = "album art: none logged yet";
+    private static volatile String albumData;
+    private static String albumTried;
     private static volatile long cpHoldUntil;
     private static volatile boolean cpHeld;
 
@@ -85,7 +89,15 @@ final class Media {
                 int sep2 = players.indexOf("\n==", 1);
                 String byd = sep2 < 0 ? "" : players.substring(sep2);
                 if (sep2 >= 0) players = players.substring(0, sep2);
-                Boolean bydPlaying = byd.contains("isPlaying = true") ? Boolean.TRUE : byd.contains("isPlaying = false") ? Boolean.FALSE : null;
+                Boolean bydPlaying = null;
+                String album = null;
+                for (String l : byd.split("\n")) {
+                    if (l.contains("isPlaying = true")) bydPlaying = Boolean.TRUE;
+                    else if (l.contains("isPlaying = false")) bydPlaying = Boolean.FALSE;
+                    int k = l.indexOf("finalPath = ");
+                    if (k >= 0) album = l.substring(k + 12).trim();
+                }
+                if (album != null && !album.equals(albumTried)) { albumTried = album; loadAlbum(album); }
                 // Top of the focus stack is the last "source:" line in the block.
                 String top = null;
                 boolean inStack = false;
@@ -115,6 +127,38 @@ final class Media {
         }, "carplay-check").start();
     }
 
+    private void loadAlbum(String rel) {
+        String name = rel.substring(rel.lastIndexOf('/') + 1).replaceAll("[^A-Za-z0-9._-]", "");
+        if (name.isEmpty()) return;
+        String r = Cameras.shell(ctx, "f=''; for c in " + rel.replaceAll("[^A-Za-z0-9._/-]", "")
+                + " $(find /sdcard/ /storage/emulated/0/ /data/media/0/ /mnt/ -name " + name + " 2>/dev/null | head -3); do [ -r \"$c\" ] && f=$c && break; done;"
+                + " echo \"$f\"; [ -n \"$f\" ] && base64 \"$f\" | tr -d '\\n'");
+        if (r == null) { albumReport = "album art: car ADB not reachable"; return; }
+        int nl = r.indexOf('\n');
+        String file = nl < 0 ? r.trim() : r.substring(0, nl).trim();
+        if (file.isEmpty() || nl < 0) { albumReport = "album art: " + rel + " not found or not readable"; return; }
+        try {
+            byte[] png = Base64.decode(r.substring(nl + 1).trim(), Base64.DEFAULT);
+            Bitmap b = android.graphics.BitmapFactory.decodeByteArray(png, 0, png.length);
+            if (b == null) { albumReport = "album art: " + file + " didn't decode"; return; }
+            albumData = toJpeg(b);
+            albumReport = "album art: " + file + " " + b.getWidth() + "x" + b.getHeight();
+        } catch (Exception e) {
+            albumReport = "album art: " + e;
+        }
+    }
+
+    private static String toJpeg(Bitmap b) {
+        float k = 360f / Math.max(b.getWidth(), b.getHeight());
+        if (k < 1) b = Bitmap.createScaledBitmap(b, Math.round(b.getWidth() * k), Math.round(b.getHeight() * k), true);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        b.compress(Bitmap.CompressFormat.JPEG, 85, out);
+        return "data:image/jpeg;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
+    }
+
+    private Bitmap cardArtSrc;
+    private String cardArtData;
+
     private boolean carplayMode;
 
     JSONObject read() {
@@ -129,9 +173,20 @@ final class Media {
             carplayMode = true;
             current = null;
             try {
-                o.put("title", cpPlaying ? "Playing on CarPlay" : "CarPlay paused");
+                // Song from BYD's music widget when it has one (see MusicCard).
+                List<String> words = new java.util.ArrayList<>();
+                for (String t : MusicCard.texts) {
+                    if (t.matches("[-\\d:./ ]+") || t.equalsIgnoreCase("CarPlay") || t.length() > 120) continue;
+                    if (!words.contains(t)) words.add(t);
+                }
+                o.put("title", !words.isEmpty() ? words.get(0) : cpPlaying ? "Playing on CarPlay" : "CarPlay paused");
+                if (words.size() > 1) o.put("artist", words.get(1));
                 o.put("app", "CarPlay");
                 o.put("playing", cpPlaying);
+                Bitmap ca = MusicCard.art;
+                if (ca != null && ca != cardArtSrc) { cardArtSrc = ca; cardArtData = toJpeg(ca); }
+                String artUrl = ca != null ? cardArtData : albumData;
+                if (artUrl != null) o.put("art", artUrl);
             } catch (Exception ignored) { }
             return o;
         }
@@ -196,7 +251,7 @@ final class Media {
             b.append(' ').append(e.getClass().getSimpleName());
         }
         String[] m = MediaListener.lastMedia;
-        b.append('\n').append(cpReport);
+        b.append('\n').append(cpReport).append('\n').append(albumReport).append('\n').append(MusicCard.report);
         b.append("\nnotification player: ").append(m == null ? "none" : m[0] + " \"" + m[1] + "\"");
         b.append("\napps with notifications: ").append(MediaListener.seen.isEmpty() ? "none seen" : MediaListener.seen);
         return b.toString();

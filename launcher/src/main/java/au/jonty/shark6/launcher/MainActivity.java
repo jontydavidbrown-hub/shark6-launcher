@@ -35,6 +35,7 @@ public class MainActivity extends Activity {
     private static final long FAST_MS = 100;
     private long lastSpeed = Long.MIN_VALUE, lastGear = Long.MIN_VALUE, lastTurn = Long.MIN_VALUE;
     private final Handler ui = new Handler(Looper.getMainLooper());
+    private MusicCard musicCard;
     private volatile boolean resumed;
     private SoundPool sounds;
     private int sfxTap, sfxOn, sfxOff;
@@ -102,6 +103,8 @@ public class MainActivity extends Activity {
 
         car = new CarData(this);
         media = new Media(this);
+        musicCard = new MusicCard(this);
+        musicCard.start();
         worker = new HandlerThread("car-poll");
         worker.start();
         bg = new Handler(worker.getLooper());
@@ -203,6 +206,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        musicCard.stop();
         fastWorker.quitSafely();
         worker.quitSafely();
         cmdWorker.quitSafely();
