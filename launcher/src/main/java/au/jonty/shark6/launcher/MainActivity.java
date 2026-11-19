@@ -319,6 +319,7 @@ public class MainActivity extends Activity {
                     android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(Math.max(1, w), Math.max(1, h));
                     lp.leftMargin = x; lp.topMargin = y;
                     views[i].setLayoutParams(lp);
+                    views[i].setActive(w > 10 && h > 10);
                     placed |= w > 10 && h > 10;
                 }
                 camPlaced = placed;
@@ -337,6 +338,7 @@ public class MainActivity extends Activity {
             try { ver = getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception ignored) { }
             return "SIDELOAD|" + Sideload.address() + "|" + Sideload.PIN + "\nlast app sent: " + Sideload.last + "\n"
                     + car.powerReport() + "\n"
+                    + media.report() + "\n"
                     + "Shark 6 Home " + ver + "   home screen: " + homeName() + "\n" + car.openReport()
                     + "turn: " + (f == null ? "-" : (int) f[2]) + " via " + car.turnSource() + "\n"
                     + "tilt sensor: " + tilt.available() + (t == null ? "" : String.format(" pitch %.1f roll %.1f", t[0], t[1])) + "\n"

@@ -264,7 +264,7 @@ class Home extends Component {
     // Whole degrees only.
     const drvTemp = Math.round(this.pv('drvTemp', num(c.drvTemp, 21))), pasTemp = Math.round(this.pv('pasTemp', num(c.pasTemp, 21)));
     const fan = this.pv('fan', num(c.fan));
-    const ac = this.pv('ac', !!c.compressor), auto = this.pv('auto', !!c.auto), demist = this.pv('demist', !!c.demist);
+    const ac = this.pv('ac', !!c.compressor), auto = this.pv('auto', !!c.auto), demist = this.pv('demist', !!c.demist), recirc = this.pv('recirc', !!c.recirc);
     const st = (on, color) => ({ border: on ? '2px solid ' + color : '1px solid #2A2A2A', bg: on ? '#1A1A1A' : '#161616', icon: on ? color : '#A6A6A6', text: on ? '#F2F2F2' : '#A6A6A6' });
     // SYNC is our own setting: read from the car once, then only the SYNC button changes it.
     // Sync always starts on: on the first car reading after launch, join the zones if the car has them split.
@@ -278,6 +278,7 @@ class Home extends Component {
       if (synced) this.pending[zone === 1 ? 'pasTemp' : 'drvTemp'] = { val: value, until: Date.now() + 3000 };
       this.send('temp', { zone, value, both: synced }, zone === 1 ? 'drvTemp' : 'pasTemp', value);
     };
+    const rc = st(recirc, '#5AC8FA');
     const d = st(demist, '#FF8A00'), a = st(ac, '#2FB3FF'), u = st(auto, accent), y = st(synced, '#F2F2F2');
     const cs = c.seats || {};
     const seats = { drvHeat: this.pv('drvHeat', cs.drvHeat), drvVent: this.pv('drvVent', cs.drvVent),
@@ -436,6 +437,8 @@ class Home extends Component {
       toggleAc: () => this.send('ac', { on: !ac }, 'ac', !ac),
       toggleAuto: () => this.send('auto', { on: !auto }, 'auto', !auto),
       toggleDemist: () => this.send('demist', { on: !demist }, 'demist', !demist),
+      recirc, recircBorder: rc.border, recircBg: rc.bg, recircIcon: rc.icon, recircLabel: recirc ? 'RECIRC' : 'FRESH AIR',
+      toggleRecirc: () => this.send('recirc', { on: !recirc }, 'recirc', !recirc),
       drvHeat: this.seat('heat', num(seats.drvHeat), 1, '#FF8A00', 0.3),
       drvVent: this.seat('vent', num(seats.drvVent), 1, '#2FB3FF', 0.3),
       pasHeat: this.seat('heat', num(seats.pasHeat), 2, '#FF8A00', 0.4),

@@ -9,7 +9,8 @@
 // Wire format, helper -> launcher, repeated: 16-byte header then the frame.
 //   uint32 magic 'S6CM', uint32 slot (0 front, 1 right, 2 rear, 3 left), uint32 width, uint32 height
 //   width*height*2 bytes of UYVY (width 960, height 650)
-// Launcher -> helper: one byte at any time = frames per second per camera (1..30).
+// Launcher -> helper: one byte at any time = frames per second per camera (1..30),
+// or 0x80 | slot mask = which cameras to send.
 
 #include <arpa/inet.h>
 #include <dlfcn.h>
@@ -82,6 +83,8 @@ typedef struct {
 static cam_t cams[NCAM];
 static volatile int g_run = 1;
 static volatile uint32_t g_fps = 15;
+// Which cameras the launcher is showing (bit per slot). Others are neither shrunk nor sent.
+static volatile uint32_t g_mask = 0xF;
 
 static void on_signal(int s) { (void)s; g_run = 0; }
 
@@ -99,12 +102,18 @@ static int alloc_buf(int ion, void **ptr) {
     return -1;
 }
 
-// Half size: every second row, and every second UYVY pair (each 4-byte group is two pixels).
+// Half size with a 2x2 average (dropping every other pixel made fine detail shimmer and look
+// over-sharpened). UYVY: each 4-byte group is U Y0 V Y1, two pixels sharing U and V.
 static void shrink(const uint8_t *src, uint8_t *dst) {
     for (int y = 0; y < OH; y++) {
-        const uint32_t *s = (const uint32_t *)(src + (size_t)(y * 2) * STRIDE);
-        uint32_t *o = (uint32_t *)(dst + (size_t)y * OW * 2);
-        for (int x = 0; x < OW / 2; x++) o[x] = s[x * 2];
+        const uint8_t *a = src + (size_t)(y * 2) * STRIDE, *b = a + STRIDE;
+        uint8_t *o = dst + (size_t)y * OW * 2;
+        for (int x = 0; x < OW / 2; x++, a += 8, b += 8, o += 4) {
+            o[0] = (uint8_t)((a[0] + a[4] + b[0] + b[4] + 2) >> 2);   // U
+            o[1] = (uint8_t)((a[1] + a[3] + b[1] + b[3] + 2) >> 2);   // Y0' from Y0,Y1
+            o[2] = (uint8_t)((a[2] + a[6] + b[2] + b[6] + 2) >> 2);   // V
+            o[3] = (uint8_t)((a[5] + a[7] + b[5] + b[7] + 2) >> 2);   // Y1' from Y2,Y3
+        }
     }
 }
 
@@ -117,7 +126,7 @@ static void *reader(void *arg) {
         memset(&fi, 0, sizeof(fi));
         if (cc_get_frame(c->h, &fi, 100000000ULL, 0) != 0) continue;
         c->phase += g_fps;
-        if (c->phase >= 30 && fi.idx < NBUF) {
+        if (c->phase >= 30 && fi.idx < NBUF && (g_mask & (1u << c->slot))) {
             c->phase -= 30;
             struct dma_buf_sync s = { DMA_BUF_SYNC_START | DMA_BUF_SYNC_READ };
             if (c->fds[fi.idx] >= 0) ioctl(c->fds[fi.idx], DMA_BUF_IOCTL_SYNC, &s);
@@ -264,10 +273,11 @@ int main(void) {
             ssize_t n = recv(cl, &b, 1, 0);
             if (n <= 0) break;
             if (b >= 1 && b <= 30) g_fps = b;
+            else if (b & 0x80) g_mask = b & 0x0F;
         }
         for (int i = 0; i < NCAM && g_run; i++) {
             cam_t *c = &cams[i];
-            if (!c->h || c->latest_no == sent_no[i]) continue;
+            if (!c->h || c->latest_no == sent_no[i] || !(g_mask & (1u << i))) continue;
             pthread_mutex_lock(&c->lock);
             memcpy(frame, c->latest, OBYTES);
             sent_no[i] = c->latest_no;

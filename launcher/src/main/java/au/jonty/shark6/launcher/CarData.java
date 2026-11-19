@@ -282,6 +282,9 @@ final class CarData {
             if (comp != null) o.put("compressor", comp.intValue() == ON ? 1 : 0);
             if (ctrl != null) o.put("auto", ctrl.intValue() == CTRL_AUTO ? 1 : 0);
             if (defrost != null) o.put("demist", defrost.intValue() == ON ? 1 : 0);
+            // Air intake: getAcCycleMode 1 = recirculating cabin air, 0 = fresh outside air.
+            Double cyc = num("ac", "getAcCycleMode");
+            if (cyc != null) o.put("recirc", cyc.intValue() == 1 ? 1 : 0);
             Double split = num("ac", "getAcTemperatureControlMode");
             if (split != null) o.put("dual", split.intValue() == ON ? 1 : 0);
             // Seats: OFF=1, LOW=2, HIGH=3 on the car; 0 means not reported.
@@ -345,6 +348,18 @@ final class CarData {
             case "demist":
                 r = call("ac", "setAcDefrostState", SOURCE_UI, DEFROST_FRONT, a.optBoolean("on") ? ON : OFF);
                 break;
+            case "recirc": {
+                // Docs disagree on the set value's meaning, so set the opposite of the current
+                // reading and check: if the car didn't change, the values are the other way round.
+                Double now = num("ac", "getAcCycleMode");
+                int want = a.optBoolean("on") ? 1 : 0;
+                r = call("ac", "setAcCycleMode", SOURCE_UI, want);
+                try { Thread.sleep(900); } catch (InterruptedException ignored) { }
+                Double after = num("ac", "getAcCycleMode");
+                if (after != null && after.intValue() != want) r = call("ac", "setAcCycleMode", SOURCE_UI, 1 - want);
+                if (r == null && now == null) return "recirculation not available";
+                break;
+            }
             case "seatHeat":
                 r = call("setting", "setSeatHeatingState", a.optInt("zone", 1), Math.max(0, Math.min(2, a.optInt("level"))) + 1);
                 break;

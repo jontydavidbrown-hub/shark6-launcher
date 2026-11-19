@@ -17,7 +17,7 @@ final class CamFeed {
     interface Status { void status(String text); }
 
     private static final int MAGIC = 0x5336434D;
-    private static final int FPS = 15;
+    private static final int FPS = 20;
     private static final int POOL = 3;
     private final ByteBuffer[] pool = new ByteBuffer[4 * POOL];
     private final int[] turn = new int[4];
@@ -82,7 +82,13 @@ final class CamFeed {
                 ByteBuffer h = ByteBuffer.wrap(hdr).order(ByteOrder.LITTLE_ENDIAN);
                 byte[] buf = null;
                 boolean live = false;
+                int mask = -1;
                 while (wanted) {
+                    // Only stream the cameras that are actually on screen.
+                    int m = 0;
+                    for (CamView v : views) if (v.active()) m |= 1 << (v.slot() & 3);
+                    if (m != mask) { mask = m; out.write(0x80 | m); out.flush(); }
+                    if (m == 0) { if (!sleep(100)) return; continue; }
                     in.readFully(hdr);
                     if (h.getInt(0) != MAGIC) throw new Exception("bad frame header");
                     int cam = h.getInt(4), w = h.getInt(8), ht = h.getInt(12), n = w * ht * 2;

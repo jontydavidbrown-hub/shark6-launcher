@@ -264,7 +264,7 @@ class Home extends Component {
     // Whole degrees only.
     const drvTemp = Math.round(this.pv('drvTemp', num(c.drvTemp, 21))), pasTemp = Math.round(this.pv('pasTemp', num(c.pasTemp, 21)));
     const fan = this.pv('fan', num(c.fan));
-    const ac = this.pv('ac', !!c.compressor), auto = this.pv('auto', !!c.auto), demist = this.pv('demist', !!c.demist);
+    const ac = this.pv('ac', !!c.compressor), auto = this.pv('auto', !!c.auto), demist = this.pv('demist', !!c.demist), recirc = this.pv('recirc', !!c.recirc);
     const st = (on, color) => ({ border: on ? '2px solid ' + color : '1px solid #2A2A2A', bg: on ? '#1A1A1A' : '#161616', icon: on ? color : '#A6A6A6', text: on ? '#F2F2F2' : '#A6A6A6' });
     // SYNC is our own setting: read from the car once, then only the SYNC button changes it.
     // Sync always starts on: on the first car reading after launch, join the zones if the car has them split.
@@ -278,6 +278,7 @@ class Home extends Component {
       if (synced) this.pending[zone === 1 ? 'pasTemp' : 'drvTemp'] = { val: value, until: Date.now() + 3000 };
       this.send('temp', { zone, value, both: synced }, zone === 1 ? 'drvTemp' : 'pasTemp', value);
     };
+    const rc = st(recirc, '#5AC8FA');
     const d = st(demist, '#FF8A00'), a = st(ac, '#2FB3FF'), u = st(auto, accent), y = st(synced, '#F2F2F2');
     const cs = c.seats || {};
     const seats = { drvHeat: this.pv('drvHeat', cs.drvHeat), drvVent: this.pv('drvVent', cs.drvVent),
@@ -436,6 +437,8 @@ class Home extends Component {
       toggleAc: () => this.send('ac', { on: !ac }, 'ac', !ac),
       toggleAuto: () => this.send('auto', { on: !auto }, 'auto', !auto),
       toggleDemist: () => this.send('demist', { on: !demist }, 'demist', !demist),
+      recirc, recircBorder: rc.border, recircBg: rc.bg, recircIcon: rc.icon, recircLabel: recirc ? 'RECIRC' : 'FRESH AIR',
+      toggleRecirc: () => this.send('recirc', { on: !recirc }, 'recirc', !recirc),
       drvHeat: this.seat('heat', num(seats.drvHeat), 1, '#FF8A00', 0.3),
       drvVent: this.seat('vent', num(seats.drvVent), 1, '#2FB3FF', 0.3),
       pasHeat: this.seat('heat', num(seats.pasHeat), 2, '#FF8A00', 0.4),
@@ -697,9 +700,9 @@ class Home extends Component {
 
     <div style="display: flex; flex-shrink: 0;">
       <div class="gx-8" style="display: flex;">
-        <button type="button" onClick=${v.toggleDemist} aria-pressed=${v.demist} aria-label="Demist" class="gy-7" style="width: 108px; height: 108px; flex-shrink: 0; padding: 0; border: ${v.demistBorder}; background: ${v.demistBg}; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-          <svg width="38" height="38" viewBox="0 -960 960 960" fill=${v.demistIcon} aria-hidden="true"><path d="M152-300q-12 2-22.5-5T117-324L42-739q-2-13 5-23.5T67-777q118-32 219.5-47.5T481-840q93 0 193.5 15.5T894-777q13 4 20 14.5t5 23.5l-75 416q-2 12-12 18.5t-22 4.5q-12-2-19-12t-5-22l69-392q-114-28-203.5-41T481-780q-81 0-171.5 13T106-726l70 392q2 12-5 22t-19 12Zm508 65q0-18-6.5-34.5T634-300q-21-23-32.5-50.5T590-409q0-22 6.5-43t19.5-39l8-12q7-11 19-13t23 5q11 7 12.5 19t-5.5 23l-8 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T720-233q0 22-6.5 43T694-151l-8 11q-7 11-19 13t-23-5q-11-7-13-18.5t5-22.5l8-11q8-11 12-24t4-27Zm-173 1q0-19-7-35.5T460-300q-21-23-32.5-50.5T416-409q0-22 6.5-43t19.5-39l8-12q7-11 19-13t23 5q11 7 12.5 19t-5.5 23l-7 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T547-233q0 22-6.5 43T521-151l-8 11q-7 11-19 13t-23-5q-11-7-13-18.5t5-22.5l8-11q8-11 12-23.5t4-26.5Zm-173 0q0-19-7-35.5T287-300q-21-23-33-50.5T242-409q0-22 6.5-43t20.5-39l9-12q7-11 19-13t23 5q11 7 12.5 19t-5.5 23l-8 11q-8 11-12 23.5t-4 26.5q0 19 7 35.5t20 30.5q21 23 32.5 50.5T374-233q0 22-6.5 43T348-151l-8 11q-7 11-19 13t-23-5q-11-7-13-18.5t5-22.5l8-11q8-11 12-23.5t4-26.5Z"></path></svg>
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px; line-height: 1; letter-spacing: 0.08em; color: ${v.demistIcon};">DEMIST</span></button>
+        <button type="button" onClick=${v.toggleRecirc} aria-pressed=${v.recirc} aria-label="Air intake: ${v.recircLabel}. Tap to switch" class="gy-7" style="width: 108px; height: 108px; flex-shrink: 0; padding: 0; border: ${v.recircBorder}; background: ${v.recircBg}; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke=${v.recircIcon} stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17 L4.5 11.5 Q5 10 6.5 10 H17.5 Q19 10 19.5 11.5 L21 17"></path><path d="M2.5 17 H21.5"></path><circle cx="7" cy="19.3" r="1.3"></circle><circle cx="17" cy="19.3" r="1.3"></circle><path d="M15 6.2 A4 3.2 0 1 0 15.6 8.6"></path><path d="M15.4 3.8 L15.1 6.4 L17.6 6.6"></path></svg>
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px; line-height: 1; letter-spacing: 0.08em; color: ${v.recircIcon};">${v.recircLabel}</span></button>
         <button type="button" onClick=${v.toggleAc} aria-pressed=${v.ac} aria-label="A/C" class="gy-7" style="width: 108px; height: 108px; flex-shrink: 0; padding: 0; border: ${v.acBorder}; background: ${v.acBg}; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
           <svg width="38" height="38" viewBox="0 -960 960 960" fill=${v.acIcon} aria-hidden="true"><path d="M450-275 321-146q-8 8-20.5 8t-21.5-8q-9-9-9-21.5t9-21.5l171-171v-90h-90L192-282q-8 8-20.5 8.5T150-281q-9-9-9.5-21.5T150-325l125-125H109q-12 0-20.5-8.5T80-480q0-12 8.5-21t21.5-9h165L146-638q-9-9-9-21.5t9-21.5q9-9 21.5-9t21.5 9l171 171h90v-91L282-768q-8-8-8-20.5t8-21.5q9-9 21.5-9t22.5 9l124 124v-164q0-12 8.5-21t21.5-9q12 0 21 9t9 21v164l128-128q9-9 21.5-9t21.5 9q8 9 8 21.5t-9 21.5L510-601v91h91l168-168q8-8 20.5-8t21.5 8q9 9 9 21.5t-9 21.5L686-510h164q12 0 21 9t9 21q0 13-9 21.5t-21 8.5H686l127 129q9 8 9 20.5t-9 20.5q-8 10-20.5 10t-21.5-9L601-450h-91v90l171 173q9 8 9 20.5t-9 20.5q-8 10-20.5 10t-21.5-9L510-275v166q0 12-9 20.5T480-80q-13 0-21.5-8.5T450-110v-165Z"></path></svg>
         <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px; line-height: 1; letter-spacing: 0.08em; color: ${v.acIcon};">A/C</span></button>

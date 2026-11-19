@@ -44,7 +44,13 @@ final class Media {
                 if (st == PlaybackState.STATE_NONE || st == PlaybackState.STATE_ERROR || st == PlaybackState.STATE_STOPPED) continue;
                 if (best == null) best = c;
             }
-            return best;
+            if (best != null) return best;
+            // Some players never report a playback state: take one that at least names a track.
+            for (MediaController c : list) {
+                MediaMetadata md = c.getMetadata();
+                if (md != null && md.getString(MediaMetadata.METADATA_KEY_TITLE) != null) return c;
+            }
+            return null;
         } catch (SecurityException e) {
             return null; // listener not allowed yet
         }
@@ -53,7 +59,19 @@ final class Media {
     JSONObject read() {
         JSONObject o = new JSONObject();
         current = pick();
-        if (current == null) return o;
+        if (current == null) {
+            // No media session: fall back to a now-playing notification (e.g. CarPlay).
+            String[] m = MediaListener.lastMedia;
+            if (m != null) {
+                try {
+                    o.put("title", m[1]);
+                    if (!m[2].isEmpty()) o.put("artist", m[2]);
+                    o.put("app", appName(m[0]));
+                    o.put("playing", true);
+                } catch (Exception ignored) { }
+            }
+            return o;
+        }
         try {
             MediaMetadata md = current.getMetadata();
             PlaybackState ps = current.getPlaybackState();
@@ -83,6 +101,28 @@ final class Media {
             }
         } catch (Exception ignored) { }
         return o;
+    }
+
+    /** Diagnostics: every media session Android reports, and apps with notifications. */
+    String report() {
+        StringBuilder b = new StringBuilder("media sessions:");
+        try {
+            MediaSessionManager msm = (MediaSessionManager) ctx.getSystemService(Context.MEDIA_SESSION_SERVICE);
+            List<MediaController> list = msm.getActiveSessions(listener);
+            if (list.isEmpty()) b.append(" none");
+            for (MediaController c : list) {
+                PlaybackState s = c.getPlaybackState();
+                MediaMetadata md = c.getMetadata();
+                b.append(' ').append(c.getPackageName()).append('[').append(s == null ? "no state" : String.valueOf(s.getState()))
+                        .append(md != null && md.getString(MediaMetadata.METADATA_KEY_TITLE) != null ? ", titled" : "").append(']');
+            }
+        } catch (Exception e) {
+            b.append(' ').append(e.getClass().getSimpleName());
+        }
+        String[] m = MediaListener.lastMedia;
+        b.append("\nnotification player: ").append(m == null ? "none" : m[0] + " \"" + m[1] + "\"");
+        b.append("\napps with notifications: ").append(MediaListener.seen.isEmpty() ? "none seen" : MediaListener.seen);
+        return b.toString();
     }
 
     private String art(MediaMetadata md, String title) {
