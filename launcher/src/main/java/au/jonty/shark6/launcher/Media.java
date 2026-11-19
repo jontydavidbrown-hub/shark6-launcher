@@ -65,7 +65,12 @@ final class Media {
     static volatile String cpReport = "carplay audio: not checked yet";
     private static volatile long cpAt;
     private static volatile boolean cpBusy;
-    private static final String CP_CMD = "dumpsys audio | grep -A12 'Audio Focus stack entries'; echo '=='; dumpsys audio | grep -E 'state:(started|paused)'";
+    // BYD's media center logs CarPlay's real play state ("isPlaying = true/false"); CarPlay itself
+    // keeps its audio stream open while paused, so that log is the reliable signal.
+    private static final String CP_CMD = "dumpsys audio | grep -A12 'Audio Focus stack entries'; echo '=='; dumpsys audio | grep -E 'state:(started|paused)';"
+            + " echo '=='; for id in $(pidof com.byd.localmusic); do logcat -d -t 3000 --pid=$id 2>/dev/null | grep 'onPropertyChanged: isPlaying' | tail -1; done";
+    private static volatile long cpHoldUntil;
+    private static volatile boolean cpHeld;
 
     private void checkCarPlay() {
         long now = SystemClock.elapsedRealtime();
@@ -77,6 +82,10 @@ final class Media {
                 if (r == null) { cpReport = "carplay audio: car ADB not reachable"; return; }
                 int sep = r.indexOf("\n==");
                 String focus = sep < 0 ? r : r.substring(0, sep), players = sep < 0 ? "" : r.substring(sep);
+                int sep2 = players.indexOf("\n==", 1);
+                String byd = sep2 < 0 ? "" : players.substring(sep2);
+                if (sep2 >= 0) players = players.substring(0, sep2);
+                Boolean bydPlaying = byd.contains("isPlaying = true") ? Boolean.TRUE : byd.contains("isPlaying = false") ? Boolean.FALSE : null;
                 // Top of the focus stack is the last "source:" line in the block.
                 String top = null;
                 boolean inStack = false;
@@ -94,8 +103,12 @@ final class Media {
                 }
                 cpFocus = f;
                 // If the players list doesn't show CarPlay at all, trust audio focus alone.
-                cpPlaying = f && (started || !anyCp);
-                cpReport = "carplay audio: focus " + (f ? "CarPlay" : top == null ? "none" : "other") + ", player " + (anyCp ? (started ? "started" : "paused") : "not listed");
+                boolean playing = bydPlaying != null ? bydPlaying : (started || !anyCp);
+                // Just after a tap on play or pause, keep showing what was tapped until the car catches up.
+                if (SystemClock.elapsedRealtime() < cpHoldUntil) playing = cpHeld;
+                cpPlaying = f && playing;
+                cpReport = "carplay audio: focus " + (f ? "CarPlay" : top == null ? "none" : "other") + ", player " + (anyCp ? (started ? "started" : "paused") : "not listed")
+                        + ", BYD media center " + (bydPlaying == null ? "no state" : bydPlaying ? "playing" : "paused");
             } finally {
                 cpBusy = false;
             }
@@ -224,7 +237,10 @@ final class Media {
             // No session to control: send media keys, which CarPlay passes on to the iPhone.
             final int key = action.equals("next") ? 87 : action.equals("prev") ? 88 : 85;
             new Thread(() -> Cameras.shell(ctx, "input keyevent " + key), "carplay-key").start();
-            cpPlaying = action.equals("play") || (action.equals("pause") ? false : cpPlaying);
+            if (action.equals("play") || action.equals("pause")) {
+                cpPlaying = cpHeld = action.equals("play");
+                cpHoldUntil = SystemClock.elapsedRealtime() + 5000;
+            }
             return;
         }
         MediaController c = current != null ? current : pick();
