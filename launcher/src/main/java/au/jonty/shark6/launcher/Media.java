@@ -156,6 +156,15 @@ final class Media {
         return "data:image/jpeg;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
     }
 
+    static long parseTime(String t) {
+        boolean neg = t.startsWith("-");
+        long ms = 0;
+        for (String p : t.replace("-", "").split(":")) ms = ms * 60 + Long.parseLong(p);
+        ms *= 1000;
+        return neg ? -ms : ms;
+    }
+
+    MusicCard card;
     private Bitmap cardArtSrc;
     private String cardArtData;
 
@@ -175,9 +184,20 @@ final class Media {
             try {
                 // Song from BYD's music widget when it has one (see MusicCard).
                 List<String> words = new java.util.ArrayList<>();
+                List<Long> times = new java.util.ArrayList<>();
                 for (String t : MusicCard.texts) {
+                    if (t.matches("-?\\d{1,2}(:\\d{2}){1,2}")) { times.add(parseTime(t)); continue; }
                     if (t.matches("[-\\d:./ ]+") || t.equalsIgnoreCase("CarPlay") || t.length() > 120) continue;
                     if (!words.contains(t)) words.add(t);
+                }
+                // Times: the widget shows elapsed and total (as text), and maybe a progress bar.
+                if (times.size() >= 2) {
+                    long pos = Math.abs(times.get(0)), dur = Math.abs(times.get(1));
+                    if (times.get(1) < 0) dur = pos + dur; // "-1:23" style remaining time
+                    o.put("pos", pos); o.put("dur", dur);
+                } else if (times.size() == 1 && MusicCard.progress > 0) {
+                    long dur = Math.abs(times.get(0));
+                    o.put("pos", (long) (dur * MusicCard.progress)); o.put("dur", dur);
                 }
                 o.put("title", !words.isEmpty() ? words.get(0) : cpPlaying ? "Playing on CarPlay" : "CarPlay paused");
                 if (words.size() > 1) o.put("artist", words.get(1));
@@ -185,7 +205,7 @@ final class Media {
                 o.put("playing", cpPlaying);
                 Bitmap ca = MusicCard.art;
                 if (ca != null && ca != cardArtSrc) { cardArtSrc = ca; cardArtData = toJpeg(ca); }
-                String artUrl = ca != null ? cardArtData : albumData;
+                String artUrl = albumData != null ? albumData : ca != null ? cardArtData : null;
                 if (artUrl != null) o.put("art", artUrl);
             } catch (Exception ignored) { }
             return o;
@@ -290,8 +310,18 @@ final class Media {
     void control(String action) {
         if (carplayMode) {
             // No session to control: send media keys, which CarPlay passes on to the iPhone.
+            // Media keys go to the media button session, which is BYD's media center: it passes them
+            // straight to CarPlay. Sent from here, so there's no ADB round trip.
             final int key = action.equals("next") ? 87 : action.equals("prev") ? 88 : 85;
-            new Thread(() -> Cameras.shell(ctx, "input keyevent " + key), "carplay-key").start();
+            try {
+                android.media.AudioManager am = (android.media.AudioManager) ctx.getSystemService(Context.AUDIO_SERVICE);
+                long t = SystemClock.uptimeMillis();
+                am.dispatchMediaKeyEvent(new android.view.KeyEvent(t, t, android.view.KeyEvent.ACTION_DOWN, key, 0));
+                am.dispatchMediaKeyEvent(new android.view.KeyEvent(t, t, android.view.KeyEvent.ACTION_UP, key, 0));
+            } catch (Throwable e) {
+                new Thread(() -> Cameras.shell(ctx, "input keyevent " + key), "carplay-key").start();
+            }
+            if (card != null) card.refreshSoon();
             if (action.equals("play") || action.equals("pause")) {
                 cpPlaying = cpHeld = action.equals("play");
                 cpHoldUntil = SystemClock.elapsedRealtime() + 5000;

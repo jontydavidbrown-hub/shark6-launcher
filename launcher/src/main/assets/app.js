@@ -470,8 +470,12 @@ class Home extends Component {
       artBg: m.art ? 'url(' + m.art + ')' : 'none', noteColor: m.art ? 'transparent' : '#4A4A4A',
       musicPct: dur > 0 ? Math.round(Math.min(1, pos / dur) * 100 * kMusic) : 0,
       posText: mmss(pos), durText: mmss(dur),
-      playing: !!m.playing, paused: !m.playing, playLabel: m.playing ? 'Pause' : 'Play',
-      togglePlay: () => Bridge.media(m.playing ? 'pause' : 'play'),
+      ...(() => {
+        // Flip the button straight away; the car's state takes over again after 3 s.
+        const on = !!this.pv('mediaPlaying', !!m.playing);
+        return { playing: on, paused: !on, playLabel: on ? 'Pause' : 'Play',
+          togglePlay: () => { this.pending = this.pending || {}; this.pending.mediaPlaying = { val: !on, until: Date.now() + 3000 }; this.forceUpdate(); Bridge.media(on ? 'pause' : 'play'); } };
+      })(),
       prevTrack: () => Bridge.media('prev'), nextTrack: () => Bridge.media('next'),
       drvTemp, pasTemp, // shown straight away, no count-up at launch
       drvUp: () => setTemp(1, clampT(drvTemp + 1)), drvDown: () => setTemp(1, clampT(drvTemp - 1)),

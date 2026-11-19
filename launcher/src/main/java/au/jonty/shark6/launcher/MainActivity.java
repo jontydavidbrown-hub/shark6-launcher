@@ -105,6 +105,7 @@ public class MainActivity extends Activity {
         media = new Media(this);
         musicCard = new MusicCard(this);
         musicCard.start();
+        media.card = musicCard;
         worker = new HandlerThread("car-poll");
         worker.start();
         bg = new Handler(worker.getLooper());
@@ -303,7 +304,7 @@ public class MainActivity extends Activity {
                 try { startActivity(i); } catch (Exception e) { launch("com.ts.avm"); }
             });
         }
-        @JavascriptInterface public void media(String action) { bg.post(() -> media.control(action)); }
+        @JavascriptInterface public void media(String action) { cmd.post(() -> media.control(action)); }
         @JavascriptInterface public void sfx(String name) {
             int id = "on".equals(name) ? sfxOn : "off".equals(name) ? sfxOff : sfxTap;
             sounds.play(id, 0.6f, 0.6f, 1, 0, 1f);
