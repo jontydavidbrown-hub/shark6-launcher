@@ -110,7 +110,7 @@ class Home extends Component {
     window.onFast = (speed, gear, turn) => {
       if (!this.state.live) return;
       const car = Object.assign({}, this.state.car);
-      if (speed >= 0) car.speed = speed;
+      if (speed >= 0) { car.speed = speed; this.speedSample(speed); }
       if (gear >= 0) car.gear = gear;
       // Right indicator: hold the right camera up for 1.5 s after it stops, so it doesn't flicker.
       if (turn === 2) { clearTimeout(this.turnT); if (!this.state.rightCam) this.setState({ rightCam: true }); }
@@ -119,6 +119,9 @@ class Home extends Component {
       this.setState({ car }, () => this.evalLow());
     };
     window.replayBoot = () => this.playBoot();
+    // Smooth dials: readings arrive in steps, so ease the shown values toward them ~30 times a second.
+    this.sm = {}; this.smAt = performance.now();
+    this.smTimer = setInterval(() => this.smoothStep(), 33);
     // Live camera: Android draws the picture over #s6-cam, so tell it where that box is on screen.
     window.onCamStatus = (t) => this.setState({ camStatus: t || '' });
     this.camTimer = setInterval(() => {
@@ -161,6 +164,51 @@ class Home extends Component {
     this.setState({ boot: 0 });
     this.raf = requestAnimationFrame(tick);
   }
+  // Speed history for the power estimate (the car reports whole km/h, so use about a 1.2 s window).
+  speedSample(kmh) {
+    const now = performance.now(), h = this.spHist = this.spHist || [];
+    h.push([now, kmh]);
+    while (h.length > 2 && now - h[1][0] > 1200) h.shift();
+  }
+  // Power in kW, negative while regenerating. The Shark doesn't share motor power with Android,
+  // so when it's missing estimate it from how fast the car speeds up or slows down.
+  kwTarget(c) {
+    if (typeof c.motorKw === 'number') return c.motorKw + Math.max(0, num(c.engineKw));
+    const h = this.spHist || [], now = performance.now(), sp = num(c.speed);
+    if (!(c.gear >= 2 && c.gear <= 6) || sp < 3 || h.length < 2) return Math.max(0, num(c.engineKw));
+    // Speed is a step function of the samples: compare with what it was ~1.2 s ago
+    // (so a speed that has held steady reads as no acceleration).
+    let ref = h[0];
+    for (const x of h) if (x[0] <= now - 1200) ref = x;
+    const span = (now - ref[0]) / 1000;
+    const a = span > 0.4 ? ((sp - ref[1]) / 3.6) / span : 0;
+    const v = sp / 3.6, MASS = 2710;
+    const drag = 0.12 + 0.5 * 1.2 * 1.25 * v * v / MASS; // rolling + air, m/s²
+    const wheelKw = MASS * (a + drag) * v / 1000;
+    // Regen recovers most of the slowing (hard stops also use the brakes); the Shark tops out near 80 kW back.
+    const kw = wheelKw < 0 ? Math.max(-80, wheelKw * 0.75) : Math.min(300, wheelKw / 0.9);
+    return Math.abs(kw) < 1.5 ? 0 : kw;
+  }
+  smoothStep() {
+    const c = this.state.car || {}, now = performance.now();
+    const dt = Math.min(0.2, (now - this.smAt) / 1000); this.smAt = now;
+    if (!this.state.live) return;
+    // Time constants in seconds: speed stays close to real time, range glides.
+    const T = { speed: 0.18, kw: 0.35, totalRange: 0.6, evRange: 0.6, fuelRange: 0.6, battPct: 0.6, fuelPct: 0.6 };
+    const tgt = { speed: Math.max(0, num(c.speed)), kw: this.kwTarget(c),
+      evRange: num(c.evRange), fuelRange: num(c.fuelRange), battPct: num(c.battPct), fuelPct: num(c.fuelPct) };
+    tgt.totalRange = num(c.totalRange, tgt.evRange + tgt.fuelRange);
+    let moved = false;
+    for (const k in tgt) {
+      const t = tgt[k], cur = this.sm[k];
+      if (cur === undefined || !isFinite(cur)) { this.sm[k] = t; moved = true; continue; }
+      let nv = cur + (t - cur) * (1 - Math.exp(-dt / T[k]));
+      if (Math.abs(t - nv) < 0.05) nv = t;
+      if (nv !== cur) { this.sm[k] = nv; moved = true; }
+    }
+    if (moved) this.setState({ smTick: now });
+  }
+  smv(k, raw) { const v = (this.sm || {})[k]; return typeof v === 'number' && isFinite(v) ? v : raw; }
   ease(t) { return 1 - Math.pow(1 - t, 3); }
   stage(start) {
     const t = Math.max(0, Math.min(1, (this.state.boot - start) / (1 - start)));
@@ -220,22 +268,24 @@ class Home extends Component {
     const count = (v, k) => Math.round(v * k);
     const tempUp = (v, k) => Math.round((16 + (v - 16) * k) * 2) / 2;
 
-    const battPct = num(c.battPct), fuelPct = num(c.fuelPct);
-    const evRange = num(c.evRange), fuelRange = num(c.fuelRange);
-    const totalRange = num(c.totalRange, evRange + fuelRange);
-    const speedNow = Math.max(0, Math.round(num(c.speed)));
+    // Smoothed values (see smoothStep) so the dials glide between the car's readings.
+    const battPct = this.smv('battPct', num(c.battPct)), fuelPct = this.smv('fuelPct', num(c.fuelPct));
+    const evRange = this.smv('evRange', num(c.evRange)), fuelRange = this.smv('fuelRange', num(c.fuelRange));
+    const totalRange = this.smv('totalRange', num(c.totalRange, evRange + fuelRange));
+    const speedF = Math.max(0, this.smv('speed', num(c.speed)));
     const MAX = 180, b = s.boot;
     // Count straight up from 0 to the current speed (no full-scale sweep).
-    const shownSpeed = b >= 1 ? speedNow : Math.round(Math.min(speedNow, MAX) * this.stage(0));
+    const speedArc = b >= 1 ? speedF : Math.min(speedF, MAX) * this.stage(0);
+    const shownSpeed = Math.round(speedArc);
 
     const gear = GEARS[c.gear] || '';
     const gearColor = (g) => (gear === g ? accent : '#4A4A4A');
 
     // Power: motor kW (negative = regen) plus engine kW when it is running.
-    const motorKw = num(c.motorKw), engineKw = num(c.engineKw);
-    const kw = motorKw + Math.max(0, engineKw);
-    const hasPower = typeof c.motorKw === 'number' || typeof c.engineKw === 'number';
-    const regen = kw < 0;
+    const engineKw = num(c.engineKw);
+    const kw = this.smv('kw', this.kwTarget(c));
+    const hasPower = !!s.live;
+    const regen = kw <= -1;
     const span = Math.min(1, Math.abs(kw) / 150) * 50 * kBars;
 
     const em = c.energyMode;
@@ -290,14 +340,14 @@ class Home extends Component {
       liveLabel: s.live ? 'LIVE' : 'NO CAR DATA', liveColor: s.live ? '#4ADE80' : '#A6A6A6',
       battPct: count(battPct, kBars), fuelPct: count(fuelPct, kBars),
       evRange: count(evRange, kBars), fuelRange: count(fuelRange, kBars), totalRange: count(totalRange, kRange),
-      rangeDash: Math.round(641 * Math.min(1, totalRange / 1000) * kRange) + ' 1000',
-      battDash: Math.round(518 * battPct / 100 * kBars) + ' 1000',
+      rangeDash: (641 * Math.min(1, totalRange / 1000) * kRange).toFixed(1) + ' 1000',
+      battDash: (518 * battPct / 100 * kBars).toFixed(1) + ' 1000',
       gearP: gearColor('P'), gearR: gearColor('R'), gearN: gearColor('N'), gearD: gearColor('D'),
       speed: shownSpeed,
       avgElec: (num(c.avgElec) * kBars).toFixed(1), avgFuel: (num(c.avgFuel) * kBars).toFixed(1),
       driveMode: (drive || '—').toUpperCase(), outside: typeof c.outside === 'number' ? Math.round(c.outside * kBars) : '—',
       replayBoot: () => this.playBoot(),
-      speedDash: Math.round(586 * Math.min(shownSpeed, MAX) / MAX) + ' 2000',
+      speedDash: (586 * Math.min(speedArc, MAX) / MAX).toFixed(1) + ' 2000',
       powerLeft: regen ? 50 - span : 50, powerWidth: span,
       powerColor: regen ? '#4ADE80' : accent,
       powerLabel: hasPower ? Math.round(kw * kBars) + ' kW' : '— kW',

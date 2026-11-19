@@ -42,7 +42,9 @@ final class Media {
                 if (st == PlaybackState.STATE_PLAYING) return c;
                 // Skip sessions that are idle or errored (e.g. Spotify "please log in", BT disconnected).
                 if (st == PlaybackState.STATE_NONE || st == PlaybackState.STATE_ERROR || st == PlaybackState.STATE_STOPPED) continue;
-                if (best == null) best = c;
+                // A paused player with nothing loaded (e.g. Amazon sitting idle) would only hide CarPlay.
+                MediaMetadata md = c.getMetadata();
+                if (best == null && md != null && md.getString(MediaMetadata.METADATA_KEY_TITLE) != null) best = c;
             }
             if (best != null) return best;
             // Some players never report a playback state: take one that at least names a track.
@@ -56,9 +58,70 @@ final class Media {
         }
     }
 
+    // ---- CarPlay ----
+    // CarPlay (com.ts.carplay) plays through Android audio but publishes no media session or
+    // notification, so read the audio focus stack and active players through the car's ADB.
+    static volatile boolean cpFocus, cpPlaying;
+    static volatile String cpReport = "carplay audio: not checked yet";
+    private static volatile long cpAt;
+    private static volatile boolean cpBusy;
+    private static final String CP_CMD = "dumpsys audio | grep -A12 'Audio Focus stack entries'; echo '=='; dumpsys audio | grep -E 'state:(started|paused)'";
+
+    private void checkCarPlay() {
+        long now = SystemClock.elapsedRealtime();
+        if (cpBusy || now - cpAt < 2500) return;
+        cpBusy = true; cpAt = now;
+        new Thread(() -> {
+            try {
+                String r = Cameras.shell(ctx, CP_CMD);
+                if (r == null) { cpReport = "carplay audio: car ADB not reachable"; return; }
+                int sep = r.indexOf("\n==");
+                String focus = sep < 0 ? r : r.substring(0, sep), players = sep < 0 ? "" : r.substring(sep);
+                // Top of the focus stack is the last "source:" line in the block.
+                String top = null;
+                boolean inStack = false;
+                for (String l : focus.split("\n")) {
+                    if (l.contains("Audio Focus stack entries")) { inStack = true; continue; }
+                    if (!inStack) continue;
+                    if (l.contains("source:")) top = l; else if (top != null) break;
+                }
+                boolean f = top != null && top.contains("com.ts.carplay") && top.contains("MediaListener");
+                boolean anyCp = false, started = false;
+                for (String l : players.split("\n")) {
+                    if (!l.contains("CP_MEDIA")) continue;
+                    anyCp = true;
+                    if (l.contains("state:started")) started = true;
+                }
+                cpFocus = f;
+                // If the players list doesn't show CarPlay at all, trust audio focus alone.
+                cpPlaying = f && (started || !anyCp);
+                cpReport = "carplay audio: focus " + (f ? "CarPlay" : top == null ? "none" : "other") + ", player " + (anyCp ? (started ? "started" : "paused") : "not listed");
+            } finally {
+                cpBusy = false;
+            }
+        }, "carplay-check").start();
+    }
+
+    private boolean carplayMode;
+
     JSONObject read() {
         JSONObject o = new JSONObject();
+        checkCarPlay();
         current = pick();
+        carplayMode = false;
+        boolean sessionPlaying = false;
+        try { sessionPlaying = current != null && current.getPlaybackState() != null && current.getPlaybackState().getState() == PlaybackState.STATE_PLAYING; } catch (Exception ignored) { }
+        if (cpFocus && !sessionPlaying) {
+            // CarPlay owns the speakers. Track names stay on the iPhone, so show CarPlay itself.
+            carplayMode = true;
+            current = null;
+            try {
+                o.put("title", cpPlaying ? "Playing on CarPlay" : "CarPlay paused");
+                o.put("app", "CarPlay");
+                o.put("playing", cpPlaying);
+            } catch (Exception ignored) { }
+            return o;
+        }
         if (current == null) {
             // No media session: fall back to a now-playing notification (e.g. CarPlay).
             String[] m = MediaListener.lastMedia;
@@ -120,6 +183,7 @@ final class Media {
             b.append(' ').append(e.getClass().getSimpleName());
         }
         String[] m = MediaListener.lastMedia;
+        b.append('\n').append(cpReport);
         b.append("\nnotification player: ").append(m == null ? "none" : m[0] + " \"" + m[1] + "\"");
         b.append("\napps with notifications: ").append(MediaListener.seen.isEmpty() ? "none seen" : MediaListener.seen);
         return b.toString();
@@ -156,6 +220,13 @@ final class Media {
     }
 
     void control(String action) {
+        if (carplayMode) {
+            // No session to control: send media keys, which CarPlay passes on to the iPhone.
+            final int key = action.equals("next") ? 87 : action.equals("prev") ? 88 : 85;
+            new Thread(() -> Cameras.shell(ctx, "input keyevent " + key), "carplay-key").start();
+            cpPlaying = action.equals("play") || (action.equals("pause") ? false : cpPlaying);
+            return;
+        }
         MediaController c = current != null ? current : pick();
         if (c == null) return;
         MediaController.TransportControls t = c.getTransportControls();

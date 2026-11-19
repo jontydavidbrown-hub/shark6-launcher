@@ -248,7 +248,15 @@ final class Sideload {
             + "echo; echo '== notifications'; dumpsys notification --noredact 2>&1 | grep -E 'pkg=|android.title=|android.text=|android.subText=' | head -150;"
             + "echo; echo '== carplay services'; dumpsys activity services 2>&1 | grep -i -E 'ServiceRecord.*(carplay|link|media|music)' | head -40;"
             + "echo; echo '== providers'; dumpsys package providers 2>&1 | grep -i -E 'carplay|media|music' | head -40;"
-            + "echo; echo '== audio'; dumpsys audio 2>&1 | grep -i -E 'player|usage|pkg|uid' | head -60";
+            + "echo; echo '== audio'; dumpsys audio 2>&1 | grep -i -E 'player|usage|pkg|uid' | head -60;"
+            + "echo; echo '== focus stack'; dumpsys audio 2>&1 | grep -A12 'Audio Focus stack entries';"
+            + "echo; echo '== players'; dumpsys audio 2>&1 | grep -E 'state:' | head -30;"
+            + "echo; echo '== carplay remote service'; dumpsys activity service com.ts.carplay.app/.service.CarPlayRemoteService 2>&1 | head -c 6000;"
+            + "echo; echo '== carplay service'; dumpsys activity service com.ts.carplay/.CarPlayService 2>&1 | head -c 6000;"
+            + "echo; echo '== cluster service'; dumpsys activity service com.ts.appservice.cluster 2>&1 | head -c 4000;"
+            + "echo; echo '== carplay package'; dumpsys package com.ts.carplay 2>&1 | grep -E 'Action:|authority|Provider|Service|Receiver' | head -60;"
+            + "echo; echo '== carplay.app package'; dumpsys package com.ts.carplay.app 2>&1 | grep -E 'Action:|authority|Provider|Service|Receiver' | head -60;"
+            + "echo; echo '== props'; getprop 2>&1 | grep -i -E 'carplay|iap|airplay' | head -30";
 
     private static final String PAGE = "<!doctype html><html><head><meta charset=utf-8>"
             + "<meta name=viewport content='width=device-width,initial-scale=1'><title>Send to Shark 6</title>"
