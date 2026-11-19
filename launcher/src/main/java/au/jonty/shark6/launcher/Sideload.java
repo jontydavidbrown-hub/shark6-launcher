@@ -243,24 +243,15 @@ final class Sideload {
     }
 
     private static final String PROBE =
-            "echo '== media sessions'; dumpsys media_session 2>&1 | head -c 12000;"
-            + "echo; echo '== media packages'; pm list packages 2>&1 | grep -i -E 'carplay|ts\\.|link|desay|media|music|radio|auto' ;"
-            + "echo; echo '== notifications'; dumpsys notification --noredact 2>&1 | grep -E 'pkg=|android.title=|android.text=|android.subText=' | head -150;"
-            + "echo; echo '== carplay services'; dumpsys activity services 2>&1 | grep -i -E 'ServiceRecord.*(carplay|link|media|music)' | head -40;"
-            + "echo; echo '== providers'; dumpsys package providers 2>&1 | grep -i -E 'carplay|media|music' | head -40;"
-            + "echo; echo '== audio'; dumpsys audio 2>&1 | grep -i -E 'player|usage|pkg|uid' | head -60;"
-            + "echo; echo '== focus stack'; dumpsys audio 2>&1 | grep -A12 'Audio Focus stack entries';"
+            "echo '== focus stack'; dumpsys audio 2>&1 | grep -A12 'Audio Focus stack entries';"
             + "echo; echo '== players'; dumpsys audio 2>&1 | grep -E 'state:' | head -30;"
-            + "echo; echo '== carplay remote service'; dumpsys activity service com.ts.carplay.app/.service.CarPlayRemoteService 2>&1 | head -c 6000;"
-            + "echo; echo '== carplay service'; dumpsys activity service com.ts.carplay/.CarPlayService 2>&1 | head -c 6000;"
-            + "echo; echo '== cluster service'; dumpsys activity service com.ts.appservice.cluster 2>&1 | head -c 4000;"
-            + "echo; echo '== carplay package'; dumpsys package com.ts.carplay 2>&1 | grep -E 'Action:|authority|Provider|Service|Receiver' | head -60;"
-            + "echo; echo '== carplay.app package'; dumpsys package com.ts.carplay.app 2>&1 | grep -E 'Action:|authority|Provider|Service|Receiver' | head -60;"
-            + "echo; echo '== props'; getprop 2>&1 | grep -i -E 'carplay|iap|airplay' | head -30;"
-            + "echo; echo '== cluster package'; dumpsys package com.ts.appservice.cluster 2>&1 | grep -E 'Action:|authority|Provider|Service|Receiver' | head -60;"
-            + "echo; echo '== ts services'; dumpsys activity services 2>&1 | grep -E 'ServiceRecord.*com\\.ts\\.' | head -60;"
             + "echo; echo '== log: song info'; logcat -d -v time -t 20000 2>&1 | grep -i -E 'title|artist|album|song|track|nowplay|metadata|playinfo|mediainfo' | grep -v -i 'shark6' | tail -150;"
-            + "echo; echo '== log: carplay and cluster'; logcat -d -v time -t 8000 2>&1 | grep -i -E 'carplay|cluster|iap2|mediaremote' | tail -150";
+            + "echo; echo '== log: carplay and cluster'; logcat -d -v time -t 8000 2>&1 | grep -i -E 'carplay|cluster|iap2|mediaremote' | tail -150;"
+            + "for p in com.byd.localmusic com.ts.carplay com.ts.carplay.app com.ts.appservice.cluster com.ts.qnxapp com.byd.globalnotification; do"
+            + " echo; echo \"== log of $p\"; for id in $(pidof $p); do logcat -d -v time --pid=$id -t 4000 2>&1 | tail -80; done; done;"
+            + "echo; echo '== localmusic package'; dumpsys package com.byd.localmusic 2>&1 | grep -E 'Action:|authority|Provider\\{|Service\\{|Receiver\\{|permission' | head -80;"
+            + "echo; echo '== settings with media info'; for t in global system secure; do settings list $t 2>&1 | grep -i -E 'media|music|song|track|artist|title|carplay|playing|cp_' | sed \"s/^/$t: /\"; done | head -60;"
+            + "echo; echo '== car props'; dumpsys car_service 2>&1 | grep -i -E 'media|music|song|title|artist' | head -40";
 
     private static final String PAGE = "<!doctype html><html><head><meta charset=utf-8>"
             + "<meta name=viewport content='width=device-width,initial-scale=1'><title>Send to Shark 6</title>"
