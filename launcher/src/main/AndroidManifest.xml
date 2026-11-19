@@ -99,7 +99,7 @@
         <!-- Not full screen on purpose: BYD's own header bar stays visible and works with one tap. -->
         <activity android:name=".MainActivity" android:exported="true"
             android:launchMode="singleTask"
-            android:screenOrientation="landscape"
+            android:screenOrientation="unspecified"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode|density">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

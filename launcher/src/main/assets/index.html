@@ -17,6 +17,19 @@ html,body{margin:0;height:100%;position:fixed;width:100%;top:0;left:0;background
 #fit{position:absolute;left:0;top:0;width:1600px;height:900px;transform-origin:0 0}
 #stage{width:100%;height:100%}
 a{color:#D42A3A}
+/* Portrait (screen rotated): 900 wide, as tall as the screen. Same tiles, rearranged (Jonty approved the mock-up 2026-11-19). */
+#fit.portrait #stage>div{width:900px!important;height:100%!important;grid-template-columns:340px minmax(0,1fr)!important;grid-template-rows:44px 610px minmax(0,1fr) 236px!important}
+#fit.portrait #stage>div>section[aria-label="Drive"]{grid-column:1 / -1!important;grid-row:2!important}
+#fit.portrait #stage>div>section[aria-label="Media and shortcuts"]{grid-column:1!important;grid-row:3!important}
+#fit.portrait #stage>div>section[aria-label="Cameras"]{grid-column:2!important;grid-row:3!important}
+#fit.portrait #stage>div>section[aria-label="Climate and seats"]{grid-column:1 / -1!important;grid-row:4!important;flex-wrap:wrap!important;justify-content:center!important;align-content:center!important;row-gap:14px!important;column-gap:14px!important;padding:0 16px!important}
+#fit.portrait section[aria-label="Climate and seats"]>div:nth-child(3){order:-1;flex-basis:100%;justify-content:center}
+#fit.portrait section[aria-label="Climate and seats"]>div:not(:nth-child(3)){zoom:0.86}
+#fit.portrait #stage>div>div[aria-label="Status"]{grid-template-columns:auto minmax(0,1fr)!important}
+#fit.portrait #stage>div>div[aria-label="Status"]>div:first-child{display:none!important}
+#fit.portrait #stage>div>div[aria-label="Status"]>div:nth-child(2){justify-self:start!important}
+#fit.portrait [style*="width: 1600px"]{width:100%!important;height:100%!important}
+#fit.portrait [style*="width: 1500px"]{width:860px!important;max-height:94%!important}
 /* Flex gaps as margins: the car's WebView predates flexbox gap. */
 .gx-10>*+*{margin-left:10px}.gx-14>*+*{margin-left:14px}.gx-18>*+*{margin-left:18px}.gx-20>*+*{margin-left:20px}.gx-22>*+*{margin-left:22px}.gx-24>*+*{margin-left:24px}.gx-28>*+*{margin-left:28px}.gx-4>*+*{margin-left:4px}.gx-6>*+*{margin-left:6px}.gx-8>*+*{margin-left:8px}.gy-10>*+*{margin-top:10px}.gy-12>*+*{margin-top:12px}.gy-16>*+*{margin-top:16px}.gy-22>*+*{margin-top:22px}.gy-26>*+*{margin-top:26px}.gy-30>*+*{margin-top:30px}.gy-4>*+*{margin-top:4px}.gy-6>*+*{margin-top:6px}.gy-7>*+*{margin-top:7px}
 button{font-family:inherit;cursor:pointer}
@@ -57,6 +70,17 @@ button:active,a:active{filter:brightness(1.3)}
   function size() {
     // Fill the height; the layout stretches sideways to the screen's full width.
     var w = window.innerWidth, h = window.innerHeight;
+    if (h > w) {
+      // Portrait: 900 wide, stretched to the screen's full height.
+      var kp = w / 900;
+      fit.className = 'portrait';
+      fit.style.width = '900px';
+      fit.style.height = Math.max(1600, h / kp) + 'px';
+      fit.style.transform = 'scale(' + kp + ')';
+      return;
+    }
+    fit.className = '';
+    fit.style.height = '900px';
     var k = h / 900, lw = w / k;
     if (lw < 1600) { k = w / 1600; lw = 1600; }
     fit.style.width = lw + 'px';
