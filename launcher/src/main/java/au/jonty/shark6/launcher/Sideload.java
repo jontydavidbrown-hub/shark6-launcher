@@ -113,6 +113,13 @@ final class Sideload {
 
             if (method.equals("GET") && path.equals("/")) { reply(out, 200, "text/html; charset=utf-8", PAGE); return; }
             if (!PIN.equals(qp.get("pin"))) { reply(out, 403, "text/plain", "Wrong PIN. Check the PIN on the car screen."); return; }
+            if (method.equals("GET") && path.equals("/probe")) {
+                // Car details for debugging (what's playing, which media apps exist), run through
+                // the car's ADB so it sees everything. Read-only commands only.
+                String r = Cameras.shell(c, PROBE);
+                reply(out, 200, "text/plain; charset=utf-8", r == null ? "Couldn't reach the car's ADB." : r);
+                return;
+            }
 
             File dir = new File(c.getCacheDir(), "sideload");
             dir.mkdirs();
@@ -235,6 +242,14 @@ final class Sideload {
         new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(c, m, Toast.LENGTH_LONG).show());
     }
 
+    private static final String PROBE =
+            "echo '== media sessions'; dumpsys media_session 2>&1 | head -c 12000;"
+            + "echo; echo '== media packages'; pm list packages 2>&1 | grep -i -E 'carplay|ts\\.|link|desay|media|music|radio|auto' ;"
+            + "echo; echo '== notifications'; dumpsys notification --noredact 2>&1 | grep -E 'pkg=|android.title=|android.text=|android.subText=' | head -150;"
+            + "echo; echo '== carplay services'; dumpsys activity services 2>&1 | grep -i -E 'ServiceRecord.*(carplay|link|media|music)' | head -40;"
+            + "echo; echo '== providers'; dumpsys package providers 2>&1 | grep -i -E 'carplay|media|music' | head -40;"
+            + "echo; echo '== audio'; dumpsys audio 2>&1 | grep -i -E 'player|usage|pkg|uid' | head -60";
+
     private static final String PAGE = "<!doctype html><html><head><meta charset=utf-8>"
             + "<meta name=viewport content='width=device-width,initial-scale=1'><title>Send to Shark 6</title>"
             + "<style>body{margin:0;background:#050505;color:#F2F2F2;font:16px system-ui,sans-serif;padding:24px 16px}"
@@ -248,7 +263,8 @@ final class Sideload {
             + "<label>APK file</label><input id=f type=file>"
             + "<button id=up>Send file</button>"
             + "<label>Or a link to an APK</label><input id=u type=url placeholder='https://…/game.apk'>"
-            + "<button id=go>Send link</button><div id=s></div><script>"
+            + "<button id=go>Send link</button><div id=s></div>"
+            + "<p style='margin-top:28px'><a style='color:#A6A6A6' href='#' onclick=\"location.href='/probe?pin='+encodeURIComponent(document.getElementById('pin').value.trim());return false\">Car details for Claude (debugging)</a></p><script>"
             + "const $=i=>document.getElementById(i),say=t=>$('s').textContent=t;"
             + "try{$('pin').value=localStorage.pin||''}catch(e){}"
             + "function pin(){const p=$('pin').value.trim();try{localStorage.pin=p}catch(e){}return encodeURIComponent(p)}"
