@@ -263,6 +263,13 @@ class Home extends Component {
   renderVals() {
     const s = this.state, c = s.car || {};
     const accent = MODE_ACCENT[c.opMode] || '#D42A3A';
+    if (accent !== this.lastAccent) {
+      // The soft glow behind the dials and on the live arcs follows the drive-mode accent.
+      this.lastAccent = accent;
+      const n = parseInt(accent.slice(1), 16), rgb = (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255);
+      document.documentElement.style.setProperty('--acc-glow', 'rgba(' + rgb + ',0.65)');
+      document.documentElement.style.setProperty('--acc-wash', 'rgba(' + rgb + ',0.10)');
+    }
     const set = (o) => this.setState(o);
     const kRange = this.stage(0), kBars = this.stage(0.1), kClimate = this.stage(0.25), kMusic = this.stage(0.35);
     const count = (v, k) => Math.round(v * k);
@@ -381,6 +388,8 @@ class Home extends Component {
         if (tap && e && e.type === 'pointerup') { sfx('tap'); Bridge.openApp('byd'); }
       },
       tyreNote: tyres.length ? (tyreLow ? 'psi · CHECK' : 'psi · all OK') : 'psi',
+      tyreState: tyres.length ? (tyreLow ? 'CHECK TYRES' : 'ALL OK') : '',
+      tyreStateColor: tyreLow ? '#FF8A00' : '#5A5A62',
       ...(() => {
         // Right indicator camera, low-speed front camera, off-road view.
         const rightBig = !!s.rightCam && c.gear !== 2;

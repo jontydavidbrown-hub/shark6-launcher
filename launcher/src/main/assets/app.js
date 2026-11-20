@@ -263,6 +263,13 @@ class Home extends Component {
   renderVals() {
     const s = this.state, c = s.car || {};
     const accent = MODE_ACCENT[c.opMode] || '#D42A3A';
+    if (accent !== this.lastAccent) {
+      // The soft glow behind the dials and on the live arcs follows the drive-mode accent.
+      this.lastAccent = accent;
+      const n = parseInt(accent.slice(1), 16), rgb = (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255);
+      document.documentElement.style.setProperty('--acc-glow', 'rgba(' + rgb + ',0.65)');
+      document.documentElement.style.setProperty('--acc-wash', 'rgba(' + rgb + ',0.10)');
+    }
     const set = (o) => this.setState(o);
     const kRange = this.stage(0), kBars = this.stage(0.1), kClimate = this.stage(0.25), kMusic = this.stage(0.35);
     const count = (v, k) => Math.round(v * k);
@@ -381,6 +388,8 @@ class Home extends Component {
         if (tap && e && e.type === 'pointerup') { sfx('tap'); Bridge.openApp('byd'); }
       },
       tyreNote: tyres.length ? (tyreLow ? 'psi · CHECK' : 'psi · all OK') : 'psi',
+      tyreState: tyres.length ? (tyreLow ? 'CHECK TYRES' : 'ALL OK') : '',
+      tyreStateColor: tyreLow ? '#FF8A00' : '#5A5A62',
       ...(() => {
         // Right indicator camera, low-speed front camera, off-road view.
         const rightBig = !!s.rightCam && c.gear !== 2;
@@ -554,28 +563,31 @@ class Home extends Component {
   </div>
 
   
-  <section aria-label="Media and shortcuts" style="display: grid; grid-template-rows: 104px minmax(0, 1fr); gap: 14px; min-height: 0; min-width: 0; overflow: hidden;">
+  <section aria-label="Media and shortcuts" style="display: grid; grid-template-rows: 256px minmax(0, 1fr); gap: 14px; min-height: 0; min-width: 0; overflow: hidden;">
 
-    <div class="gx-14" style="display: flex;  min-height: 0; min-width: 0;">
-      <div aria-label="Drive system: ${v.modeShort}" style="flex: 1 1 0; min-width: 0; background: #111111; border: 1px solid #262626; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 38px; line-height: 1; letter-spacing: 0.04em; color: ${v.modeColor};">${v.modeShort}</span>
-      </div>
-      <a href="#" onClick=${v.openCameras} aria-label="Open 360 cameras" style="text-decoration: none; flex: 1 1 0; min-width: 0; background: #111111; border: 1px solid #262626; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 38px; line-height: 1; letter-spacing: 0.02em; color: #F2F2F2;">360°</span>
-      </a>
-      <a href="#" onClick=${v.openCarPlay} aria-label="Open CarPlay" style="text-decoration: none; flex: 1 1 0; min-width: 0; background: #111111; border: 1px solid #262626; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
-        <div class="gy-10" style="display: flex; flex-direction: column; align-items: center;">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="#F2F2F2" stroke-width="2"></rect><path d="M9.2 8.3v7.4c0 .6.6.9 1.1.6l5.6-3.7c.4-.3.4-.9 0-1.2l-5.6-3.7c-.5-.3-1.1 0-1.1.6z" fill="#F2F2F2"></path></svg>
-        </div>
-      </a>
+    <div aria-label="Tyre pressures" style="background: #111111; border: 1px solid #262626; border-radius: 8px; position: relative; min-height: 0; min-width: 0; overflow: hidden;">
+      <svg width="84" height="176" viewBox="0 0 84 176" aria-hidden="true" style="position: absolute; left: 50%; top: 50%; margin: -88px 0 0 -42px;">
+        <rect x="8" y="6" width="68" height="164" rx="22" fill="rgba(255,255,255,0.05)" stroke="#3A3A40" stroke-width="2"></rect>
+        <path d="M16 52 Q42 40 68 52 L64 76 Q42 70 20 76 Z" fill="rgba(255,255,255,0.08)"></path>
+        <rect x="16" y="92" width="52" height="66" rx="8" fill="none" stroke="#2C2C32" stroke-width="2"></rect>
+        <rect x="0" y="26" width="9" height="30" rx="4" fill=${v.tyreFLc}></rect><rect x="75" y="26" width="9" height="30" rx="4" fill=${v.tyreFRc}></rect>
+        <rect x="0" y="118" width="9" height="30" rx="4" fill=${v.tyreRLc}></rect><rect x="75" y="118" width="9" height="30" rx="4" fill=${v.tyreRRc}></rect>
+      </svg>
+      <span style="position: absolute; left: 24px; top: 40px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 40px; color: ${v.tyreFLc};">${v.tyreFL}</span>
+      <span style="position: absolute; right: 24px; top: 40px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 40px; color: ${v.tyreFRc};">${v.tyreFR}</span>
+      <span style="position: absolute; left: 24px; bottom: 50px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 40px; color: ${v.tyreRLc};">${v.tyreRL}</span>
+      <span style="position: absolute; right: 24px; bottom: 50px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 40px; color: ${v.tyreRRc};">${v.tyreRR}</span>
+      <span style="position: absolute; left: 24px; top: 16px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.18em; color: #6B6B72;">PSI</span>
+      <span style="position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.18em; color: ${v.tyreStateColor};">${v.tyreState}</span>
     </div>
 
     <section aria-label="Now playing" class="gy-12" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 18px 22px; display: flex; flex-direction: column; justify-content: space-between;  min-height: 0; min-width: 0; overflow: hidden;">
-      <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">NOW PLAYING</span>
-      <div style="position: relative; width: 100%; padding-top: 56.25%; flex-shrink: 0;"><div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #1E1E1E center / contain no-repeat; background-image: ${v.artBg}; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke=${v.noteColor} stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-      </div></div>
-      <div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.trackTitle}</div><div style="font-size: 16px; color: #A6A6A6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.trackSub}</div></div>
+      <div class="gx-16" style="display: flex; align-items: center;  min-width: 0;">
+        <a href="#" onClick=${v.openCarPlay} aria-label="Open CarPlay" style="text-decoration: none; position: relative; display: block; width: 116px; height: 116px; flex-shrink: 0;"><div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #1E1E1E center / cover no-repeat; background-image: ${v.artBg}; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke=${v.noteColor} stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+      </div><span style="position: absolute; right: -6px; bottom: -6px; width: 40px; height: 40px; border-radius: 12px; background: rgba(12,12,14,0.85); display: flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="#F2F2F2" stroke-width="2"></rect><path d="M9.2 8.3v7.4c0 .6.6.9 1.1.6l5.6-3.7c.4-.3.4-.9 0-1.2l-5.6-3.7c-.5-.3-1.1 0-1.1.6z" fill="#F2F2F2"></path></svg></span></a>
+        <div style="flex: 1 1 0; min-width: 0;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 28px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.trackTitle}</div><div style="font-size: 16px; color: #A6A6A6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.trackSub}</div></div>
+      </div>
       <div class="gy-6" style="display: flex; flex-direction: column;">
         <div style="height: 4px; background: #262626;"><div style="width: ${v.musicPct}%; height: 4px; background: ${v.accent};"></div></div>
         <div style="display: flex; justify-content: space-between; font-size: 17px; color: #A6A6A6;"><span>${v.posText}</span><span>${v.durText}</span></div>
@@ -594,16 +606,7 @@ class Home extends Component {
   
   <section aria-label="Drive" style="grid-column: span 2; position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: 104px minmax(0, 1fr); column-gap: 18px; row-gap: 14px; min-height: 0; min-width: 0;">
 
-    <div aria-label="Tyre pressures" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; min-width: 0; overflow: hidden;">
-      <div style="display: flex; justify-content: space-between; align-items: baseline;">
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">TYRES</span>
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.12em; color: #A6A6A6; text-transform: uppercase;">${v.tyreNote}</span>
-      </div>
-      <div style="display: flex; justify-content: space-around; align-items: flex-end;">
-        <div class="gy-4" style="display: flex; flex-direction: column; align-items: center;  min-width: 0;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.14em; color: #6B6B6B;">FL</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 34px; color: ${v.tyreFLc};">${v.tyreFL}</span></div><div class="gy-4" style="display: flex; flex-direction: column; align-items: center;  min-width: 0;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.14em; color: #6B6B6B;">FR</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 34px; color: ${v.tyreFRc};">${v.tyreFR}</span></div><div style="width: 1px; align-self: stretch; background: #262626;"></div><div class="gy-4" style="display: flex; flex-direction: column; align-items: center;  min-width: 0;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.14em; color: #6B6B6B;">RL</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 34px; color: ${v.tyreRLc};">${v.tyreRL}</span></div><div class="gy-4" style="display: flex; flex-direction: column; align-items: center;  min-width: 0;"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.14em; color: #6B6B6B;">RR</span><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 34px; color: ${v.tyreRRc};">${v.tyreRR}</span></div>
-      </div>
-    </div>
-    <div aria-label="Trip ${v.tripName}. Tap to switch trip, hold to reset" onClick=${v.tripTap} onPointerDown=${v.tripHoldStart} onPointerUp=${v.tripHoldEnd} onPointerLeave=${v.tripHoldEnd} onPointerCancel=${v.tripHoldEnd} style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; min-width: 0; overflow: hidden; position: relative; cursor: pointer;">
+    <div aria-label="Trip ${v.tripName}. Tap to switch trip, hold to reset" onClick=${v.tripTap} onPointerDown=${v.tripHoldStart} onPointerUp=${v.tripHoldEnd} onPointerLeave=${v.tripHoldEnd} onPointerCancel=${v.tripHoldEnd} style="grid-column: 1 / -1; background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; min-width: 0; overflow: hidden; position: relative; cursor: pointer;">
       <div style="display: flex; justify-content: space-between; align-items: baseline;">
         <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">TRIP ${v.tripName}</span>
         <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.12em;"><span style="color: ${v.tripAColor};">A</span><span style="color: #333333;"> · </span><span style="color: ${v.tripBColor};">B</span></span>
@@ -623,7 +626,7 @@ class Home extends Component {
       <div style="position: relative; width: 380px; height: 380px; flex-shrink: 0; margin: 6px 0 -54px;">
         <svg width="380" height="380" viewBox="0 0 320 320" aria-hidden="true">
           <circle cx="160" cy="160" r="136" fill="none" stroke="#262626" stroke-width="18" stroke-dasharray="641 1000" transform="rotate(135 160 160)"></circle>
-          <circle cx="160" cy="160" r="136" fill="none" stroke=${v.accent} stroke-width="18" stroke-dasharray=${v.rangeDash} transform="rotate(135 160 160)"></circle>
+          <circle cx="160" cy="160" r="136" fill="none" class="s6-acc" stroke=${v.accent} stroke-width="18" stroke-dasharray=${v.rangeDash} transform="rotate(135 160 160)"></circle>
           <circle cx="160" cy="160" r="110" fill="none" stroke="#262626" stroke-width="8" stroke-dasharray="518 1000" transform="rotate(135 160 160)"></circle>
           <circle cx="160" cy="160" r="110" fill="none" stroke="#F2F2F2" stroke-width="8" stroke-dasharray=${v.battDash} transform="rotate(135 160 160)"></circle>
         </svg>
@@ -649,7 +652,7 @@ class Home extends Component {
       <div style="position: relative; width: 400px; height: 375px; flex-shrink: 0; margin: 10px 0 -53px;">
         <svg width="400" height="375" viewBox="0 0 320 300" aria-hidden="true" style="position: absolute; top: 0; right: 0; bottom: 0; left: 0;">
           <circle cx="160" cy="165" r="140" fill="none" stroke="#1C1C1C" stroke-width="10" stroke-dasharray="586 2000" transform="rotate(150 160 165)"></circle>
-          <circle cx="160" cy="165" r="140" fill="none" stroke=${v.accent} stroke-width="10" stroke-dasharray=${v.speedDash} transform="rotate(150 160 165)"></circle>
+          <circle cx="160" cy="165" r="140" fill="none" class="s6-acc" stroke=${v.accent} stroke-width="10" stroke-dasharray=${v.speedDash} transform="rotate(150 160 165)"></circle>
           <circle cx="160" cy="165" r="125" fill="none" stroke="#2A2A2A" stroke-width="6" stroke-dasharray="1.4 11.69" transform="rotate(150 160 165)"></circle>
           <circle cx="160" cy="165" r="125" fill="none" stroke="#050505" stroke-width="8" stroke-dasharray="0 523.6 261.8 2000" transform="rotate(150 160 165)"></circle>
         </svg>

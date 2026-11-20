@@ -17,6 +17,45 @@ html,body{margin:0;height:100%;position:fixed;width:100%;top:0;left:0;background
 #fit{position:absolute;left:0;top:0;width:1600px;height:900px;transform-origin:0 0}
 #stage{width:100%;height:100%}
 a{color:#D42A3A}
+/* ---- 0.54 look (Jonty approved the unified mock-up 2026-11-20): one glass material on one lit background ---- */
+:root{--acc-glow:rgba(212,42,58,0.65);--acc-wash:rgba(212,42,58,0.10)}
+#stage>div{background:radial-gradient(1300px 760px at 50% 48%, var(--acc-wash), transparent 72%), #08080A!important}
+/* Every tile: the same faint glass with a top hairline */
+#stage section[aria-label="Now playing"], #stage div[aria-label="Tyre pressures"], #stage div[aria-label^="Trip"], #stage div[aria-label^="Camera"], #stage section[aria-label="Climate and seats"]{background:rgba(255,255,255,0.03)!important;border:0!important;box-shadow:inset 0 1px 0 rgba(255,255,255,0.07), inset 0 0 0 1px rgba(255,255,255,0.04)!important;border-radius:20px!important}
+/* Controls inside a tile: one step brighter of the same glass */
+#stage section[aria-label="Climate and seats"] button, #stage button[aria-label$="track"]{background:rgba(255,255,255,0.045)!important;box-shadow:none!important;border-radius:14px!important}
+#stage section[aria-label="Climate and seats"] button:not([aria-pressed="true"]), #stage button[aria-label$="track"]{border-color:transparent!important}
+#stage section[aria-label="Climate and seats"] button[aria-pressed="true"]{background:rgba(255,255,255,0.08)!important;border-width:1px!important}
+#stage section[aria-label="Climate and seats"] div[style*="210px"]{background:rgba(255,255,255,0.045)!important;border-radius:14px!important}
+#stage section[aria-label="Climate and seats"] button[aria-label$="temperature down"], #stage section[aria-label="Climate and seats"] button[aria-label$="temperature up"], #stage section[aria-label="Climate and seats"] button[aria-label*="degrees, tap for slider"]{background:transparent!important}
+#stage section[aria-label="Climate and seats"] button>span{display:none!important}
+#stage section[aria-label="Climate and seats"] button svg{-webkit-transform:scale(1.15);transform:scale(1.15)}
+#stage button[aria-label="Pause"], #stage button[aria-label="Play"]{border-radius:14px!important;-webkit-transform:none!important;transform:none!important}
+#stage section[aria-label="Now playing"] div[style*="width: 116px"]>div{background-color:rgba(255,255,255,0.04)!important;border-radius:14px!important}
+#stage #s6-cam{border-radius:14px!important}
+/* Header: clock and outside temperature only */
+#stage div[aria-label="Status"]>div:first-child{visibility:hidden}
+#stage div[aria-label="Status"]>div:nth-child(3)>span:nth-child(1),#stage div[aria-label="Status"]>div:nth-child(3)>span:nth-child(2),#stage div[aria-label="Status"]>div:nth-child(3)>span:nth-child(5),#stage div[aria-label="Status"]>div:nth-child(3)>span:nth-child(6){display:none!important}
+#stage div[aria-label="Status"]>div:nth-child(3)>span:nth-child(3){margin-left:0!important}
+#stage div[aria-label="Status"] button{background:transparent!important;border:0!important;opacity:.55}
+#stage div[aria-label="Time"] span:first-child{font-size:40px!important;font-weight:500!important}
+/* No section titles: numbers and units say what they are */
+#stage span[style*="font-style: italic"][style*="letter-spacing: 0.12em"]{display:none!important}
+#stage div[aria-label^="Trip"]>div:first-child{position:absolute;top:12px;right:16px}
+#stage div[aria-label^="Trip"]{-webkit-box-pack:center!important;justify-content:center!important}
+/* Dials: round caps, deep tracks, glowing live arcs */
+#stage section[aria-label="Range"] circle, #stage section[aria-label="Speed"] circle{stroke-linecap:round}
+#stage circle[stroke="#262626"], #stage circle[stroke="#1C1C1C"]{stroke:#17171A!important}
+#stage circle.s6-acc{-webkit-filter:drop-shadow(0 0 10px var(--acc-glow));filter:drop-shadow(0 0 10px var(--acc-glow))}
+#stage circle[stroke="#F2F2F2"]{stroke:#E9E9EE!important;-webkit-filter:drop-shadow(0 0 6px rgba(255,255,255,0.35));filter:drop-shadow(0 0 6px rgba(255,255,255,0.35))}
+#stage circle[stroke="#2A2A2A"], #stage circle[stroke="#050505"]{display:none}
+#stage span[style*="font-size: 104px"]{font-size:112px!important;text-shadow:0 0 30px rgba(255,255,255,0.12)}
+#stage section[aria-label="Range"] [style*="border-left: 4px"]{border-left-width:2px!important}
+#stage section[aria-label="Range"] [style*="font-size: 36px"]{font-size:30px!important}
+#stage section[aria-label="Range"] [style*="font-size: 20px"]{font-size:16px!important;letter-spacing:.12em!important;color:#7C7C84!important}
+#stage section[aria-label="Speed"] [style*="height: 12px"]{height:8px!important;border-radius:4px!important;background:#17171A!important;overflow:visible}
+#stage section[aria-label="Speed"] [style*="height: 12px"]>div:first-child{border-radius:4px;box-shadow:0 0 12px currentColor}
+#stage section[aria-label="Speed"] div[style*="justify-content: space-between"]>span:first-child, #stage section[aria-label="Speed"] div[style*="justify-content: space-between"]>span:last-child{visibility:hidden}
 /* Portrait (screen rotated): 900 wide, as tall as the screen. Same tiles, rearranged (Jonty approved the mock-up 2026-11-19). */
 #fit.portrait #stage>div{width:900px!important;height:100%!important;grid-template-columns:340px minmax(0,1fr)!important;grid-template-rows:44px 610px minmax(0,1fr) 236px!important}
 #fit.portrait #stage>div>section[aria-label="Drive"]{grid-column:1 / -1!important;grid-row:2!important}
@@ -31,7 +70,7 @@ a{color:#D42A3A}
 #fit.portrait [style*="width: 1600px"]{width:100%!important;height:100%!important}
 #fit.portrait [style*="width: 1500px"]{width:860px!important;max-height:94%!important}
 /* Flex gaps as margins: the car's WebView predates flexbox gap. */
-.gx-10>*+*{margin-left:10px}.gx-14>*+*{margin-left:14px}.gx-18>*+*{margin-left:18px}.gx-20>*+*{margin-left:20px}.gx-22>*+*{margin-left:22px}.gx-24>*+*{margin-left:24px}.gx-28>*+*{margin-left:28px}.gx-4>*+*{margin-left:4px}.gx-6>*+*{margin-left:6px}.gx-8>*+*{margin-left:8px}.gy-10>*+*{margin-top:10px}.gy-12>*+*{margin-top:12px}.gy-16>*+*{margin-top:16px}.gy-22>*+*{margin-top:22px}.gy-26>*+*{margin-top:26px}.gy-30>*+*{margin-top:30px}.gy-4>*+*{margin-top:4px}.gy-6>*+*{margin-top:6px}.gy-7>*+*{margin-top:7px}
+.gx-10>*+*{margin-left:10px}.gx-14>*+*{margin-left:14px}.gx-16>*+*{margin-left:16px}.gx-18>*+*{margin-left:18px}.gx-20>*+*{margin-left:20px}.gx-22>*+*{margin-left:22px}.gx-24>*+*{margin-left:24px}.gx-28>*+*{margin-left:28px}.gx-4>*+*{margin-left:4px}.gx-6>*+*{margin-left:6px}.gx-8>*+*{margin-left:8px}.gy-10>*+*{margin-top:10px}.gy-12>*+*{margin-top:12px}.gy-16>*+*{margin-top:16px}.gy-22>*+*{margin-top:22px}.gy-26>*+*{margin-top:26px}.gy-30>*+*{margin-top:30px}.gy-4>*+*{margin-top:4px}.gy-6>*+*{margin-top:6px}.gy-7>*+*{margin-top:7px}
 button{font-family:inherit;cursor:pointer}
 *:focus{outline:none}
 button::-moz-focus-inner{border:0}
