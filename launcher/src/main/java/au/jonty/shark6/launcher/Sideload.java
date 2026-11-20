@@ -41,6 +41,8 @@ final class Sideload {
     static final String PIN = String.format(Locale.ROOT, "%04d", new Random().nextInt(10000));
     private static volatile boolean started;
     static volatile String last = "nothing yet";
+    /** The car-screen diagnostics text, set by MainActivity so the phone page can send it too. */
+    static volatile java.util.concurrent.Callable<String> diagSource;
 
     static void start(Context c) {
         if (started) return;
@@ -118,6 +120,24 @@ final class Sideload {
                 // the car's ADB so it sees everything. Read-only commands only.
                 String r = Cameras.shell(c, PROBE);
                 reply(out, 200, "text/plain; charset=utf-8", r == null ? "Couldn't reach the car's ADB." : r);
+                return;
+            }
+
+            if (method.equals("POST") && path.equals("/key")) {
+                // The GitHub key comes in the body so it never shows in a URL.
+                long len = Long.parseLong(h.getOrDefault("content-length", "0"));
+                if (len <= 0 || len > 4096) { reply(out, 400, "text/plain", "Paste the GitHub key first."); return; }
+                ByteArrayOutputStream kb = new ByteArrayOutputStream();
+                copy(in, kb, len);
+                reply(out, 200, "text/plain; charset=utf-8", Report.saveKey(c, kb.toString("UTF-8")));
+                return;
+            }
+            if (method.equals("POST") && path.equals("/send")) {
+                String d = null;
+                try { if (diagSource != null) d = diagSource.call(); } catch (Exception ignored) { }
+                String r = Report.send(c, d, Cameras.shell(c, PROBE));
+                toast(c, r);
+                reply(out, 200, "text/plain; charset=utf-8", r);
                 return;
             }
 
@@ -243,7 +263,7 @@ final class Sideload {
     }
 
     // 0.59 probe: where does CarPlay's map for the instrument cluster go? Looking for a second display or surface we could capture.
-    private static final String PROBE =
+    static final String PROBE =
             "echo '== displays'; dumpsys display 2>&1 | grep -E 'DisplayDeviceInfo|mDisplayId|uniqueId|type |FLAG' | head -60;"
             + "echo; echo '== window displays'; dumpsys window displays 2>&1 | grep -E 'Display: |mDisplayId|displayId|name=' | head -40;"
             + "echo; echo '== surfaceflinger displays'; dumpsys SurfaceFlinger --display-id 2>&1 | head -20;"
@@ -269,6 +289,9 @@ final class Sideload {
             + "<button id=up>Send file</button>"
             + "<label>Or a link to an APK</label><input id=u type=url placeholder='https://…/game.apk'>"
             + "<button id=go>Send link</button><div id=s></div>"
+            + "<h1 style='margin-top:36px'>Claude link</h1><p>Lets the car send its diagnostics to Claude (as an issue on the launcher's GitHub repo). Add the key once.</p>"
+            + "<label>GitHub key</label><input id=k type=password autocomplete=off placeholder='github_pat_…'>"
+            + "<button id=sk>Save key</button><button id=sd style='background:#222'>Send to Claude now</button><div id=s2></div>"
             + "<p style='margin-top:28px'><a style='color:#A6A6A6' href='#' onclick=\"location.href='/probe?pin='+encodeURIComponent(document.getElementById('pin').value.trim());return false\">Car details for Claude (debugging)</a></p><script>"
             + "const $=i=>document.getElementById(i),say=t=>$('s').textContent=t;"
             + "try{$('pin').value=localStorage.pin||''}catch(e){}"
@@ -280,5 +303,10 @@ final class Sideload {
             + "x.onload=()=>{busy(false);say(x.responseText)};x.onerror=()=>{busy(false);say('Lost the connection to the car.')};x.send(f)};"
             + "$('go').onclick=async()=>{const u=$('u').value.trim();if(!u)return say('Paste a link first.');busy(true);say('The car is downloading and installing…');"
             + "try{const r=await fetch('/url?pin='+pin()+'&u='+encodeURIComponent(u),{method:'POST'});say(await r.text())}catch(e){say('Lost the connection to the car.')}busy(false)};"
+            + "const say2=t=>$('s2').textContent=t;"
+            + "$('sk').onclick=async()=>{const k=$('k').value.trim();if(!k)return say2('Paste the key first.');say2('Checking the key with GitHub…');"
+            + "try{const r=await fetch('/key?pin='+pin(),{method:'POST',body:k});say2(await r.text());if(r.ok)$('k').value=''}catch(e){say2('Lost the connection to the car.')}};"
+            + "$('sd').onclick=async()=>{say2('Collecting car details and sending… (about 20 s)');"
+            + "try{const r=await fetch('/send?pin='+pin(),{method:'POST'});say2(await r.text())}catch(e){say2('Lost the connection to the car.')}};"
             + "</script></body></html>";
 }

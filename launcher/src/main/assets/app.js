@@ -144,6 +144,7 @@ class Home extends Component {
     window.onUpdate = (json) => { try { this.setState({ update: JSON.parse(json), updPct: -1, updErr: '', updChecking: false }); } catch (e) {} };
     window.onNoUpdate = () => { this.setState({ updChecking: false }); Bridge.toast('Up to date (' + (call('version') || 'latest') + ')'); };
     window.onUpdateProgress = (p) => this.setState({ updPct: p });
+    window.onReportSent = (m) => this.setState({ sending: false, sendMsg: m || '' });
     window.onUpdateFailed = (m) => this.setState({ updPct: -1, updErr: 'Update failed. Try again later.' });
     // Welcome screen once per car start; the dials sweep in after it.
     if (call('firstStart')) {
@@ -382,6 +383,16 @@ class Home extends Component {
         const d = s.diag || '', nl = d.indexOf('\n'), head = d.startsWith('SIDELOAD|') ? d.slice(0, nl < 0 ? d.length : nl).split('|') : null;
         return { diagText: head ? d.slice(nl + 1) : d, sideAddr: head ? head[1] : 'update the app', sidePin: head ? head[2] : '----' };
       })(),
+      sendLabel: s.sending ? 'SENDING…' : 'SEND TO CLAUDE', sendMsg: s.sendMsg || 'Sends this screen and a car probe to Claude. Takes about 20 seconds.',
+      sendClaude: (e) => {
+        if (e) e.stopPropagation();
+        if (this.state.sending) return;
+        sfx('tap');
+        if (!Bridge.sendToClaude) { this.setState({ sendMsg: 'Update the app first.' }); return; }
+        this.setState({ sending: true, sendMsg: 'Collecting car details and sending…' });
+        const raw = { page: this.state.page || 'home', opMode: c.opMode, gear: c.gear, speed: c.speed };
+        call('sendToClaude', 'page: ' + JSON.stringify(raw));
+      },
       diagHoldStart: () => {
         clearTimeout(this.diagT); this.diagAt = Date.now();
         this.diagT = setTimeout(() => {
@@ -848,7 +859,7 @@ class Home extends Component {
   
   ${v.diagOpen ? html`
     <div role="dialog" aria-label="Diagnostics" onClick=${v.diagClose} style="position: absolute; top: 0; left: 0; width: 1600px; height: 900px; z-index: 90; background: rgba(0,0,0,0.88); display: flex; align-items: center; justify-content: center;">
-      <div onClick=${v.diagStop} style="width: 1500px; max-height: 840px; box-sizing: border-box; overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; background: #111111; border: 1px solid #333; border-radius: 12px; padding: 20px 28px; font-family: monospace; font-size: 17px; line-height: 1.45; color: #F2F2F2; white-space: pre-wrap; word-break: break-word;"><div style="font-family: 'Barlow Condensed', sans-serif; font-size: 30px; font-weight: 600; color: ${v.accent}; white-space: normal; margin-bottom: 4px;">SEND AN APP TO THE CAR</div><div style="font-family: 'Barlow Condensed', sans-serif; font-size: 26px; white-space: normal; margin-bottom: 18px;">On your phone (same Wi-Fi or hotspot), open <b>${v.sideAddr}</b> · PIN <b>${v.sidePin}</b></div>${v.diagText}<div style="font-family: 'Barlow Condensed', sans-serif; font-size: 22px; color: #A6A6A6; margin-top: 16px; white-space: normal;">Tap outside this box to close</div></div>
+      <div onClick=${v.diagStop} style="width: 1500px; max-height: 840px; box-sizing: border-box; overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; background: #111111; border: 1px solid #333; border-radius: 12px; padding: 20px 28px; font-family: monospace; font-size: 17px; line-height: 1.45; color: #F2F2F2; white-space: pre-wrap; word-break: break-word;"><div style="font-family: 'Barlow Condensed', sans-serif; font-size: 30px; font-weight: 600; color: ${v.accent}; white-space: normal; margin-bottom: 4px;">SEND AN APP TO THE CAR</div><div style="font-family: 'Barlow Condensed', sans-serif; font-size: 26px; white-space: normal; margin-bottom: 18px;">On your phone (same Wi-Fi or hotspot), open <b>${v.sideAddr}</b> · PIN <b>${v.sidePin}</b></div><div class="gx-18" style="display: flex; align-items: center;  white-space: normal; margin-bottom: 18px;"><button type="button" onClick=${v.sendClaude} style="border: 0; padding: 14px 26px; border-radius: 12px; background: ${v.accent}; color: #FFFFFF; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 22px; letter-spacing: 0.12em;">${v.sendLabel}</button><div style="font-family: 'Barlow Condensed', sans-serif; font-size: 22px; color: #A6A6A6;">${v.sendMsg}</div></div>${v.diagText}<div style="font-family: 'Barlow Condensed', sans-serif; font-size: 22px; color: #A6A6A6; margin-top: 16px; white-space: normal;">Tap outside this box to close</div></div>
     </div>
   ` : null}
   

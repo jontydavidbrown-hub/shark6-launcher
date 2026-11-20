@@ -72,7 +72,9 @@ public class MainActivity extends Activity {
         s.setAllowFileAccess(true);
         s.setTextZoom(100);
         s.setSupportZoom(false);
-        web.addJavascriptInterface(new Bridge(), "Car");
+        Bridge bridge = new Bridge();
+        web.addJavascriptInterface(bridge, "Car");
+        Sideload.diagSource = bridge::diag;
         web.setWebViewClient(new WebViewClient() {
             @Override public void onPageFinished(WebView view, String url) { pageReady = true; }
         });
@@ -351,6 +353,14 @@ public class MainActivity extends Activity {
                     + "media access: " + getSystemService(android.app.NotificationManager.class)
                             .isNotificationListenerAccessGranted(new android.content.ComponentName(MainActivity.this, MediaListener.class)) + "\n"
                     + "trip reset: " + car.lastTripReset;
+        }
+        /** Diagnostics overlay button: posts diagnostics + probe to GitHub for Claude. Answers via window.onReportSent. */
+        @JavascriptInterface public void sendToClaude(String extra) {
+            final String d = diag() + (extra == null ? "" : "\n" + extra);
+            new Thread(() -> {
+                String r = Report.send(MainActivity.this, d, Cameras.shell(MainActivity.this, Sideload.PROBE));
+                pushJs("window.onReportSent && window.onReportSent(" + JSONObject.quote(r) + ")");
+            }, "report").start();
         }
         @JavascriptInterface public void zeroTilt() { tilt.zero(); }
         @JavascriptInterface public void toast(String m) { MainActivity.this.toast(m); }
