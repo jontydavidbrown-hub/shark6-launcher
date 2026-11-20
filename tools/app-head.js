@@ -501,8 +501,9 @@ class Home extends Component {
       toggleAuto: () => this.send('auto', { on: !auto }, 'auto', !auto),
       toggleDemist: () => this.send('demist', { on: !demist }, 'demist', !demist),
       recirc, recircBorder: rc.border, recircBg: rc.bg, recircIcon: rc.icon, recircLabel: recirc ? 'RECIRC' : 'FRESH AIR',
-      // Side-on dual-cab ute: a loop above it when recirculating, an arrow coming in from outside on fresh air.
-      recircPath: recirc ? 'M3 31V23H19.5L21.8 10.5H31Q33 10.5 34 12L39 21L43.4 22.2Q45 22.6 45 24.2V31H41A5 5 0 0 0 31 31H17A5 5 0 0 0 7 31ZM39.6 32a3.6 3.6 0 1 0-7.2 0a3.6 3.6 0 1 0 7.2 0M15.6 32a3.6 3.6 0 1 0-7.2 0a3.6 3.6 0 1 0 7.2 0M24.74 16.63A4 4 0 0 1 32.26 16.63M33.21 14.58L32.26 16.63L30.21 15.68M32.26 19.37A4 4 0 0 1 24.74 19.37M23.79 21.42L24.74 19.37L26.79 20.32' : 'M3 31V23H19.5L21.8 10.5H31Q33 10.5 34 12L39 21L43.4 22.2Q45 22.6 45 24.2V31H41A5 5 0 0 0 31 31H17A5 5 0 0 0 7 31ZM39.6 32a3.6 3.6 0 1 0-7.2 0a3.6 3.6 0 1 0 7.2 0M15.6 32a3.6 3.6 0 1 0-7.2 0a3.6 3.6 0 1 0 7.2 0M46 4Q36 4 28.5 17M31.5 16.2L28.5 17L27.7 13',
+      // Solid side-on dual-cab ute: a circling arrow above it when recirculating, an arrow of outside air coming in on fresh air.
+      recircFill: 'M2.5 37.5V31Q2.5 30 3.5 30H19.5L22 23.2Q22.4 22 23.6 22H32.6Q33.6 22 34.3 22.8L38.6 28.4L44 29.4Q46 29.8 46 31.8V36.5Q46 37.5 45 37.5H41.6A5 5 0 0 0 31.6 37.5H16.6A5 5 0 0 0 6.6 37.5ZM24.4 24H28.2V28.4H23.2ZM29.6 24H32.3Q32.9 24 33.3 24.5L36.3 28.4H29.6ZM15.4 38a3.8 3.8 0 1 0-7.6 0a3.8 3.8 0 1 0 7.6 0ZM13 38a1.4 1.4 0 1 0-2.8 0a1.4 1.4 0 1 0 2.8 0ZM40.4 38a3.8 3.8 0 1 0-7.6 0a3.8 3.8 0 1 0 7.6 0ZM38 38a1.4 1.4 0 1 0-2.8 0a1.4 1.4 0 1 0 2.8 0Z' + (recirc ? 'M24.48 18.23L28.75 19.23L25.75 14.03Z' : 'M25.31 20.59L27.4 16.74L21.6 18.26Z'),
+      recircPath: recirc ? 'M20.75 16.63A6.5 6.5 0 1 1 27.25 16.63' : 'M5 8H15Q21.5 8 24.5 17.5M5 13H11',
       toggleRecirc: () => this.send('recirc', { on: !recirc }, 'recirc', !recirc),
       drvHeat: this.seat('heat', num(seats.drvHeat), 1, '#FF8A00', 0.3),
       drvVent: this.seat('vent', num(seats.drvVent), 1, '#2FB3FF', 0.3),

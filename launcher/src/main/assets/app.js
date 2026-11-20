@@ -501,8 +501,9 @@ class Home extends Component {
       toggleAuto: () => this.send('auto', { on: !auto }, 'auto', !auto),
       toggleDemist: () => this.send('demist', { on: !demist }, 'demist', !demist),
       recirc, recircBorder: rc.border, recircBg: rc.bg, recircIcon: rc.icon, recircLabel: recirc ? 'RECIRC' : 'FRESH AIR',
-      // Side-on dual-cab ute: a loop above it when recirculating, an arrow coming in from outside on fresh air.
-      recircPath: recirc ? 'M3 31V23H19.5L21.8 10.5H31Q33 10.5 34 12L39 21L43.4 22.2Q45 22.6 45 24.2V31H41A5 5 0 0 0 31 31H17A5 5 0 0 0 7 31ZM39.6 32a3.6 3.6 0 1 0-7.2 0a3.6 3.6 0 1 0 7.2 0M15.6 32a3.6 3.6 0 1 0-7.2 0a3.6 3.6 0 1 0 7.2 0M24.74 16.63A4 4 0 0 1 32.26 16.63M33.21 14.58L32.26 16.63L30.21 15.68M32.26 19.37A4 4 0 0 1 24.74 19.37M23.79 21.42L24.74 19.37L26.79 20.32' : 'M3 31V23H19.5L21.8 10.5H31Q33 10.5 34 12L39 21L43.4 22.2Q45 22.6 45 24.2V31H41A5 5 0 0 0 31 31H17A5 5 0 0 0 7 31ZM39.6 32a3.6 3.6 0 1 0-7.2 0a3.6 3.6 0 1 0 7.2 0M15.6 32a3.6 3.6 0 1 0-7.2 0a3.6 3.6 0 1 0 7.2 0M46 4Q36 4 28.5 17M31.5 16.2L28.5 17L27.7 13',
+      // Solid side-on dual-cab ute: a circling arrow above it when recirculating, an arrow of outside air coming in on fresh air.
+      recircFill: 'M2.5 37.5V31Q2.5 30 3.5 30H19.5L22 23.2Q22.4 22 23.6 22H32.6Q33.6 22 34.3 22.8L38.6 28.4L44 29.4Q46 29.8 46 31.8V36.5Q46 37.5 45 37.5H41.6A5 5 0 0 0 31.6 37.5H16.6A5 5 0 0 0 6.6 37.5ZM24.4 24H28.2V28.4H23.2ZM29.6 24H32.3Q32.9 24 33.3 24.5L36.3 28.4H29.6ZM15.4 38a3.8 3.8 0 1 0-7.6 0a3.8 3.8 0 1 0 7.6 0ZM13 38a1.4 1.4 0 1 0-2.8 0a1.4 1.4 0 1 0 2.8 0ZM40.4 38a3.8 3.8 0 1 0-7.6 0a3.8 3.8 0 1 0 7.6 0ZM38 38a1.4 1.4 0 1 0-2.8 0a1.4 1.4 0 1 0 2.8 0Z' + (recirc ? 'M24.48 18.23L28.75 19.23L25.75 14.03Z' : 'M25.31 20.59L27.4 16.74L21.6 18.26Z'),
+      recircPath: recirc ? 'M20.75 16.63A6.5 6.5 0 1 1 27.25 16.63' : 'M5 8H15Q21.5 8 24.5 17.5M5 13H11',
       toggleRecirc: () => this.send('recirc', { on: !recirc }, 'recirc', !recirc),
       drvHeat: this.seat('heat', num(seats.drvHeat), 1, '#FF8A00', 0.3),
       drvVent: this.seat('vent', num(seats.drvVent), 1, '#2FB3FF', 0.3),
@@ -608,6 +609,11 @@ class Home extends Component {
   <section aria-label="Drive" style="grid-column: span 2; position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); column-gap: 18px; row-gap: 14px; min-height: 0; min-width: 0;">
 
     
+    <div aria-label="Gear" class="gy-14" style="position: absolute; left: 50%; top: 0; bottom: 0; width: 44px; margin-left: -22px; display: flex; flex-direction: column; justify-content: center; align-items: center;  font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 34px; line-height: 1; pointer-events: none; z-index: 1;">
+      <span style="color: ${v.gearP};">P</span><span style="color: ${v.gearR};">R</span><span style="color: ${v.gearN};">N</span><span style="color: ${v.gearD};">D</span>
+    </div>
+
+    
     <section aria-label="Range" class="gy-10" style="padding: 4px 24px 18px; display: flex; flex-direction: column; align-items: center;  min-height: 0; min-width: 0; overflow: hidden;">
       <div style="align-self: stretch; height: 36px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center;">
         <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">RANGE</span>
@@ -624,9 +630,15 @@ class Home extends Component {
           <span style="font-size: 24px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KM</span>
         </div>
       </div>
-      <div style="align-self: stretch; height: 84px; flex-shrink: 0; margin-top: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
-        <div style="border-left: 4px solid ${v.accent}; padding-left: 12px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px; line-height: 1.1; white-space: nowrap;">${v.evRange} KM</div><div style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">BATTERY ${v.battPct}%</div></div>
-        <div style="border-left: 4px solid #F2F2F2; padding-left: 12px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 36px; line-height: 1.1; white-space: nowrap;">${v.fuelRange} KM</div><div style="font-size: 20px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">FUEL ${v.fuelPct}%</div></div>
+      <div aria-label="Battery and fuel" style="align-self: stretch; height: 84px; flex-shrink: 0; margin-top: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px;">
+        <div class="gy-16" style="display: flex; flex-direction: column; justify-content: center;  min-width: 0;">
+          <div style="position: relative; height: 12px; background: #1C1C1C;"><div style="position: absolute; top: 0; bottom: 0; left: 0; width: ${v.battPct}%; background: ${v.battLine};"></div></div>
+          <div class="gx-8" style="display: flex; justify-content: center; align-items: baseline;  font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1;"><span style="font-size: 36px; color: #F2F2F2;">${v.evRange}</span><span style="font-size: 16px; letter-spacing: 0.12em; color: #7C7C84;">KM EV</span></div>
+        </div>
+        <div class="gy-16" style="display: flex; flex-direction: column; justify-content: center;  min-width: 0;">
+          <div style="position: relative; height: 12px; background: #1C1C1C;"><div style="position: absolute; top: 0; bottom: 0; left: 0; width: ${v.fuelPct}%; background: #E9E9EE;"></div></div>
+          <div class="gx-8" style="display: flex; justify-content: center; align-items: baseline;  font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1;"><span style="font-size: 36px; color: #F2F2F2;">${v.fuelRange}</span><span style="font-size: 16px; letter-spacing: 0.12em; color: #7C7C84;">KM FUEL</span></div>
+        </div>
       </div>
     </section>
 
@@ -634,9 +646,6 @@ class Home extends Component {
     <section aria-label="Speed" class="gy-10" style="padding: 4px 24px 18px; display: flex; flex-direction: column; align-items: center;  min-height: 0; min-width: 0; overflow: hidden;">
       <div style="align-self: stretch; position: relative; height: 36px; display: flex; align-items: center;">
         <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">SPEED</span>
-        <div class="gx-22" style="position: absolute; top: 0; left: 0; right: 0; height: 36px; display: flex; justify-content: center; align-items: center;  font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 34px; line-height: 1; pointer-events: none;">
-          <span style="color: ${v.gearP};">P</span><span style="color: ${v.gearR};">R</span><span style="color: ${v.gearN};">N</span><span style="color: ${v.gearD};">D</span>
-        </div>
       </div>
       <div style="position: relative; width: 400px; height: 375px; flex-shrink: 0; margin: 10px 0 -53px;">
         <svg width="400" height="375" viewBox="0 0 320 300" aria-hidden="true" style="position: absolute; top: 0; right: 0; bottom: 0; left: 0;">
@@ -748,7 +757,7 @@ class Home extends Component {
     <div style="display: flex; flex-shrink: 0;">
       <div class="gx-8" style="display: flex;">
         <button type="button" onClick=${v.toggleRecirc} aria-pressed=${v.recirc} aria-label="Air intake: ${v.recircLabel}. Tap to switch" class="gy-7" style="width: 108px; height: 108px; flex-shrink: 0; padding: 0; border: ${v.recircBorder}; background: ${v.recircBg}; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-          <svg width="52" height="52" viewBox="0 0 48 48" fill="none" stroke=${v.recircIcon} stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d=${v.recircPath}></path></svg>
+          <svg width="56" height="56" viewBox="0 0 48 48" aria-hidden="true"><path d=${v.recircFill} fill=${v.recircIcon} fill-rule="evenodd"></path><path d=${v.recircPath} fill="none" stroke=${v.recircIcon} stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
         <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px; line-height: 1; letter-spacing: 0.08em; color: ${v.recircIcon};">${v.recircLabel}</span></button>
         <button type="button" onClick=${v.toggleAc} aria-pressed=${v.ac} aria-label="A/C" class="gy-7" style="width: 108px; height: 108px; flex-shrink: 0; padding: 0; border: ${v.acBorder}; background: ${v.acBg}; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
           <svg width="38" height="38" viewBox="0 -960 960 960" fill=${v.acIcon} aria-hidden="true"><path d="M450-275 321-146q-8 8-20.5 8t-21.5-8q-9-9-9-21.5t9-21.5l171-171v-90h-90L192-282q-8 8-20.5 8.5T150-281q-9-9-9.5-21.5T150-325l125-125H109q-12 0-20.5-8.5T80-480q0-12 8.5-21t21.5-9h165L146-638q-9-9-9-21.5t9-21.5q9-9 21.5-9t21.5 9l171 171h90v-91L282-768q-8-8-8-20.5t8-21.5q9-9 21.5-9t22.5 9l124 124v-164q0-12 8.5-21t21.5-9q12 0 21 9t9 21v164l128-128q9-9 21.5-9t21.5 9q8 9 8 21.5t-9 21.5L510-601v91h91l168-168q8-8 20.5-8t21.5 8q9 9 9 21.5t-9 21.5L686-510h164q12 0 21 9t9 21q0 13-9 21.5t-21 8.5H686l127 129q9 8 9 20.5t-9 20.5q-8 10-20.5 10t-21.5-9L601-450h-91v90l171 173q9 8 9 20.5t-9 20.5q-8 10-20.5 10t-21.5-9L510-275v166q0 12-9 20.5T480-80q-13 0-21.5-8.5T450-110v-165Z"></path></svg>
