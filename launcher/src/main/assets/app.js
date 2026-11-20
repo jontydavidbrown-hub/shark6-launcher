@@ -609,7 +609,7 @@ class Home extends Component {
   <section aria-label="Drive" style="grid-column: span 2; position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); column-gap: 18px; row-gap: 14px; min-height: 0; min-width: 0;">
 
     
-    <div aria-label="Gear" class="gy-14" style="position: absolute; left: 50%; top: 0; bottom: 0; width: 44px; margin-left: -22px; display: flex; flex-direction: column; justify-content: center; align-items: center;  font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 34px; line-height: 1; pointer-events: none; z-index: 1;">
+    <div aria-label="Gear" class="gx-22" style="position: absolute; left: 0; right: 0; top: 0; height: 36px; display: flex; justify-content: center; align-items: center;  font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 34px; line-height: 1; pointer-events: none; z-index: 1;">
       <span style="color: ${v.gearP};">P</span><span style="color: ${v.gearR};">R</span><span style="color: ${v.gearN};">N</span><span style="color: ${v.gearD};">D</span>
     </div>
 
