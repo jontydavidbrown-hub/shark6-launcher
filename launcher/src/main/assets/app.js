@@ -604,19 +604,7 @@ class Home extends Component {
   </section>
 
   
-  <section aria-label="Drive" style="grid-column: span 2; position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: 104px minmax(0, 1fr); column-gap: 18px; row-gap: 14px; min-height: 0; min-width: 0;">
-
-    <div aria-label="Trip ${v.tripName}. Tap to switch trip, hold to reset" onClick=${v.tripTap} onPointerDown=${v.tripHoldStart} onPointerUp=${v.tripHoldEnd} onPointerLeave=${v.tripHoldEnd} onPointerCancel=${v.tripHoldEnd} style="grid-column: 1 / -1; background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; min-width: 0; overflow: hidden; position: relative; cursor: pointer;">
-      <div style="display: flex; justify-content: space-between; align-items: baseline;">
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 17px; letter-spacing: 0.12em; color: ${v.accent};">TRIP ${v.tripName}</span>
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.12em;"><span style="color: ${v.tripAColor};">A</span><span style="color: #333333;"> · </span><span style="color: ${v.tripBColor};">B</span></span>
-      </div>
-      <div class="gx-28" style="display: flex; justify-content: center; align-items: baseline;">
-        <div><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 40px;">${v.tripKm}</span> <span style="font-size: 17px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KM</span></div>
-        <div><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 40px;">${v.tripKwh}</span> <span style="font-size: 17px; color: #A6A6A6; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 0.04em;">KWH/100</span></div>
-      </div>
-      <div style="position: absolute; left: 0; bottom: 0; height: 4px; width: ${v.tripHoldPct}%; background: ${v.accent}; transition: ${v.tripHoldAnim};"></div>
-    </div>
+  <section aria-label="Drive" style="grid-column: span 2; position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); column-gap: 18px; row-gap: 14px; min-height: 0; min-width: 0;">
 
     
     <section aria-label="Range" class="gy-10" style="padding: 4px 24px 18px; display: flex; flex-direction: column; align-items: center;  min-height: 0; min-width: 0; overflow: hidden;">

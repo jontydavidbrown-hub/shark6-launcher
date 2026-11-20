@@ -56,8 +56,15 @@ a{color:#D42A3A}
 #stage section[aria-label="Speed"] [style*="height: 12px"]{height:8px!important;border-radius:4px!important;background:#17171A!important;overflow:visible}
 #stage section[aria-label="Speed"] [style*="height: 12px"]>div:first-child{border-radius:4px;box-shadow:0 0 12px currentColor}
 #stage section[aria-label="Speed"] div[style*="justify-content: space-between"]>span:first-child, #stage section[aria-label="Speed"] div[style*="justify-content: space-between"]>span:last-child{visibility:hidden}
+/* Climate: no dock behind the buttons, they sit straight on the background like the dials (Jonty 2026-11-20) */
+#stage section[aria-label="Climate and seats"]{background:transparent!important;box-shadow:none!important}
+#stage section[aria-label="Climate and seats"] button, #stage section[aria-label="Climate and seats"] div[style*="210px"]{background:rgba(255,255,255,0.05)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,0.06)!important}
+#stage section[aria-label="Climate and seats"] button[aria-pressed="true"]{background:rgba(255,255,255,0.08)!important}
+#stage section[aria-label="Climate and seats"] button[aria-label$="temperature down"], #stage section[aria-label="Climate and seats"] button[aria-label$="temperature up"], #stage section[aria-label="Climate and seats"] button[aria-label*="degrees, tap for slider"]{background:transparent!important;box-shadow:none!important}
+/* No trip tile (Jonty 2026-11-20): sit the dials lower so they centre in the freed space */
+#fit:not(.portrait) #stage section[aria-label="Drive"]{padding-top:64px;box-sizing:border-box}
 /* Portrait (screen rotated): 900 wide, as tall as the screen. Same tiles, rearranged (Jonty approved the mock-up 2026-11-19). */
-#fit.portrait #stage>div{width:900px!important;height:100%!important;grid-template-columns:340px minmax(0,1fr)!important;grid-template-rows:44px 610px minmax(0,1fr) 236px!important}
+#fit.portrait #stage>div{width:900px!important;height:100%!important;grid-template-columns:340px minmax(0,1fr)!important;grid-template-rows:44px 530px minmax(0,1fr) 236px!important}
 #fit.portrait #stage>div>section[aria-label="Drive"]{grid-column:1 / -1!important;grid-row:2!important}
 #fit.portrait #stage>div>section[aria-label="Media and shortcuts"]{grid-column:1!important;grid-row:3!important}
 #fit.portrait #stage>div>section[aria-label="Cameras"]{grid-column:2!important;grid-row:3!important}
