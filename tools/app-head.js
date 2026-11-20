@@ -478,7 +478,7 @@ class Home extends Component {
       trackSub: hasMedia ? [m.artist, m.app].filter(Boolean).join(' · ') : 'Start music in CarPlay',
       artBg: m.art ? 'url(' + m.art + ')' : 'none', noteColor: m.art ? 'transparent' : '#4A4A4A',
       musicPct: dur > 0 ? Math.round(Math.min(1, pos / dur) * 100 * kMusic) : 0,
-      posText: mmss(pos), durText: mmss(dur),
+      posText: mmss(pos), durText: dur > 0 ? mmss(dur) : '',
       ...(() => {
         // Flip the button straight away; the car's state takes over again after 3 s.
         const on = !!this.pv('mediaPlaying', !!m.playing);
@@ -501,9 +501,9 @@ class Home extends Component {
       toggleAuto: () => this.send('auto', { on: !auto }, 'auto', !auto),
       toggleDemist: () => this.send('demist', { on: !demist }, 'demist', !demist),
       recirc, recircBorder: rc.border, recircBg: rc.bg, recircIcon: rc.icon, recircLabel: recirc ? 'RECIRC' : 'FRESH AIR',
-      // Solid side-on dual-cab ute: a circling arrow above it when recirculating, an arrow of outside air coming in on fresh air.
-      recircFill: 'M2.5 37.5V31Q2.5 30 3.5 30H19.5L22 23.2Q22.4 22 23.6 22H32.6Q33.6 22 34.3 22.8L38.6 28.4L44 29.4Q46 29.8 46 31.8V36.5Q46 37.5 45 37.5H41.6A5 5 0 0 0 31.6 37.5H16.6A5 5 0 0 0 6.6 37.5ZM24.4 24H28.2V28.4H23.2ZM29.6 24H32.3Q32.9 24 33.3 24.5L36.3 28.4H29.6ZM15.4 38a3.8 3.8 0 1 0-7.6 0a3.8 3.8 0 1 0 7.6 0ZM13 38a1.4 1.4 0 1 0-2.8 0a1.4 1.4 0 1 0 2.8 0ZM40.4 38a3.8 3.8 0 1 0-7.6 0a3.8 3.8 0 1 0 7.6 0ZM38 38a1.4 1.4 0 1 0-2.8 0a1.4 1.4 0 1 0 2.8 0Z' + (recirc ? 'M24.48 18.23L28.75 19.23L25.75 14.03Z' : 'M25.31 20.59L27.4 16.74L21.6 18.26Z'),
-      recircPath: recirc ? 'M20.75 16.63A6.5 6.5 0 1 1 27.25 16.63' : 'M5 8H15Q21.5 8 24.5 17.5M5 13H11',
+      // Plain symbols like every car: a circling arrow for recirculate, wind lines for fresh air.
+      recircFill: recirc ? 'M16.56 18.1L20.31 16.8L15.81 14.2Z' : '',
+      recircPath: recirc ? 'M8.5 18.06A7 7 0 1 1 18.06 15.5' : 'M3 8.5H14.5A2.5 2.5 0 1 0 12 6M3 12.5H18.5A2.5 2.5 0 1 1 16 15M3 16.5H9',
       toggleRecirc: () => this.send('recirc', { on: !recirc }, 'recirc', !recirc),
       drvHeat: this.seat('heat', num(seats.drvHeat), 1, '#FF8A00', 0.3),
       drvVent: this.seat('vent', num(seats.drvVent), 1, '#2FB3FF', 0.3),

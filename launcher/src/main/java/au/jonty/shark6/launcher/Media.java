@@ -169,6 +169,12 @@ final class Media {
     private String cardArtData;
 
     private boolean carplayMode;
+    // Our own CarPlay song clock (the widget shows no times).
+    private String cpKey = "";
+    private long cpPlayed, cpTick, cpDur, cpE0;
+    private float cpP0 = -1;
+    private boolean cpFromStart;
+    private volatile String timeReport = "carplay time: -";
 
     JSONObject read() {
         JSONObject o = new JSONObject();
@@ -198,6 +204,24 @@ final class Media {
                 } else if (times.size() == 1 && MusicCard.progress > 0) {
                     long dur = Math.abs(times.get(0));
                     o.put("pos", (long) (dur * MusicCard.progress)); o.put("dur", dur);
+                } else {
+                    // The widget shows no times: work them out ourselves. Count playing time per song, and if the
+                    // widget has a progress bar, the song length is played time over how far the bar moved.
+                    String key = words.isEmpty() ? "" : words.get(0) + "|" + (words.size() > 1 ? words.get(1) : "");
+                    long now = SystemClock.elapsedRealtime();
+                    float prog = MusicCard.progress;
+                    if (!key.equals(cpKey)) {
+                        cpKey = key; cpPlayed = 0; cpDur = 0; cpP0 = prog; cpE0 = 0; cpFromStart = prog >= 0 ? prog < 0.03f : true;
+                    } else if (cpPlaying && cpTick > 0) {
+                        cpPlayed += Math.min(5000, now - cpTick);
+                    }
+                    cpTick = now;
+                    if (cpP0 < 0 && prog >= 0) { cpP0 = prog; cpE0 = cpPlayed; }
+                    if (prog >= 0 && cpP0 >= 0 && prog - cpP0 > 0.02f && cpPlayed - cpE0 > 4000)
+                        cpDur = (long) ((cpPlayed - cpE0) / (prog - cpP0));
+                    if (cpDur > 0 && prog >= 0) { o.put("pos", (long) (prog * cpDur)); o.put("dur", cpDur); }
+                    else if (cpFromStart && !key.isEmpty()) { o.put("pos", cpPlayed); o.put("dur", 0); }
+                    timeReport = "carplay time: progress " + prog + ", played " + cpPlayed / 1000 + " s, length " + cpDur / 1000 + " s";
                 }
                 o.put("title", !words.isEmpty() ? words.get(0) : cpPlaying ? "Playing on CarPlay" : "CarPlay paused");
                 if (words.size() > 1) o.put("artist", words.get(1));
@@ -271,7 +295,7 @@ final class Media {
             b.append(' ').append(e.getClass().getSimpleName());
         }
         String[] m = MediaListener.lastMedia;
-        b.append('\n').append(cpReport).append('\n').append(albumReport).append('\n').append(MusicCard.report);
+        b.append('\n').append(cpReport).append('\n').append(albumReport).append('\n').append(MusicCard.report).append('\n').append(timeReport);
         b.append("\nnotification player: ").append(m == null ? "none" : m[0] + " \"" + m[1] + "\"");
         b.append("\napps with notifications: ").append(MediaListener.seen.isEmpty() ? "none seen" : MediaListener.seen);
         return b.toString();

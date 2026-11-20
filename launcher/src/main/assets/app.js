@@ -478,7 +478,7 @@ class Home extends Component {
       trackSub: hasMedia ? [m.artist, m.app].filter(Boolean).join(' · ') : 'Start music in CarPlay',
       artBg: m.art ? 'url(' + m.art + ')' : 'none', noteColor: m.art ? 'transparent' : '#4A4A4A',
       musicPct: dur > 0 ? Math.round(Math.min(1, pos / dur) * 100 * kMusic) : 0,
-      posText: mmss(pos), durText: mmss(dur),
+      posText: mmss(pos), durText: dur > 0 ? mmss(dur) : '',
       ...(() => {
         // Flip the button straight away; the car's state takes over again after 3 s.
         const on = !!this.pv('mediaPlaying', !!m.playing);
@@ -501,9 +501,9 @@ class Home extends Component {
       toggleAuto: () => this.send('auto', { on: !auto }, 'auto', !auto),
       toggleDemist: () => this.send('demist', { on: !demist }, 'demist', !demist),
       recirc, recircBorder: rc.border, recircBg: rc.bg, recircIcon: rc.icon, recircLabel: recirc ? 'RECIRC' : 'FRESH AIR',
-      // Solid side-on dual-cab ute: a circling arrow above it when recirculating, an arrow of outside air coming in on fresh air.
-      recircFill: 'M2.5 37.5V31Q2.5 30 3.5 30H19.5L22 23.2Q22.4 22 23.6 22H32.6Q33.6 22 34.3 22.8L38.6 28.4L44 29.4Q46 29.8 46 31.8V36.5Q46 37.5 45 37.5H41.6A5 5 0 0 0 31.6 37.5H16.6A5 5 0 0 0 6.6 37.5ZM24.4 24H28.2V28.4H23.2ZM29.6 24H32.3Q32.9 24 33.3 24.5L36.3 28.4H29.6ZM15.4 38a3.8 3.8 0 1 0-7.6 0a3.8 3.8 0 1 0 7.6 0ZM13 38a1.4 1.4 0 1 0-2.8 0a1.4 1.4 0 1 0 2.8 0ZM40.4 38a3.8 3.8 0 1 0-7.6 0a3.8 3.8 0 1 0 7.6 0ZM38 38a1.4 1.4 0 1 0-2.8 0a1.4 1.4 0 1 0 2.8 0Z' + (recirc ? 'M24.48 18.23L28.75 19.23L25.75 14.03Z' : 'M25.31 20.59L27.4 16.74L21.6 18.26Z'),
-      recircPath: recirc ? 'M20.75 16.63A6.5 6.5 0 1 1 27.25 16.63' : 'M5 8H15Q21.5 8 24.5 17.5M5 13H11',
+      // Plain symbols like every car: a circling arrow for recirculate, wind lines for fresh air.
+      recircFill: recirc ? 'M16.56 18.1L20.31 16.8L15.81 14.2Z' : '',
+      recircPath: recirc ? 'M8.5 18.06A7 7 0 1 1 18.06 15.5' : 'M3 8.5H14.5A2.5 2.5 0 1 0 12 6M3 12.5H18.5A2.5 2.5 0 1 1 16 15M3 16.5H9',
       toggleRecirc: () => this.send('recirc', { on: !recirc }, 'recirc', !recirc),
       drvHeat: this.seat('heat', num(seats.drvHeat), 1, '#FF8A00', 0.3),
       drvVent: this.seat('vent', num(seats.drvVent), 1, '#2FB3FF', 0.3),
@@ -565,29 +565,13 @@ class Home extends Component {
   </div>
 
   
-  <section aria-label="Media and shortcuts" style="display: grid; grid-template-rows: 256px minmax(0, 1fr); gap: 14px; min-height: 0; min-width: 0; overflow: hidden;">
-
-    <div aria-label="Tyre pressures" style="background: #111111; border: 1px solid #262626; border-radius: 8px; position: relative; min-height: 0; min-width: 0; overflow: hidden;">
-      <svg width="84" height="176" viewBox="0 0 84 176" aria-hidden="true" style="position: absolute; left: 50%; top: 50%; margin: -88px 0 0 -42px;">
-        <rect x="8" y="6" width="68" height="164" rx="22" fill="rgba(255,255,255,0.05)" stroke="#3A3A40" stroke-width="2"></rect>
-        <path d="M16 52 Q42 40 68 52 L64 76 Q42 70 20 76 Z" fill="rgba(255,255,255,0.08)"></path>
-        <rect x="16" y="92" width="52" height="66" rx="8" fill="none" stroke="#2C2C32" stroke-width="2"></rect>
-        <rect x="0" y="26" width="9" height="30" rx="4" fill=${v.tyreFLc}></rect><rect x="75" y="26" width="9" height="30" rx="4" fill=${v.tyreFRc}></rect>
-        <rect x="0" y="118" width="9" height="30" rx="4" fill=${v.tyreRLc}></rect><rect x="75" y="118" width="9" height="30" rx="4" fill=${v.tyreRRc}></rect>
-      </svg>
-      <span style="position: absolute; left: 24px; top: 40px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 40px; color: ${v.tyreFLc};">${v.tyreFL}</span>
-      <span style="position: absolute; right: 24px; top: 40px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 40px; color: ${v.tyreFRc};">${v.tyreFR}</span>
-      <span style="position: absolute; left: 24px; bottom: 50px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 40px; color: ${v.tyreRLc};">${v.tyreRL}</span>
-      <span style="position: absolute; right: 24px; bottom: 50px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; line-height: 1; font-size: 40px; color: ${v.tyreRRc};">${v.tyreRR}</span>
-      <span style="position: absolute; left: 24px; top: 16px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.18em; color: #6B6B72;">PSI</span>
-      <span style="position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.18em; color: ${v.tyreStateColor};">${v.tyreState}</span>
-    </div>
+  <section aria-label="Media and shortcuts" style="display: grid; grid-template-rows: minmax(0, 1fr); gap: 14px; min-height: 0; min-width: 0; overflow: hidden;">
 
     <section aria-label="Now playing" class="gy-12" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 18px 22px; display: flex; flex-direction: column; justify-content: space-between;  min-height: 0; min-width: 0; overflow: hidden;">
-      <div class="gx-16" style="display: flex; align-items: center;  min-width: 0;">
-        <a href="#" onClick=${v.openCarPlay} aria-label="Open CarPlay" style="text-decoration: none; position: relative; display: block; width: 116px; height: 116px; flex-shrink: 0;"><div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #1E1E1E center / cover no-repeat; background-image: ${v.artBg}; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+      <div class="gy-16" style="display: flex; flex-direction: column;  min-width: 0;">
+        <a href="#" onClick=${v.openCarPlay} aria-label="Open CarPlay" style="text-decoration: none; position: relative; display: block; width: 100%; height: 296px; flex-shrink: 0;"><div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #1E1E1E center / cover no-repeat; background-image: ${v.artBg}; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
         <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke=${v.noteColor} stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-      </div><span style="position: absolute; right: -6px; bottom: -6px; width: 40px; height: 40px; border-radius: 12px; background: rgba(12,12,14,0.85); display: flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="#F2F2F2" stroke-width="2"></rect><path d="M9.2 8.3v7.4c0 .6.6.9 1.1.6l5.6-3.7c.4-.3.4-.9 0-1.2l-5.6-3.7c-.5-.3-1.1 0-1.1.6z" fill="#F2F2F2"></path></svg></span></a>
+      </div><span style="position: absolute; right: 10px; bottom: 10px; width: 44px; height: 44px; border-radius: 12px; background: rgba(12,12,14,0.85); display: flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="#F2F2F2" stroke-width="2"></rect><path d="M9.2 8.3v7.4c0 .6.6.9 1.1.6l5.6-3.7c.4-.3.4-.9 0-1.2l-5.6-3.7c-.5-.3-1.1 0-1.1.6z" fill="#F2F2F2"></path></svg></span></a>
         <div style="flex: 1 1 0; min-width: 0;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 28px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.trackTitle}</div><div style="font-size: 16px; color: #A6A6A6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.trackSub}</div></div>
       </div>
       <div class="gy-6" style="display: flex; flex-direction: column;">
@@ -757,7 +741,7 @@ class Home extends Component {
     <div style="display: flex; flex-shrink: 0;">
       <div class="gx-8" style="display: flex;">
         <button type="button" onClick=${v.toggleRecirc} aria-pressed=${v.recirc} aria-label="Air intake: ${v.recircLabel}. Tap to switch" class="gy-7" style="width: 108px; height: 108px; flex-shrink: 0; padding: 0; border: ${v.recircBorder}; background: ${v.recircBg}; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-          <svg width="56" height="56" viewBox="0 0 48 48" aria-hidden="true"><path d=${v.recircFill} fill=${v.recircIcon} fill-rule="evenodd"></path><path d=${v.recircPath} fill="none" stroke=${v.recircIcon} stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          <svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true"><path d=${v.recircFill} fill=${v.recircIcon}></path><path d=${v.recircPath} fill="none" stroke=${v.recircIcon} stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
         <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px; line-height: 1; letter-spacing: 0.08em; color: ${v.recircIcon};">${v.recircLabel}</span></button>
         <button type="button" onClick=${v.toggleAc} aria-pressed=${v.ac} aria-label="A/C" class="gy-7" style="width: 108px; height: 108px; flex-shrink: 0; padding: 0; border: ${v.acBorder}; background: ${v.acBg}; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
           <svg width="38" height="38" viewBox="0 -960 960 960" fill=${v.acIcon} aria-hidden="true"><path d="M450-275 321-146q-8 8-20.5 8t-21.5-8q-9-9-9-21.5t9-21.5l171-171v-90h-90L192-282q-8 8-20.5 8.5T150-281q-9-9-9.5-21.5T150-325l125-125H109q-12 0-20.5-8.5T80-480q0-12 8.5-21t21.5-9h165L146-638q-9-9-9-21.5t9-21.5q9-9 21.5-9t21.5 9l171 171h90v-91L282-768q-8-8-8-20.5t8-21.5q9-9 21.5-9t22.5 9l124 124v-164q0-12 8.5-21t21.5-9q12 0 21 9t9 21v164l128-128q9-9 21.5-9t21.5 9q8 9 8 21.5t-9 21.5L510-601v91h91l168-168q8-8 20.5-8t21.5 8q9 9 9 21.5t-9 21.5L686-510h164q12 0 21 9t9 21q0 13-9 21.5t-21 8.5H686l127 129q9 8 9 20.5t-9 20.5q-8 10-20.5 10t-21.5-9L601-450h-91v90l171 173q9 8 9 20.5t-9 20.5q-8 10-20.5 10t-21.5-9L510-275v166q0 12-9 20.5T480-80q-13 0-21.5-8.5T450-110v-165Z"></path></svg>

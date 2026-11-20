@@ -242,17 +242,18 @@ final class Sideload {
         new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(c, m, Toast.LENGTH_LONG).show());
     }
 
+    // 0.59 probe: where does CarPlay's map for the instrument cluster go? Looking for a second display or surface we could capture.
     private static final String PROBE =
-            "echo '== focus stack'; dumpsys audio 2>&1 | grep -A12 'Audio Focus stack entries';"
-            + "echo; echo '== players'; dumpsys audio 2>&1 | grep -E 'state:' | head -30;"
-            + "echo; echo '== log: song info'; logcat -d -v time -t 20000 2>&1 | grep -i -E 'title|artist|album|song|track|nowplay|metadata|playinfo|mediainfo' | grep -v -i 'shark6' | tail -150;"
-            + "echo; echo '== log: carplay and cluster'; logcat -d -v time -t 8000 2>&1 | grep -i -E 'carplay|cluster|iap2|mediaremote' | tail -150;"
-            + "for p in com.byd.localmusic com.ts.carplay com.ts.carplay.app com.ts.appservice.cluster com.ts.qnxapp com.byd.globalnotification; do"
-            + " echo; echo \"== log of $p\"; for id in $(pidof $p); do logcat -d -v time --pid=$id -t 4000 2>&1 | tail -80; done; done;"
-            + "echo; echo '== localmusic package'; dumpsys package com.byd.localmusic 2>&1 | grep -E 'Action:|authority|Provider\\{|Service\\{|Receiver\\{|permission' | head -80;"
-            + "echo; echo '== settings with media info'; for t in global system secure; do settings list $t 2>&1 | grep -i -E 'media|music|song|track|artist|title|carplay|playing|cp_' | sed \"s/^/$t: /\"; done | head -60;"
-            + "echo; echo '== widgets'; dumpsys appwidget 2>&1 | grep -B2 -A6 -i 'localmusic' | head -60;"
-            + "echo; echo '== album files'; ls -la /album 2>&1 | tail -5; find /sdcard/ /storage/emulated/0/ /data/media/0/ /mnt/ -path '*album*' -name '*.png' 2>/dev/null | tail -10";
+            "echo '== displays'; dumpsys display 2>&1 | grep -E 'DisplayDeviceInfo|mDisplayId|uniqueId|type |FLAG' | head -60;"
+            + "echo; echo '== window displays'; dumpsys window displays 2>&1 | grep -E 'Display: |mDisplayId|displayId|name=' | head -40;"
+            + "echo; echo '== surfaceflinger displays'; dumpsys SurfaceFlinger --display-id 2>&1 | head -20;"
+            + "echo; echo '== surfaces (carplay, cluster, map, virtual)'; dumpsys SurfaceFlinger 2>&1 | grep -i -E 'carplay|cluster|navi|map|virtual|projection|Display ' | head -100;"
+            + "echo; echo '== carplay services'; dumpsys activity services com.ts 2>&1 | grep -E 'ServiceRecord|intent=|app=' | head -60;"
+            + "echo; echo '== cluster package'; dumpsys package com.ts.appservice.cluster 2>&1 | grep -E 'Action:|Service\\{|permission|Activity' | head -40;"
+            + "echo; echo '== log: video, cluster, navigation'; logcat -d -v time -t 20000 2>&1 | grep -i -E 'altvideo|alternate|secondvideo|cluster|navi|h264|avc|decoder|virtualdisplay|surface' | grep -i -E 'carplay|cluster|ts\\.|navi|virtual' | tail -150;"
+            + "for p in com.ts.carplay com.ts.carplay.app com.ts.appservice.cluster com.ts.qnxapp; do"
+            + " echo; echo \"== log of $p\"; for id in $(pidof $p); do logcat -d -v time --pid=$id -t 6000 2>&1 | tail -100; done; done;"
+            + "echo; echo '== video devices'; ls /dev 2>&1 | grep -i -E 'video|disp|fb|ipu|vpu' | head -30";
 
     private static final String PAGE = "<!doctype html><html><head><meta charset=utf-8>"
             + "<meta name=viewport content='width=device-width,initial-scale=1'><title>Send to Shark 6</title>"
