@@ -335,7 +335,8 @@ class Home extends Component {
       if (synced) this.pending[zone === 1 ? 'pasTemp' : 'drvTemp'] = { val: value, until: Date.now() + 3000 };
       this.send('temp', { zone, value, both: synced }, zone === 1 ? 'drvTemp' : 'pasTemp', value);
     };
-    const rc = st(recirc, '#5AC8FA');
+    // Both intake modes are a live choice, so neither is greyed out: blue for recirc, green for fresh air.
+    const rc = recirc ? st(true, '#5AC8FA') : st(true, '#4ADE80');
     const d = st(demist, '#FF8A00'), a = st(ac, '#2FB3FF'), u = st(auto, accent), y = st(synced, '#F2F2F2');
     const cs = c.seats || {};
     const seats = { drvHeat: this.pv('drvHeat', cs.drvHeat), drvVent: this.pv('drvVent', cs.drvVent),
