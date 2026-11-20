@@ -311,6 +311,13 @@ class Home extends Component {
 
     const tyres = Array.isArray(c.tyres) ? c.tyres : [];
     const tyre = (i) => (typeof tyres[i] === 'number' ? (tyres[i] * kBars).toFixed(1) : '—');
+    // Vehicle page 3D wireframe (wire3d.js). It runs its own intro when the page opens.
+    if (page === 'vehicle' && window.S6Wire) {
+      const enter = this.wirePage !== 'vehicle';
+      const ty = [0, 1, 2, 3].map((i) => (typeof tyres[i] === 'number' ? tyres[i].toFixed(1) : ''));
+      setTimeout(() => window.S6Wire.update({ accent, tyres: ty, enter }), 0);
+    }
+    this.wirePage = page;
     const tyreLow = Array.isArray(c.tyreStates) && c.tyreStates.some((x) => x === 2);
     const tyreColor = (i) => (Array.isArray(c.tyreStates) && c.tyreStates[i] && c.tyreStates[i] !== 0 ? '#FF8A00' : '#F2F2F2');
 

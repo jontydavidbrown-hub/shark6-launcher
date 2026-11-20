@@ -66,8 +66,8 @@ a{color:#D42A3A}
 #stage section[aria-label="Climate and seats"]>*+*{margin-left:8px!important}
 #stage section[aria-label="Climate and seats"] button[aria-label$="temperature down"], #stage section[aria-label="Climate and seats"] button[aria-label$="temperature up"]{width:56px!important;height:108px!important;font-size:30px!important;color:#A6A6A6!important}
 /* No trip tile (Jonty 2026-11-20): sit the dials lower so they centre in the freed space */
-#fit:not(.portrait) #stage section[aria-label="Drive"]{padding-top:64px;box-sizing:border-box}
-#fit:not(.portrait) #stage div[aria-label="Gear"]{top:64px!important}
+#fit:not(.portrait) #stage section[aria-label="Drive"]{padding-top:96px;box-sizing:border-box}
+#fit:not(.portrait) #stage div[aria-label="Gear"]{top:92px!important}
 /* Pages: Home shows everything; the others give one section the whole middle of the screen */
 html[data-page="vehicle"] #stage section[aria-label="Media and shortcuts"], html[data-page="vehicle"] #stage section[aria-label="Drive"], html[data-page="vehicle"] #stage section[aria-label="Cameras"],
 html[data-page="offroad"] #stage section[aria-label="Media and shortcuts"], html[data-page="offroad"] #stage section[aria-label="Cameras"],
@@ -124,6 +124,36 @@ button:active,a:active{filter:brightness(1.3)}
 .s6-sheet{-webkit-animation:s6up .18s ease-out;animation:s6up .18s ease-out}
 @-webkit-keyframes s6up{from{-webkit-transform:translateY(24px);opacity:0}to{-webkit-transform:none;opacity:1}}
 @keyframes s6up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+
+/* 0.63 page transitions: each page has its own entrance */
+@keyframes s6inL{from{transform:translateX(-60px);opacity:0}to{transform:none;opacity:1}}
+@keyframes s6inR{from{transform:translateX(60px);opacity:0}to{transform:none;opacity:1}}
+@keyframes s6zoom{0%{transform:scale(.86);opacity:0;filter:blur(6px)}60%{filter:blur(0)}100%{transform:none;opacity:1;filter:none}}
+@keyframes s6fade{from{opacity:0}to{opacity:1}}
+@keyframes s6tilt{from{transform:perspective(900px) rotateX(-38deg) translateY(-40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes s6horizon{0%{transform:perspective(1200px) rotateZ(-7deg) scale(.94);opacity:0}55%{transform:perspective(1200px) rotateZ(2.5deg) scale(1.01);opacity:1}100%{transform:none;opacity:1}}
+@keyframes s6scan{0%{top:0;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:100%;opacity:0}}
+@keyframes s6frame{0%{transform:scale(1.12);opacity:0}35%{opacity:1}100%{transform:scale(1);opacity:0}}
+@keyframes s6stat{from{transform:translateY(18px);opacity:0;letter-spacing:.3em}to{transform:none;opacity:1}}
+/* HOME: tiles glide in from the sides, dials zoom up out of a blur */
+html[data-page="home"] #stage section[aria-label="Now playing"],html[data-page="home"] #stage section[aria-label="Media"]{animation:s6inL .55s cubic-bezier(.2,.8,.2,1) both}
+html[data-page="home"] #stage section[aria-label="Drive"]{animation:s6zoom .7s cubic-bezier(.2,.8,.2,1) both}
+html[data-page="home"] #stage section[aria-label="Cameras"]{animation:s6fade .6s .15s ease-out both}
+/* VEHICLE: wireframe scans in (wire3d.js); stats rise in, staggered */
+#stage section[aria-label="Vehicle"]>div>div{animation:s6stat .6s cubic-bezier(.2,.8,.2,1) both}
+#stage section[aria-label="Vehicle"]>div>div:nth-child(2){animation-delay:.12s}
+#stage section[aria-label="Vehicle"]>div>div:nth-child(3){animation-delay:.24s}
+#stage section[aria-label="Vehicle"]>div>div:nth-child(4){animation-delay:.36s}
+#stage section[aria-label="Vehicle"]>div>div:nth-child(5){animation-delay:.48s}
+/* OFF-ROAD: the panels swing down like a horizon levelling out */
+html[data-page="offroad"] #stage section[aria-label="Drive"]{animation:none}
+#stage div[aria-label="Off-road view"]>div{animation:s6tilt .6s cubic-bezier(.2,.8,.2,1) both;transform-origin:50% 0}
+#stage div[aria-label="Off-road view"]>div:nth-child(2){animation-delay:.08s}
+#stage div[aria-label="Off-road view"]>div:nth-child(3){animation:s6horizon .9s .14s cubic-bezier(.2,.8,.2,1) both;transform-origin:50% 50%}
+/* CAMERAS: a lock-on frame and a scan line sweep the view */
+html[data-page="cameras"] #stage section[aria-label="Cameras"]{position:relative;animation:s6fade .4s ease-out both}
+html[data-page="cameras"] #stage section[aria-label="Cameras"]::before{content:"";position:absolute;left:0;top:0;right:0;bottom:0;border:2px solid var(--acc-glow,#D42A3A);border-radius:20px;pointer-events:none;z-index:30;animation:s6frame .8s ease-out both}
+html[data-page="cameras"] #stage section[aria-label="Cameras"]::after{content:"";position:absolute;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#fff,transparent);box-shadow:0 0 18px 4px var(--acc-glow,#D42A3A);pointer-events:none;z-index:30;animation:s6scan .9s .1s ease-in-out both}
 </style>
 </head>
 <body>
@@ -159,6 +189,8 @@ button:active,a:active{filter:brightness(1.3)}
 })();
 </script>
 <script src="htm-preact.umd.js"></script>
+<script src="wire-model.js"></script>
+<script src="wire3d.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
