@@ -271,6 +271,11 @@ class Home extends Component {
       document.documentElement.style.setProperty('--acc-wash', 'rgba(' + rgb + ',0.10)');
     }
     const set = (o) => this.setState(o);
+    // Pages (tabs under the clock). CSS in index.html hides and widens sections per page.
+    const page = s.page || 'home';
+    if (page !== this.lastPage) { this.lastPage = page; document.documentElement.setAttribute('data-page', page); }
+    const tabV = (p) => ({ bg: page === p ? 'rgba(255,255,255,0.08)' : 'transparent', color: page === p ? '#F2F2F2' : '#7C7C84', go: () => { if (this.state.page !== p) { sfx('tap'); this.setState({ page: p }); } } });
+    const tH = tabV('home'), tV = tabV('vehicle'), tO = tabV('offroad'), tC = tabV('cameras');
     const kRange = this.stage(0), kBars = this.stage(0.1), kClimate = this.stage(0.25), kMusic = this.stage(0.35);
     const count = (v, k) => Math.round(v * k);
     const tempUp = (v, k) => Math.round((16 + (v - 16) * k) * 2) / 2;
@@ -360,6 +365,9 @@ class Home extends Component {
       powerColor: regen ? '#4ADE80' : accent,
       powerLabel: hasPower ? Math.round(kw * kBars) + ' kW' : '— kW',
       modeLabel, modePower,
+      pageVehicle: page === 'vehicle',
+      tabHome: tH.go, tabHomeBg: tH.bg, tabHomeColor: tH.color, tabVehicle: tV.go, tabVehicleBg: tV.bg, tabVehicleColor: tV.color,
+      tabOffroad: tO.go, tabOffroadBg: tO.bg, tabOffroadColor: tO.color, tabCameras: tC.go, tabCamerasBg: tC.bg, tabCamerasColor: tC.color,
       battLine: em === 4 ? '#262626' : (regen ? '#4ADE80' : accent),
       engLine: engineOn ? '#F2F2F2' : '#262626', engText: engineOn ? '#F2F2F2' : '#A6A6A6',
       openEnergy: () => Bridge.openApp('energy'),
@@ -394,7 +402,8 @@ class Home extends Component {
       ...(() => {
         // Right indicator camera, low-speed front camera, off-road view.
         const rightBig = !!s.rightCam && c.gear !== 2;
-        const off = c.opMode >= 4;
+        const off = (c.opMode >= 4 && page === 'home') || page === 'offroad';
+        if (off !== this.lastOff) { this.lastOff = off; document.documentElement.setAttribute('data-off', off ? '1' : '0'); }
         const tl = c.tilt, has = tl && typeof tl.p === 'number';
         const deg = (v) => (has ? Math.round(Math.abs(v)) + '°' : '—');
         return {
