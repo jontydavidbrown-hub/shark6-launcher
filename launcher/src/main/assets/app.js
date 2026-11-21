@@ -273,7 +273,7 @@ class Home extends Component {
     }
     const set = (o) => this.setState(o);
     // Pages (tabs under the clock). CSS in index.html hides and widens sections per page.
-    const page = s.page || 'home';
+    const page = s.page === 'offroad' ? 'offroad' : 'home';
     if (page !== this.lastPage) { this.lastPage = page; document.documentElement.setAttribute('data-page', page); }
     const tabV = (p) => ({ bg: page === p ? 'rgba(255,255,255,0.08)' : 'transparent', color: page === p ? '#F2F2F2' : '#7C7C84', go: () => { if (this.state.page !== p) { sfx('tap'); this.setState({ page: p }); } } });
     const tH = tabV('home'), tV = tabV('vehicle'), tO = tabV('offroad'), tC = tabV('cameras');
@@ -312,8 +312,11 @@ class Home extends Component {
     const tyres = Array.isArray(c.tyres) ? c.tyres : [];
     const tyre = (i) => (typeof tyres[i] === 'number' ? (tyres[i] * kBars).toFixed(1) : '—');
     // Vehicle page 3D wireframe (wire3d.js). It runs its own intro when the page opens.
-    if (page === 'vehicle' && window.S6Wire) {
-      const enter = this.wirePage !== 'vehicle';
+    // Indicator camera: the camera tile only appears (over the wireframe) while the right indicator is on.
+    const rcam = !!s.rightCam && c.gear !== 2;
+    if (rcam !== this.lastRcam) { this.lastRcam = rcam; document.documentElement.setAttribute('data-rcam', rcam ? '1' : '0'); }
+    if (page === 'home' && window.S6Wire) {
+      const enter = this.wirePage !== 'home';
       const ty = [0, 1, 2, 3].map((i) => (typeof tyres[i] === 'number' ? tyres[i].toFixed(1) : ''));
       setTimeout(() => window.S6Wire.update({ accent, tyres: ty, enter }), 0);
     }
@@ -373,7 +376,7 @@ class Home extends Component {
       powerColor: regen ? '#4ADE80' : accent,
       powerLabel: hasPower ? Math.round(kw * kBars) + ' kW' : '— kW',
       modeLabel, modePower,
-      pageVehicle: page === 'vehicle',
+      pageVehicle: page === 'home',
       tabHome: tH.go, tabHomeBg: tH.bg, tabHomeColor: tH.color, tabVehicle: tV.go, tabVehicleBg: tV.bg, tabVehicleColor: tV.color,
       tabOffroad: tO.go, tabOffroadBg: tO.bg, tabOffroadColor: tO.color, tabCameras: tC.go, tabCamerasBg: tC.bg, tabCamerasColor: tC.color,
       battLine: em === 4 ? '#262626' : (regen ? '#4ADE80' : accent),
@@ -594,30 +597,30 @@ class Home extends Component {
 
   
   <div aria-label="Pages" class="gx-6" style="position: absolute; left: 50%; top: 84px; transform: translateX(-50%); z-index: 4; display: flex;  padding: 6px; border-radius: 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
-    <button type="button" onClick=${v.tabHome} style="border: 0; padding: 9px 22px; border-radius: 11px; background: ${v.tabHomeBg}; color: ${v.tabHomeColor}; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.18em;">HOME</button><button type="button" onClick=${v.tabVehicle} style="border: 0; padding: 9px 22px; border-radius: 11px; background: ${v.tabVehicleBg}; color: ${v.tabVehicleColor}; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.18em;">VEHICLE</button><button type="button" onClick=${v.tabOffroad} style="border: 0; padding: 9px 22px; border-radius: 11px; background: ${v.tabOffroadBg}; color: ${v.tabOffroadColor}; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.18em;">OFF-ROAD</button><button type="button" onClick=${v.tabCameras} style="border: 0; padding: 9px 22px; border-radius: 11px; background: ${v.tabCamerasBg}; color: ${v.tabCamerasColor}; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.18em;">CAMERAS</button>
+    <button type="button" onClick=${v.tabHome} style="border: 0; padding: 9px 22px; border-radius: 11px; background: ${v.tabHomeBg}; color: ${v.tabHomeColor}; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.18em;">HOME</button><button type="button" onClick=${v.tabOffroad} style="border: 0; padding: 9px 22px; border-radius: 11px; background: ${v.tabOffroadBg}; color: ${v.tabOffroadColor}; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.18em;">OFF-ROAD</button>
   </div>
 
   
   <section aria-label="Media and shortcuts" style="display: grid; grid-template-rows: minmax(0, 1fr); gap: 14px; min-height: 0; min-width: 0; overflow: hidden;">
 
-    <section aria-label="Now playing" class="gy-12" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 18px 22px; display: flex; flex-direction: column; justify-content: space-between;  min-height: 0; min-width: 0; overflow: hidden;">
-      <div class="gy-16" style="display: flex; flex-direction: column;  min-width: 0;">
-        <a href="#" onClick=${v.openCarPlay} aria-label="Open CarPlay" style="text-decoration: none; position: relative; display: block; width: 100%; height: 296px; flex-shrink: 0;"><div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #1E1E1E center / cover no-repeat; background-image: ${v.artBg}; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+    <section aria-label="Now playing" class="gx-18" style="background: #111111; border: 1px solid #262626; border-radius: 8px; padding: 12px 16px 12px 12px; display: flex; flex-direction: row; align-items: center;  min-height: 0; min-width: 0; overflow: hidden;">
+      <div class="gx-18" style="display: flex; flex-direction: row; align-items: center;  min-width: 0; flex: 1 1 0;">
+        <a href="#" onClick=${v.openCarPlay} aria-label="Open CarPlay" style="text-decoration: none; position: relative; display: block; width: 96px; height: 96px; flex-shrink: 0;"><div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #1E1E1E center / cover no-repeat; background-image: ${v.artBg}; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
         <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke=${v.noteColor} stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-      </div><span style="position: absolute; right: 10px; bottom: 10px; width: 44px; height: 44px; border-radius: 12px; background: rgba(12,12,14,0.85); display: flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="#F2F2F2" stroke-width="2"></rect><path d="M9.2 8.3v7.4c0 .6.6.9 1.1.6l5.6-3.7c.4-.3.4-.9 0-1.2l-5.6-3.7c-.5-.3-1.1 0-1.1.6z" fill="#F2F2F2"></path></svg></span></a>
-        <div style="flex: 1 1 0; min-width: 0;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 28px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.trackTitle}</div><div style="font-size: 16px; color: #A6A6A6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.trackSub}</div></div>
-      </div>
-      <div class="gy-6" style="display: flex; flex-direction: column;">
+      </div><span style="position: absolute; right: 4px; bottom: 4px; width: 28px; height: 28px; border-radius: 8px; background: rgba(12,12,14,0.85); display: flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="#F2F2F2" stroke-width="2"></rect><path d="M9.2 8.3v7.4c0 .6.6.9 1.1.6l5.6-3.7c.4-.3.4-.9 0-1.2l-5.6-3.7c-.5-.3-1.1 0-1.1.6z" fill="#F2F2F2"></path></svg></span></a>
+        <div class="gy-8" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column;"><div style="min-width: 0;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 28px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.trackTitle}</div><div style="font-size: 16px; color: #A6A6A6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.trackSub}</div></div>
+      <div class="gy-4" style="display: flex; flex-direction: column;">
         <div style="height: 4px; background: #262626;"><div style="width: ${v.musicPct}%; height: 4px; background: ${v.accent};"></div></div>
-        <div style="display: flex; justify-content: space-between; font-size: 17px; color: #A6A6A6;"><span>${v.posText}</span><span>${v.durText}</span></div>
+        <div style="display: flex; justify-content: space-between; font-size: 15px; color: #A6A6A6;"><span>${v.posText}</span><span>${v.durText}</span></div>
+      </div></div>
       </div>
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <button type="button" onClick=${v.prevTrack} aria-label="Previous track" style="width: 60px; height: 60px; border: 1px solid #333; background: transparent; border-radius: 6px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F2F2F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 20L9 12l10-8v16z"></path><path d="M5 19V5"></path></svg></button>
-        <button type="button" onClick=${v.togglePlay} aria-label=${v.playLabel} style="width: 128px; height: 64px; border: 0; background: ${v.accent}; border-radius: 6px; transform: skewX(-8deg);">
+      <div class="gx-10" style="display: flex; align-items: center;  flex-shrink: 0;">
+        <button type="button" onClick=${v.prevTrack} aria-label="Previous track" style="width: 56px; height: 56px; border: 1px solid #333; background: transparent; border-radius: 6px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F2F2F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 20L9 12l10-8v16z"></path><path d="M5 19V5"></path></svg></button>
+        <button type="button" onClick=${v.togglePlay} aria-label=${v.playLabel} style="width: 96px; height: 56px; border: 0; background: ${v.accent}; border-radius: 6px; transform: skewX(-8deg);">
           ${v.playing ? html`<svg width="26" height="26" viewBox="0 0 24 24" fill="#0A0A0A" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>` : null}
           ${v.paused ? html`<svg width="26" height="26" viewBox="0 0 24 24" fill="#0A0A0A" aria-hidden="true"><path d="M7 4l13 8-13 8z"></path></svg>` : null}
         </button>
-        <button type="button" onClick=${v.nextTrack} aria-label="Next track" style="width: 60px; height: 60px; border: 1px solid #333; background: transparent; border-radius: 6px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F2F2F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4l10 8-10 8V4z"></path><path d="M19 5v14"></path></svg></button>
+        <button type="button" onClick=${v.nextTrack} aria-label="Next track" style="width: 56px; height: 56px; border: 1px solid #333; background: transparent; border-radius: 6px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F2F2F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4l10 8-10 8V4z"></path><path d="M19 5v14"></path></svg></button>
       </div>
     </section>
   </section>
@@ -749,18 +752,10 @@ class Home extends Component {
 
   
   ${v.pageVehicle ? html`
-  <section aria-label="Vehicle" style="grid-column: 1 / -1; grid-row: 2; position: relative; min-height: 0; min-width: 0; overflow: hidden;">
+  <section aria-label="Vehicle" style="position: relative; min-height: 0; min-width: 0; overflow: hidden;">
     <canvas aria-label="Vehicle model" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
-    <div style="position: absolute; left: 28px; top: 110px;">
-      <div style="margin-bottom: 26px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 40px; line-height: 1; "><span style="font-style: italic; font-weight: 700; font-size: 64px;">${v.totalRange}</span><span style="font-size: 16px; color: #7C7C84; letter-spacing: 0.12em; margin-left: 6px;">KM</span></div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.2em; color: #6B6B72; margin-top: 6px;">TOTAL RANGE</div></div>
-      <div style="margin-bottom: 26px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 40px; line-height: 1; font-size: 30px;">${v.evRange}<span style="font-size: 16px; color: #7C7C84; letter-spacing: 0.12em; margin-left: 6px;">KM EV</span></div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.2em; color: #6B6B72; margin-top: 6px;">BATTERY ${v.battPct}%</div></div><div style="height: 8px; border-radius: 4px; background: #17171A; width: 200px; margin: -14px 0 26px;"><div style="height: 8px; border-radius: 4px; width: ${v.battPct}%; background: ${v.accent};"></div></div>
-      <div style="margin-bottom: 26px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 40px; line-height: 1; font-size: 30px;">${v.fuelRange}<span style="font-size: 16px; color: #7C7C84; letter-spacing: 0.12em; margin-left: 6px;">KM FUEL</span></div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.2em; color: #6B6B72; margin-top: 6px;">FUEL ${v.fuelPct}%</div></div><div style="height: 8px; border-radius: 4px; background: #17171A; width: 200px; margin: -14px 0 26px;"><div style="height: 8px; border-radius: 4px; width: ${v.fuelPct}%; background: #E9E9EE;"></div></div>
-    </div>
-    <div style="position: absolute; right: 28px; top: 110px; text-align: right;">
-      <div style="margin-bottom: 26px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 40px; line-height: 1; "><span style="font-style: italic; font-weight: 700; font-size: 64px; color: ${v.accent};">${v.modeLabel}</span><span style="font-size: 16px; color: #7C7C84; letter-spacing: 0.12em; margin-left: 6px;"></span></div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.2em; color: #6B6B72; margin-top: 6px;">DRIVE MODE · ${v.driveMode}</div></div>
-      <div style="margin-bottom: 26px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 40px; line-height: 1; ">${v.odo}<span style="font-size: 16px; color: #7C7C84; letter-spacing: 0.12em; margin-left: 6px;">KM</span></div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.2em; color: #6B6B72; margin-top: 6px;">ODOMETER</div></div>
-      <div style="margin-bottom: 26px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 40px; line-height: 1; ">${v.avgElec}<span style="font-size: 16px; color: #7C7C84; letter-spacing: 0.12em; margin-left: 6px;">KWH/100</span></div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.2em; color: #6B6B72; margin-top: 6px;">AVERAGE</div></div>
-    </div>
+    <div style="position: absolute; left: 20px; top: 14px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 40px; line-height: 1; color: ${v.accent};">${v.modeLabel}</div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.2em; color: #6B6B72; margin-top: 6px;">DRIVE MODE · ${v.driveMode}</div></div>
+    <div style="position: absolute; right: 20px; top: 14px; text-align: right;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px; line-height: 1;">${v.odo}<span style="font-size: 14px; color: #7C7C84; letter-spacing: 0.12em; margin-left: 5px;">KM</span></div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.2em; color: #6B6B72; margin-top: 6px;">ODOMETER · ${v.avgElec} KWH/100</div></div>
   </section>
   ` : null}
 

@@ -131,35 +131,67 @@ add('glass', [(xcb, -0.6, ZBELT + 0.12), (xcb, 0.6, ZBELT + 0.12), (xcb + 0.02, 
 add('body', [(xcb + 0.005, -W, ZBELT), (xcb + 0.005, W, ZBELT)])
 add('body', [(XC, -WI, ZF), (XC, WI, ZF)])
 
-# ---- front face
+# ---- badge letters (the BYD wordmark on the grille and the tailgate), unit glyphs
+GLYPH = {
+    'B': [[(0, 0), (0, 1), (0.72, 1), (0.92, 0.88), (0.92, 0.62), (0.76, 0.5), (0, 0.5)], [(0.76, 0.5), (1, 0.38), (1, 0.12), (0.8, 0), (0, 0)]],
+    'Y': [[(0, 1), (0.5, 0.48), (1, 1)], [(0.5, 0.48), (0.5, 0)]],
+    'D': [[(0, 0), (0, 1), (0.62, 1), (1, 0.72), (1, 0.28), (0.62, 0), (0, 0)]],
+}
+def word(cls, text, x, ysign, zc, h, w, gap):
+    total = len(text) * w + (len(text) - 1) * gap
+    for i, ch in enumerate(text):
+        u0 = -total / 2 + i * (w + gap)
+        for g in GLYPH[ch]:
+            add(cls, [(x, ysign * (u0 + u * w), zc - h / 2 + v * h) for u, v in g])
+
+# ---- front (from the front-three-quarter photo): flat upright face, framed wordmark grille,
+# stacked LED headlights at the corners, dark bumper with a silver skid plate
 XF = P(291, 0)[0]
 zh = P(0, 492)[1]
-add('body', [(XF, -W + 0.02, P(0, 690)[1]), (XF, -W, zh - 0.02), (XF - 0.02, -W + 0.06, zh), (XF - 0.02, W - 0.06, zh), (XF, W, zh - 0.02), (XF, W - 0.02, P(0, 690)[1])])
-add('body', [(XF, -0.96, P(0, 690)[1]), (XF - 0.06, -0.7, P(0, 712)[1]), (XF - 0.06, 0.7, P(0, 712)[1]), (XF, 0.96, P(0, 690)[1])])
-# grille frame with three LED bars, headlight columns
-zg0, zg1 = P(0, 600)[1], P(0, 505)[1]
-add('detail', [(XF + 0.005, -0.70, zg0), (XF + 0.005, 0.70, zg0), (XF + 0.005, 0.70, zg1), (XF + 0.005, -0.70, zg1)], close=True)
-for t in (0.25, 0.5, 0.75):
-    add('light', [(XF + 0.01, -0.64, lerp(zg0, zg1, t)), (XF + 0.01, 0.64, lerp(zg0, zg1, t))])
-for s in (1, -1):
-    for dy in (0.0, 0.07):
-        add('light', [(XF + 0.008, s * (0.80 + dy), P(0, 600)[1]), (XF + 0.008, s * (0.80 + dy), P(0, 515)[1])])
-    add('light', [(XF + 0.008, s * 0.76, P(0, 512)[1]), (XF + 0.008, s * 0.95, P(0, 512)[1])])
-add('detail', [(XF + 0.003, -0.6, P(0, 670)[1]), (XF + 0.003, 0.6, P(0, 670)[1]), (XF - 0.03, 0.5, P(0, 700)[1]), (XF - 0.03, -0.5, P(0, 700)[1])], close=True)
+ZBT = 0.88   # top of the bumper
+add('body', [(XF - 0.04, -W, zh - 0.03), (XF, -W + 0.05, zh - 0.06), (XF, -W + 0.05, ZBT), (XF, W - 0.05, ZBT), (XF, W - 0.05, zh - 0.06), (XF - 0.04, W, zh - 0.03)])
+add('body', [(XF - 0.04, -W + 0.06, zh), (XF - 0.04, W - 0.06, zh)])
+# grille frame + wordmark
+add('detail', [(XF + 0.004, -0.64, 0.93), (XF + 0.004, 0.64, 0.93), (XF + 0.004, 0.64, 1.22), (XF + 0.004, -0.64, 1.22)], close=True)
+add('glass', [(XF + 0.006, -0.68, 1.245), (XF + 0.006, 0.68, 1.245)])
+word('light', 'BYD', XF + 0.01, 1, 1.075, 0.2, 0.3, 0.1)
+# headlights: frame + three LED strips each side
+for sd in (1, -1):
+    add('detail', [(XF + 0.004, sd * 0.70, 0.93), (XF + 0.004, sd * 0.93, 0.93), (XF + 0.004, sd * 0.93, 1.22), (XF + 0.004, sd * 0.70, 1.22)], close=True)
+    for z in (1.0, 1.075, 1.15):
+        add('light', [(XF + 0.008, sd * 0.73, z), (XF + 0.008, sd * 0.90, z)])
+# bumper: steps forward, then tucks under
+for sd in (1, -1):
+    add('body', [(XF, sd * 0.96, ZBT), (XF + 0.05, sd * 0.96, 0.80), (XF + 0.05, sd * 0.96, 0.56), (XF - 0.06, sd * 0.94, 0.42)])
+    add('detail', [(XF + 0.052, sd * 0.78, 0.60), (XF + 0.052, sd * 0.92, 0.60), (XF + 0.052, sd * 0.92, 0.76)])
+add('body', [(XF + 0.05, -0.96, 0.80), (XF + 0.05, 0.96, 0.80)])
+add('detail', [(XF + 0.05, -0.96, 0.56), (XF + 0.05, 0.96, 0.56)])
+add('body', [(XF - 0.06, -0.94, 0.42), (XF - 0.06, 0.94, 0.42)])
+add('detail', [(XF + 0.052, -0.58, 0.66), (XF + 0.052, 0.58, 0.66), (XF + 0.052, 0.58, 0.76), (XF + 0.052, -0.58, 0.76)], close=True)
+add('glass', [(XF + 0.055, -0.5, 0.60), (XF + 0.055, 0.5, 0.60), (XF - 0.02, 0.38, 0.43), (XF - 0.02, -0.38, 0.43)], close=True)
 
-# ---- rear
+# ---- rear (from the rear-three-quarter photo): flat tailgate with an embossed wordmark,
+# full-width light bar joining two tall corner lamps, wide black step bumper
 XR = P(1590, 0)[0]
-zt0, zt1 = P(0, 680)[1], P(0, 460)[1]
-add('body', [(XR, -W + 0.02, zt0), (XR, -W, zt1), (XR, W, zt1), (XR, W - 0.02, zt0)], close=True)
-add('tail', [(XR - 0.005, -0.84, P(0, 478)[1]), (XR - 0.005, 0.84, P(0, 478)[1])])
-for s in (1, -1):
-    tl = [(XR - 0.005, s * 0.86, P(0, 486)[1]), (XR - 0.005, s * 0.98, P(0, 486)[1]), (XR - 0.005, s * 0.98, P(0, 592)[1]), (XR - 0.005, s * 0.86, P(0, 592)[1])]
-    add('tail', tl, close=True)
-    add('tail', [(XR - 0.005, s * 0.88, P(0, 520)[1]), (XR - 0.005, s * 0.97, P(0, 520)[1])])
-    add('tail', [(XR - 0.005, s * 0.88, P(0, 555)[1]), (XR - 0.005, s * 0.97, P(0, 555)[1])])
-XB = P(1607, 0)[0]
-add('body', [(XB, -0.96, P(0, 632)[1]), (XB, 0.96, P(0, 632)[1]), (XB, 0.96, P(0, 692)[1]), (XB, -0.96, P(0, 692)[1])], close=True)
-add('detail', [(XB, -0.96, P(0, 660)[1]), (XB, 0.96, P(0, 660)[1])])
+zt1 = P(0, 458)[1]
+add('body', [(XR, -W, 0.62), (XR, -W, zt1), (XR, W, zt1), (XR, W, 0.62)])
+add('detail', [(XR - 0.004, -0.80, 0.66), (XR - 0.004, 0.80, 0.66), (XR - 0.004, 0.80, 1.40), (XR - 0.004, -0.80, 1.40)], close=True)
+add('detail', [(XR - 0.004, -0.80, 0.80), (XR - 0.004, 0.80, 0.80)])
+add('tail', [(XR - 0.006, -0.81, 1.36), (XR - 0.006, 0.81, 1.36)])
+for sd in (1, -1):
+    add('tail', [(XR - 0.006, sd * 0.98, 1.42), (XR - 0.006, sd * 0.82, 1.42), (XR - 0.006, sd * 0.82, 0.92), (XR - 0.006, sd * 0.98, 0.92)], close=True)
+    for z in (1.04, 1.16, 1.28):
+        add('tail', [(XR - 0.008, sd * 0.85, z), (XR - 0.008, sd * 0.95, z)])
+word('detail', 'BYD', XR - 0.006, -1, 1.12, 0.17, 0.27, 0.09)
+XB = P(1607, 0)[0] - 0.02
+for x in (XR, XB):
+    add('body', [(x, -0.98, 0.62), (x, 0.98, 0.62), (x, 0.98, 0.38), (x, -0.98, 0.38)], close=True)
+for sd in (1, -1):
+    add('body', [(XR, sd * 0.98, 0.62), (XB, sd * 0.98, 0.62)])
+    add('body', [(XR, sd * 0.98, 0.38), (XB, sd * 0.98, 0.38)])
+    add('tail', [(XB - 0.003, sd * 0.78, 0.47), (XB - 0.003, sd * 0.92, 0.47)])
+add('detail', [(XB - 0.003, -0.27, 0.43), (XB - 0.003, 0.27, 0.43), (XB - 0.003, 0.27, 0.57), (XB - 0.003, -0.27, 0.57)], close=True)
+add('detail', [(XB, 0, 0.36), (XB - 0.2, 0, 0.36), (XB - 0.2, 0, 0.42)])
 
 # ---- wheels
 for c in (FW, RW):

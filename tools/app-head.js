@@ -273,7 +273,7 @@ class Home extends Component {
     }
     const set = (o) => this.setState(o);
     // Pages (tabs under the clock). CSS in index.html hides and widens sections per page.
-    const page = s.page || 'home';
+    const page = s.page === 'offroad' ? 'offroad' : 'home';
     if (page !== this.lastPage) { this.lastPage = page; document.documentElement.setAttribute('data-page', page); }
     const tabV = (p) => ({ bg: page === p ? 'rgba(255,255,255,0.08)' : 'transparent', color: page === p ? '#F2F2F2' : '#7C7C84', go: () => { if (this.state.page !== p) { sfx('tap'); this.setState({ page: p }); } } });
     const tH = tabV('home'), tV = tabV('vehicle'), tO = tabV('offroad'), tC = tabV('cameras');
@@ -312,8 +312,11 @@ class Home extends Component {
     const tyres = Array.isArray(c.tyres) ? c.tyres : [];
     const tyre = (i) => (typeof tyres[i] === 'number' ? (tyres[i] * kBars).toFixed(1) : '—');
     // Vehicle page 3D wireframe (wire3d.js). It runs its own intro when the page opens.
-    if (page === 'vehicle' && window.S6Wire) {
-      const enter = this.wirePage !== 'vehicle';
+    // Indicator camera: the camera tile only appears (over the wireframe) while the right indicator is on.
+    const rcam = !!s.rightCam && c.gear !== 2;
+    if (rcam !== this.lastRcam) { this.lastRcam = rcam; document.documentElement.setAttribute('data-rcam', rcam ? '1' : '0'); }
+    if (page === 'home' && window.S6Wire) {
+      const enter = this.wirePage !== 'home';
       const ty = [0, 1, 2, 3].map((i) => (typeof tyres[i] === 'number' ? tyres[i].toFixed(1) : ''));
       setTimeout(() => window.S6Wire.update({ accent, tyres: ty, enter }), 0);
     }
@@ -373,7 +376,7 @@ class Home extends Component {
       powerColor: regen ? '#4ADE80' : accent,
       powerLabel: hasPower ? Math.round(kw * kBars) + ' kW' : '— kW',
       modeLabel, modePower,
-      pageVehicle: page === 'vehicle',
+      pageVehicle: page === 'home',
       tabHome: tH.go, tabHomeBg: tH.bg, tabHomeColor: tH.color, tabVehicle: tV.go, tabVehicleBg: tV.bg, tabVehicleColor: tV.color,
       tabOffroad: tO.go, tabOffroadBg: tO.bg, tabOffroadColor: tO.color, tabCameras: tC.go, tabCamerasBg: tC.bg, tabCamerasColor: tC.color,
       battLine: em === 4 ? '#262626' : (regen ? '#4ADE80' : accent),

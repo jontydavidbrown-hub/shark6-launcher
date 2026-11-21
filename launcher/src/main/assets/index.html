@@ -65,29 +65,41 @@ a{color:#D42A3A}
 #stage section[aria-label="Climate and seats"]>div>div[style*="height: 108px"]{background:rgba(255,255,255,0.05)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,0.06)!important;border-radius:14px!important;padding:0!important}
 #stage section[aria-label="Climate and seats"]>*+*{margin-left:8px!important}
 #stage section[aria-label="Climate and seats"] button[aria-label$="temperature down"], #stage section[aria-label="Climate and seats"] button[aria-label$="temperature up"]{width:56px!important;height:108px!important;font-size:30px!important;color:#A6A6A6!important}
-/* No trip tile (Jonty 2026-11-20): sit the dials lower so they centre in the freed space */
-#fit:not(.portrait) #stage section[aria-label="Drive"]{padding-top:96px;box-sizing:border-box}
-#fit:not(.portrait) #stage div[aria-label="Gear"]{top:92px!important}
-/* Pages: Home shows everything; the others give one section the whole middle of the screen */
-html[data-page="vehicle"] #stage section[aria-label="Media and shortcuts"], html[data-page="vehicle"] #stage section[aria-label="Drive"], html[data-page="vehicle"] #stage section[aria-label="Cameras"],
-html[data-page="offroad"] #stage section[aria-label="Media and shortcuts"], html[data-page="offroad"] #stage section[aria-label="Cameras"],
-html[data-page="cameras"] #stage section[aria-label="Media and shortcuts"], html[data-page="cameras"] #stage section[aria-label="Drive"]{display:none!important}
-html[data-page="offroad"] #stage section[aria-label="Drive"], html[data-page="cameras"] #stage section[aria-label="Cameras"]{grid-column:1 / -1!important;grid-row:2!important}
+/* 0.64 home (Jonty 2026-11-21): slim now playing under the tabs, gears + dials under it, 3D wireframe beside (landscape) or below (portrait).
+   Pages: HOME and OFF-ROAD. The camera tile only shows (over the wireframe) while the right indicator is on. */
 #stage div[aria-label="Pages"]{z-index:20!important}
-#fit:not(.portrait) #stage div[aria-label="Off-road view"]{top:64px!important}
-html[data-page="cameras"] #fit:not(.portrait) #stage section[aria-label="Cameras"]{margin-top:64px}
+#stage div[aria-label="Pages"]{width:max-content}#stage div[aria-label="Pages"]>*{white-space:nowrap}
+#stage>div>div[aria-label="Status"]{grid-row:1!important;grid-column:1 / -1!important}
+#stage>div>section[aria-label="Media and shortcuts"]{grid-column:1!important;grid-row:3!important}
+#stage>div>section[aria-label="Drive"]{grid-column:1!important;grid-row:4!important}
+#stage>div>section[aria-label="Vehicle"]{grid-column:2!important;grid-row:3 / span 2!important}
+#stage>div>section[aria-label="Cameras"]{grid-column:2!important;grid-row:3 / span 2!important;z-index:5;position:relative}
+#stage>div>section[aria-label="Climate and seats"]{grid-column:1 / -1!important;grid-row:5!important}
+#fit:not(.portrait) #stage>div{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-rows:44px 120px minmax(0,1fr) 140px!important}
+#fit:not(.portrait) #stage>div>section[aria-label="Media and shortcuts"]{grid-row:2!important;margin-right:128px}
+#fit:not(.portrait) #stage>div>section[aria-label="Drive"]{grid-row:3!important}
+#fit:not(.portrait) #stage>div>section[aria-label="Vehicle"], #fit:not(.portrait) #stage>div>section[aria-label="Cameras"]{grid-row:2 / span 2!important}
+#fit:not(.portrait) #stage>div>section[aria-label="Cameras"]{margin-top:66px}
+#fit:not(.portrait) #stage section[aria-label="Vehicle"]>div{top:64px!important}
+#fit:not(.portrait) #stage>div>section[aria-label="Climate and seats"]{grid-row:4!important}
+html[data-page="offroad"] #fit:not(.portrait) #stage>div>section[aria-label="Drive"]{grid-row:2 / span 2!important;margin-top:66px}
+#fit:not(.portrait) #stage section[aria-label="Drive"]{padding-top:46px;box-sizing:border-box}
+#fit:not(.portrait) #stage div[aria-label="Gear"]{top:0!important}
+#stage div[aria-label="Front camera, shown at low speed"]{top:0!important}
+html:not([data-rcam="1"]) #stage>div>section[aria-label="Cameras"]{display:none!important}
+html[data-page="offroad"] #stage section[aria-label="Media and shortcuts"], html[data-page="offroad"] #stage section[aria-label="Vehicle"]{display:none!important}
+html[data-page="offroad"] #stage>div>section[aria-label="Drive"]{grid-column:1 / -1!important;grid-row:3 / span 2!important;padding-top:0!important}
 #stage div[aria-label="Off-road view"]{background:transparent!important}
 #stage div[aria-label="Off-road view"]>div{background:rgba(255,255,255,0.03)!important;border:0!important;box-shadow:inset 0 1px 0 rgba(255,255,255,0.07), inset 0 0 0 1px rgba(255,255,255,0.04)!important;border-radius:20px!important}
-#fit.portrait #stage div[aria-label="Pages"]{top:18px!important}
-#stage div[aria-label="Pages"]{width:max-content}#stage div[aria-label="Pages"]>*{white-space:nowrap}
 html[data-off="1"] #stage section[aria-label="Drive"]>section, html[data-off="1"] #stage div[aria-label="Gear"]{visibility:hidden}
-#fit.portrait #stage section[aria-label="Vehicle"], html[data-page="offroad"] #fit.portrait #stage section[aria-label="Drive"], html[data-page="cameras"] #fit.portrait #stage section[aria-label="Cameras"]{grid-row:2 / span 2!important;grid-column:1 / -1!important}
-/* Portrait (screen rotated): 900 wide, as tall as the screen. Same tiles, rearranged (Jonty approved the mock-up 2026-11-19). */
-#fit.portrait #stage>div{width:900px!important;height:100%!important;grid-template-columns:340px minmax(0,1fr)!important;grid-template-rows:44px 530px minmax(0,1fr) 236px!important}
-#fit.portrait #stage>div>section[aria-label="Drive"]{grid-column:1 / -1!important;grid-row:2!important}
-#fit.portrait #stage>div>section[aria-label="Media and shortcuts"]{grid-column:1!important;grid-row:3!important}
-#fit.portrait #stage>div>section[aria-label="Cameras"]{grid-column:2!important;grid-row:3!important}
-#fit.portrait #stage>div>section[aria-label="Climate and seats"]{grid-column:1 / -1!important;grid-row:4!important;flex-wrap:wrap!important;justify-content:center!important;align-content:center!important;row-gap:14px!important;column-gap:14px!important;padding:0 16px!important}
+/* Portrait (screen rotated): 900 wide, as tall as the screen. */
+#fit.portrait #stage div[aria-label="Pages"]{top:18px!important}
+#fit.portrait #stage>div{width:900px!important;height:100%!important;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:44px 120px 520px minmax(0,1fr) 236px!important}
+#fit.portrait #stage>div>section[aria-label="Media and shortcuts"]{grid-column:1!important;grid-row:2!important}
+#fit.portrait #stage>div>section[aria-label="Drive"]{grid-column:1!important;grid-row:3!important}
+#fit.portrait #stage>div>section[aria-label="Vehicle"], #fit.portrait #stage>div>section[aria-label="Cameras"]{grid-column:1!important;grid-row:4!important}
+html[data-page="offroad"] #fit.portrait #stage>div>section[aria-label="Drive"]{grid-row:2 / span 3!important}
+#fit.portrait #stage>div>section[aria-label="Climate and seats"]{grid-column:1 / -1!important;grid-row:5!important;flex-wrap:wrap!important;justify-content:center!important;align-content:center!important;row-gap:14px!important;column-gap:14px!important;padding:0 16px!important}
 #fit.portrait section[aria-label="Climate and seats"]>div:nth-child(3){order:-1;flex-basis:100%;justify-content:center}
 #fit.portrait section[aria-label="Climate and seats"]>div:not(:nth-child(3)){zoom:0.86}
 #fit.portrait #stage>div>div[aria-label="Status"]{grid-template-columns:auto minmax(0,1fr)!important}

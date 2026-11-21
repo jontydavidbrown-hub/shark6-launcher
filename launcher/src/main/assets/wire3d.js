@@ -38,7 +38,7 @@
     var f = [T[0] - c[0], T[1] - c[1], T[2] - c[2]], fl = Math.hypot(f[0], f[1], f[2]); f = [f[0] / fl, f[1] / fl, f[2] / fl];
     var r = [f[1], -f[0], 0], rl = Math.hypot(r[0], r[1]); r = [r[0] / rl, r[1] / rl, 0];
     var u = [r[1] * f[2] - r[2] * f[1], r[2] * f[0] - r[0] * f[2], r[0] * f[1] - r[1] * f[0]];
-    var F = Math.min((h > w ? 0.8 : 0.5) * w * REST_D / 5.6, 0.52 * h * REST_D / 2.4);
+    var F = Math.min((h > w ? 1.0 : 0.88) * w * REST_D / 5.6, 0.52 * h * REST_D / 2.4);
     return { c: c, f: f, r: r, u: u, F: F, ox: w / 2, oy: h * 0.6 };
   }
   function proj(C, x, y, z, out) {
@@ -58,7 +58,7 @@
     var bw = cv.offsetWidth, bh = cv.offsetHeight;
     if (!bw || !bh) { schedule(); return; }
     var rect = cv.getBoundingClientRect(), k = (rect.width / bw) * (window.devicePixelRatio || 1);
-    k = Math.min(k, 2);
+    k = Math.min(k, 1.25);   // the car's GPU is modest: cap the backing store
     var W = Math.round(bw * k), H = Math.round(bh * k);
     if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
     ctx.setTransform(k, 0, 0, k, 0, 0);
@@ -74,7 +74,6 @@
     } else if (!drag) {
       yaw += vy; pitch = Math.max(0.02, Math.min(0.8, pitch + vp));
       vy *= 0.93; vp *= 0.9;
-      if (Math.abs(vy) < 0.0004 && now - lastTouch > 5000) yaw += 0.12 * dt;   // slow turntable drift
     }
     var C = camera(bw, bh), A = [0, 0, 0], B = [0, 0, 0];
     var a = hexRgb(st.accent);
@@ -137,7 +136,7 @@
           var P = paths[ORDER[oi] + b];
           if (!P) continue;
           var s = STY[P.cls], c = col(P.cls), depthA = [1, 0.62, 0.32][b];
-          if (pass === 0 && !s[2]) continue;
+          if (pass === 0 && (!s[2] || b === 2)) continue;
           ctx.beginPath();
           for (var si = 0; si < P.segs.length; si++) {
             var sg = P.segs[si];
@@ -145,20 +144,9 @@
             for (var sj = 2; sj < sg.length; sj += 2) ctx.lineTo(sg[sj], sg[sj + 1]);
           }
           ctx.strokeStyle = 'rgba(' + c + ',' + (pass ? s[1] * depthA : 0.16 * depthA) + ')';
-          ctx.lineWidth = pass ? s[0] : s[0] * 4.5;
+          ctx.lineWidth = pass ? s[0] : s[0] * 3.2;
           ctx.stroke();
         }
-      }
-    }
-    // intro scan plane
-    if (intro) {
-      var sx = XF - (XF - XB) * Math.min(1, p * 1.55 / 1.4) - 0.1, sa = 1 - ease((p - 0.6) / 0.4);
-      if (sa > 0) {
-        ctx.beginPath();
-        var corners = [[1.25, 0], [1.25, 2.15], [-1.25, 2.15], [-1.25, 0], [1.25, 0]];
-        for (i = 0; i < 5; i++) { proj(C, sx, corners[i][0], corners[i][1], A); if (i) ctx.lineTo(A[0], A[1]); else ctx.moveTo(A[0], A[1]); }
-        ctx.fillStyle = 'rgba(' + a + ',' + 0.1 * sa + ')'; ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,' + 0.7 * sa + ')'; ctx.lineWidth = 1.5; ctx.stroke();
       }
     }
     // tyre callouts on the ground beside each wheel
@@ -192,7 +180,8 @@
       ctx.font = "700 13px 'Barlow Condensed', sans-serif";
       ctx.fillText('DRAG TO ROTATE', bw / 2, bh - 10);
     }
-    schedule();
+    // Only keep drawing while something moves; a still model costs nothing.
+    if (intro || drag || Math.abs(vy) > 0.0004 || Math.abs(vp) > 0.0004) schedule();
   }
   function schedule() { if (!raf && cv) raf = requestAnimationFrame(frame); }
 
@@ -221,15 +210,19 @@
     c.addEventListener('pointercancel', up);
   }
 
+  window.addEventListener('resize', function () { if (cv) schedule(); });
   window.S6Wire = {
     // Called on every app render; cheap. show = the Vehicle page is visible.
     update: function (o) {
+      var sig = (o.accent || '') + '|' + (o.tyres || []).join(',');
+      var changed = sig !== st.sig;
+      st.sig = sig;
       if (o.accent) st.accent = o.accent;
       if (o.tyres) st.tyres = o.tyres;
       var c = document.querySelector('canvas[aria-label="Vehicle model"]');
       if (!c) { cv = null; return; }
-      if (c !== cv || o.enter) { bind(c); if (o.enter) { intro = performance.now(); yaw = REST_YAW + 1.9; } }
-      schedule();
+      if (c !== cv || o.enter) { changed = true; bind(c); if (o.enter) { intro = performance.now(); yaw = REST_YAW + 1.9; } }
+      if (changed || c.width === 0) schedule();
     }
   };
 })();
