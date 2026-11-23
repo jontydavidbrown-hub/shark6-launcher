@@ -580,7 +580,8 @@ class Home extends Component {
       pasHeat: this.seat('heat', num(seats.pasHeat), 2, '#FF8A00', 0.4),
       pasVent: this.seat('vent', num(seats.pasVent), 2, '#2FB3FF', 0.4),
       // Temperature / fan bar: slides over the climate strip, closes after 5 s idle or a tap outside.
-      openDrv: () => { if (this.tUsed()) return; set({ slider: 'drv' }); this.armClose(); }, openPas: () => { if (this.tUsed()) return; set({ slider: 'pas' }); this.armClose(); },
+      // 0.72 (Jonty): a tap on the temperature does nothing now; hold and slide changes it.
+      openDrv: () => {}, openPas: () => {},
       openFan: () => { set({ slider: 'fan' }); this.armClose(); },
       closeSlider: () => { clearTimeout(this.closeT); set({ slider: null }); },
       sliderOpen: !!s.slider, sliderIsTemp: !!s.slider && s.slider !== 'fan', sliderIsFan: s.slider === 'fan',
