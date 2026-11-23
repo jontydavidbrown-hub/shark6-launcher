@@ -667,8 +667,8 @@ class Home extends Component {
       <div style="align-self: stretch; position: relative; height: 36px; display: flex; align-items: center;">
         <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">SPEED</span>
       </div>
-      <div style="position: relative; width: 400px; height: 375px; flex-shrink: 0; margin: 10px 0 -53px;">
-        <svg width="400" height="375" viewBox="0 0 320 300" aria-hidden="true" style="position: absolute; top: 0; right: 0; bottom: 0; left: 0;">
+      <div style="position: relative; width: 380px; height: 380px; flex-shrink: 0; margin: 6px 0 -54px;">
+        <svg width="380" height="356" viewBox="0 0 320 300" aria-hidden="true" style="position: absolute; left: 0; top: -6px;">
           <circle cx="160" cy="165" r="140" fill="none" stroke="#1C1C1C" stroke-width="10" stroke-dasharray="586 2000" transform="rotate(150 160 165)"></circle>
           <circle cx="160" cy="165" r="140" fill="none" class="s6-acc" stroke=${v.accent} stroke-width="10" stroke-dasharray=${v.speedDash} transform="rotate(150 160 165)"></circle>
           <circle cx="160" cy="165" r="125" fill="none" stroke="#2A2A2A" stroke-width="6" stroke-dasharray="1.4 11.69" transform="rotate(150 160 165)"></circle>

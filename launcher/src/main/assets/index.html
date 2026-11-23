@@ -75,14 +75,21 @@ a{color:#D42A3A}
 #stage>div>section[aria-label="Vehicle"]{grid-column:2!important;grid-row:3 / span 2!important}
 #stage>div>section[aria-label="Cameras"]{grid-column:2!important;grid-row:3 / span 2!important;z-index:5;position:relative}
 #stage>div>section[aria-label="Climate and seats"]{grid-column:1 / -1!important;grid-row:5!important}
-#fit:not(.portrait) #stage>div{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-rows:44px 120px minmax(0,1fr) 140px!important}
-#fit:not(.portrait) #stage>div>section[aria-label="Media and shortcuts"]{grid-row:2!important;margin-right:128px}
-#fit:not(.portrait) #stage>div>section[aria-label="Drive"]{grid-row:3!important}
-#fit:not(.portrait) #stage>div>section[aria-label="Vehicle"], #fit:not(.portrait) #stage>div>section[aria-label="Cameras"]{grid-row:2 / span 2!important}
-#fit:not(.portrait) #stage>div>section[aria-label="Cameras"]{margin-top:66px}
-#fit:not(.portrait) #stage section[aria-label="Vehicle"]>div{top:64px!important}
+/* 0.65 (Jonty 2026-11-23): tabs top-left; now playing centred under the clock; Range dial | wireframe | Speed dial in one row. */
+#stage div[aria-label="Pages"]{left:28px!important;top:16px!important;transform:none!important}
+#fit.portrait #stage div[aria-label="Pages"]{left:16px!important;top:16px!important}
+#stage>div>div[aria-label="Status"]>div:first-child{visibility:hidden}
+#fit:not(.portrait) #stage>div{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) minmax(0,1fr)!important;grid-template-rows:44px 120px minmax(0,1fr) 140px!important}
+#fit:not(.portrait) #stage>div>section[aria-label="Media and shortcuts"]{grid-column:1 / -1!important;grid-row:2!important;justify-self:center;width:640px}
+html[data-page="home"] #fit:not(.portrait) #stage>div>section[aria-label="Drive"]{display:contents!important}
+html[data-page="home"] #fit:not(.portrait) #stage section[aria-label="Range"]{grid-column:1!important;grid-row:3!important}
+html[data-page="home"] #fit:not(.portrait) #stage section[aria-label="Speed"]{grid-column:3!important;grid-row:3!important}
+html[data-page="home"] #fit:not(.portrait) #stage div[aria-label="Gear"]{position:relative!important;grid-column:2!important;grid-row:3!important;align-self:start;top:0!important;z-index:3}
+html[data-page="home"] #fit:not(.portrait) #stage div[aria-label="Front camera, shown at low speed"]{position:relative!important;grid-column:1 / -1!important;grid-row:3!important}
+#fit:not(.portrait) #stage>div>section[aria-label="Vehicle"], #fit:not(.portrait) #stage>div>section[aria-label="Cameras"]{grid-column:2!important;grid-row:3!important;margin-top:0}
+#fit:not(.portrait) #stage section[aria-label="Vehicle"]>div{top:44px!important}
 #fit:not(.portrait) #stage>div>section[aria-label="Climate and seats"]{grid-row:4!important}
-html[data-page="offroad"] #fit:not(.portrait) #stage>div>section[aria-label="Drive"]{grid-row:2 / span 2!important;margin-top:66px}
+html[data-page="offroad"] #fit:not(.portrait) #stage>div>section[aria-label="Drive"]{grid-column:1 / -1!important;grid-row:2 / span 2!important;padding-top:0!important}
 #fit:not(.portrait) #stage section[aria-label="Drive"]{padding-top:46px;box-sizing:border-box}
 #fit:not(.portrait) #stage div[aria-label="Gear"]{top:0!important}
 #stage div[aria-label="Front camera, shown at low speed"]{top:0!important}
@@ -102,9 +109,9 @@ html[data-page="offroad"] #fit.portrait #stage>div>section[aria-label="Drive"]{g
 #fit.portrait #stage>div>section[aria-label="Climate and seats"]{grid-column:1 / -1!important;grid-row:5!important;flex-wrap:wrap!important;justify-content:center!important;align-content:center!important;row-gap:14px!important;column-gap:14px!important;padding:0 16px!important}
 #fit.portrait section[aria-label="Climate and seats"]>div:nth-child(3){order:-1;flex-basis:100%;justify-content:center}
 #fit.portrait section[aria-label="Climate and seats"]>div:not(:nth-child(3)){zoom:0.86}
-#fit.portrait #stage>div>div[aria-label="Status"]{grid-template-columns:auto minmax(0,1fr)!important}
-#fit.portrait #stage>div>div[aria-label="Status"]>div:first-child{display:none!important}
-#fit.portrait #stage>div>div[aria-label="Status"]>div:nth-child(2){justify-self:start!important}
+#fit.portrait #stage>div>div[aria-label="Status"]{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important}
+
+
 #fit.portrait [style*="width: 1600px"]{width:100%!important;height:100%!important}
 #fit.portrait [style*="width: 1500px"]{width:860px!important;max-height:94%!important}
 /* Flex gaps as margins: the car's WebView predates flexbox gap. */

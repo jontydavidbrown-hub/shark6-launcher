@@ -41,16 +41,22 @@ def ztop_hood(x):
 # ---- side silhouette, lower body (both sides at y=W), with wheel-arch cut-outs
 ARCH_R = 128 / K
 side_lo = [P(300, 492), P(291, 560), P(290, 640), P(300, 670), P(322, 692), P(352, 700)]
-side_lo += arc(FW, ARCH_R, 8, 172, 20)
-side_lo += [P(622, 700), P(640, 712), P(1150, 712), P(1170, 700)]
-side_lo += arc(RW, ARCH_R, 8, 172, 20)
-side_lo += [P(1440, 692), P(1555, 690), P(1558, 640), P(1600, 632), P(1607, 690), P(1560, 702)]
+# Squared-off arches (traced from the side photo): flat top, steep sides
+F_OPEN = [(366, 700), (368, 622), (386, 586), (420, 563), (560, 561), (595, 576), (612, 602), (616, 700)]
+F_FLARE = [(352, 612), (362, 576), (386, 546), (422, 528), (470, 524), (560, 526), (596, 540), (616, 566), (623, 602), (626, 700)]
+R_OPEN = [(1190, 700), (1192, 622), (1210, 586), (1245, 563), (1372, 561), (1405, 576), (1422, 602), (1426, 700)]
+R_FLARE = [(1178, 700), (1180, 602), (1194, 566), (1222, 540), (1262, 527), (1355, 527), (1398, 540), (1424, 566), (1436, 602), (1440, 700)]
+side_lo += [P(*q) for q in F_OPEN[1:-1]]
+side_lo += [P(616, 700), P(640, 712), P(1150, 712), P(1190, 700)]
+side_lo += [P(*q) for q in R_OPEN[1:-1]]
+side_lo += [P(1426, 700), P(1440, 692), P(1555, 690), P(1558, 640), P(1600, 632), P(1607, 690), P(1560, 702)]
 for s in (1, -1):
     add('body', [(x, s * W, z) for x, z in side_lo])
-# fender flares (stand slightly proud)
-for c in (FW, RW):
-    both('body', [((947 - (c[0] + 150 / K * math.cos(math.radians(a))) * K), 803 - (c[1] + 150 / K * math.sin(math.radians(a))) * K) for a in range(14, 167, 8)], W + 0.03)
-    both('detail', [((947 - (c[0] + 136 / K * math.cos(math.radians(a))) * K), 803 - (c[1] + 136 / K * math.sin(math.radians(a))) * K) for a in range(10, 171, 8)], W + 0.015)
+# fender flares: black cladding standing proud of the body, inner and outer edge
+for fl, op in ((F_FLARE, F_OPEN), (R_FLARE, R_OPEN)):
+    both('body', fl, W + 0.035)
+    both('detail', op, W + 0.035)
+    both('detail', fl, W)
 # shoulder: hood edge -> belt -> bed rail (the body's top edge on each side)
 shoulder = [(300, 492), (330, 484), (450, 474), (600, 462), (645, 456), (1150, 456), (1160, 453), (1575, 455), (1590, 458)]
 both('body', shoulder, W)
@@ -92,8 +98,10 @@ def section_top(x):
         return [(W, ZBELT), (WB, ZBELT + 0.01), (gh_y(zr), zr), (0.4, zr + 0.015), (0.0, zr + 0.02)]
     return None
 def zsill(x):
-    for c in (FW, RW):
-        if abs(x - c[0]) < ARCH_R: return c[1] + math.sqrt(ARCH_R ** 2 - (x - c[0]) ** 2)
+    for op in (F_OPEN, R_OPEN):
+        pts = [P(*q) for q in op]
+        for a, b in zip(pts, pts[1:]):
+            if b[0] <= x <= a[0] and a[0] != b[0]: return lerp(a[1], b[1], (a[0] - x) / (a[0] - b[0]))
     if x > P(640, 0)[0] or x < P(1150, 0)[0]: return P(0, 690)[1]
     return P(0, 712)[1]
 stations = [P(px, 0)[0] for px in (310, 380, 460, 540, 620, 690, 760, 830, 900, 970, 1040, 1110)]
@@ -131,11 +139,11 @@ add('glass', [(xcb, -0.6, ZBELT + 0.12), (xcb, 0.6, ZBELT + 0.12), (xcb + 0.02, 
 add('body', [(xcb + 0.005, -W, ZBELT), (xcb + 0.005, W, ZBELT)])
 add('body', [(XC, -WI, ZF), (XC, WI, ZF)])
 
-# ---- badge letters (the BYD wordmark on the grille and the tailgate), unit glyphs
+# ---- BYD wordmark glyphs (as on the grille and tailgate: open-left B, U-topped Y, D)
 GLYPH = {
-    'B': [[(0, 0), (0, 1), (0.72, 1), (0.92, 0.88), (0.92, 0.62), (0.76, 0.5), (0, 0.5)], [(0.76, 0.5), (1, 0.38), (1, 0.12), (0.8, 0), (0, 0)]],
-    'Y': [[(0, 1), (0.5, 0.48), (1, 1)], [(0.5, 0.48), (0.5, 0)]],
-    'D': [[(0, 0), (0, 1), (0.62, 1), (1, 0.72), (1, 0.28), (0.62, 0), (0, 0)]],
+    'B': [[(0.05, 1), (0.74, 1), (0.95, 0.87), (0.95, 0.63), (0.78, 0.5), (0.12, 0.5)], [(0.78, 0.5), (1, 0.37), (1, 0.13), (0.78, 0), (0.05, 0)]],
+    'Y': [[(0, 1), (0, 0.66), (0.16, 0.5), (0.84, 0.5), (1, 0.66), (1, 1)], [(0.5, 0.5), (0.5, 0)]],
+    'D': [[(0.05, 1), (0.62, 1), (1, 0.72), (1, 0.28), (0.62, 0), (0, 0), (0, 0.55)]],
 }
 def word(cls, text, x, ysign, zc, h, w, gap):
     total = len(text) * w + (len(text) - 1) * gap
@@ -143,55 +151,75 @@ def word(cls, text, x, ysign, zc, h, w, gap):
         u0 = -total / 2 + i * (w + gap)
         for g in GLYPH[ch]:
             add(cls, [(x, ysign * (u0 + u * w), zc - h / 2 + v * h) for u, v in g])
+def rect(cls, x, y0, y1, z0, z1):
+    add(cls, [(x, y0, z0), (x, y1, z0), (x, y1, z1), (x, y0, z1)], close=True)
 
-# ---- front (from the front-three-quarter photo): flat upright face, framed wordmark grille,
-# stacked LED headlights at the corners, dark bumper with a silver skid plate
+# ---- front (traced from the front-three-quarter photo)
 XF = P(291, 0)[0]
-zh = P(0, 492)[1]
-ZBT = 0.88   # top of the bumper
-add('body', [(XF - 0.04, -W, zh - 0.03), (XF, -W + 0.05, zh - 0.06), (XF, -W + 0.05, ZBT), (XF, W - 0.05, ZBT), (XF, W - 0.05, zh - 0.06), (XF - 0.04, W, zh - 0.03)])
-add('body', [(XF - 0.04, -W + 0.06, zh), (XF - 0.04, W - 0.06, zh)])
-# grille frame + wordmark
-add('detail', [(XF + 0.004, -0.64, 0.93), (XF + 0.004, 0.64, 0.93), (XF + 0.004, 0.64, 1.22), (XF + 0.004, -0.64, 1.22)], close=True)
-add('glass', [(XF + 0.006, -0.68, 1.245), (XF + 0.006, 0.68, 1.245)])
-word('light', 'BYD', XF + 0.01, 1, 1.075, 0.2, 0.3, 0.1)
-# headlights: frame + three LED strips each side
+zh = P(0, 492)[1]                      # hood leading edge
+add('body', [(XF - 0.05, -W + 0.04, zh), (XF - 0.05, W - 0.04, zh)])
+add('detail', [(XF - 0.01, -0.92, zh - 0.03), (XF - 0.01, 0.92, zh - 0.03)])          # hood shut line
+for sd in (1, -1):                                                                 # face corners
+    add('body', [(XF - 0.05, sd * (W - 0.04), zh), (XF, sd * (W - 0.03), zh - 0.05), (XF, sd * (W - 0.03), 0.84)])
+add('body', [(XF, -W + 0.03, 0.84), (XF, W - 0.03, 0.84)])                         # bottom of the body-colour face
+# black grille panel with the silver wordmark and I-shaped end bars
+rect('body', XF + 0.004, -0.56, 0.56, 0.98, 1.17)
+word('light', 'BYD', XF + 0.01, 1, 1.075, 0.13, 0.22, 0.06)
 for sd in (1, -1):
-    add('detail', [(XF + 0.004, sd * 0.70, 0.93), (XF + 0.004, sd * 0.93, 0.93), (XF + 0.004, sd * 0.93, 1.22), (XF + 0.004, sd * 0.70, 1.22)], close=True)
-    for z in (1.0, 1.075, 1.15):
-        add('light', [(XF + 0.008, sd * 0.73, z), (XF + 0.008, sd * 0.90, z)])
-# bumper: steps forward, then tucks under
+    for z in (0.995, 1.155):
+        add('light', [(XF + 0.01, sd * 0.43, z), (XF + 0.01, sd * 0.51, z)])
+    add('light', [(XF + 0.01, sd * 0.47, 0.995), (XF + 0.01, sd * 0.47, 1.155)])
+    add('detail', [(XF + 0.006, sd * 0.56, 1.075), (XF + 0.006, sd * 0.68, 1.075)])   # bar out to the headlight
+    # headlight: square unit at the corner, LED lenses, L-shaped light strip under it
+    rect('detail', XF + 0.004, sd * 0.68, sd * 0.95, 0.97, 1.24)
+    add('light', [(XF + 0.008, sd * 0.72, 1.17), (XF + 0.008, sd * 0.86, 1.17)])
+    add('light', [(XF + 0.008, sd * 0.72, 1.06), (XF + 0.008, sd * 0.86, 1.06)])
+    add('light', [(XF + 0.008, sd * 0.68, 0.95), (XF + 0.008, sd * 0.96, 0.95), (XF + 0.008, sd * 0.96, 1.1)])
+    # lower intakes with slats
+    rect('detail', XF + 0.004, sd * 0.06, sd * 0.55, 0.82, 0.9)
+    add('rib', [(XF + 0.006, sd * 0.08, 0.86), (XF + 0.006, sd * 0.53, 0.86)])
+# dark lower bumper: wide, stepped forward, fog lamps at the corners
+XBF = XF + 0.06
 for sd in (1, -1):
-    add('body', [(XF, sd * 0.96, ZBT), (XF + 0.05, sd * 0.96, 0.80), (XF + 0.05, sd * 0.96, 0.56), (XF - 0.06, sd * 0.94, 0.42)])
-    add('detail', [(XF + 0.052, sd * 0.78, 0.60), (XF + 0.052, sd * 0.92, 0.60), (XF + 0.052, sd * 0.92, 0.76)])
-add('body', [(XF + 0.05, -0.96, 0.80), (XF + 0.05, 0.96, 0.80)])
-add('detail', [(XF + 0.05, -0.96, 0.56), (XF + 0.05, 0.96, 0.56)])
-add('body', [(XF - 0.06, -0.94, 0.42), (XF - 0.06, 0.94, 0.42)])
-add('detail', [(XF + 0.052, -0.58, 0.66), (XF + 0.052, 0.58, 0.66), (XF + 0.052, 0.58, 0.76), (XF + 0.052, -0.58, 0.76)], close=True)
-add('glass', [(XF + 0.055, -0.5, 0.60), (XF + 0.055, 0.5, 0.60), (XF - 0.02, 0.38, 0.43), (XF - 0.02, -0.38, 0.43)], close=True)
+    add('body', [(XF, sd * 0.97, 0.84), (XBF, sd * 0.97, 0.8), (XBF, sd * 0.97, 0.55), (XF - 0.08, sd * 0.93, 0.42)])
+    rect('light', XBF + 0.003, sd * 0.76, sd * 0.92, 0.75, 0.8)
+add('body', [(XBF, -0.97, 0.8), (XBF, 0.97, 0.8)])
+add('body', [(XF - 0.08, -0.93, 0.42), (XF - 0.08, 0.93, 0.42)])
+# silver skid plate with two raised wings, number plate in the middle
+add('glass', [(XBF + 0.004, -0.78, 0.71), (XBF + 0.004, -0.5, 0.71), (XBF + 0.004, -0.42, 0.62), (XBF + 0.004, 0.42, 0.62), (XBF + 0.004, 0.5, 0.71), (XBF + 0.004, 0.78, 0.71),
+              (XBF - 0.02, 0.7, 0.52), (XF - 0.06, 0.45, 0.43), (XF - 0.06, -0.45, 0.43), (XBF - 0.02, -0.7, 0.52), (XBF + 0.004, -0.78, 0.71)])
+rect('detail', XBF + 0.006, -0.25, 0.25, 0.6, 0.76)
+for sd in (1, -1):
+    for z in (0.6, 0.645):
+        add('glass', [(XBF + 0.006, sd * 0.55, z), (XBF + 0.006, sd * 0.7, z)])
 
-# ---- rear (from the rear-three-quarter photo): flat tailgate with an embossed wordmark,
-# full-width light bar joining two tall corner lamps, wide black step bumper
+# ---- rear (traced from the rear-three-quarter photo)
 XR = P(1590, 0)[0]
 zt1 = P(0, 458)[1]
 add('body', [(XR, -W, 0.62), (XR, -W, zt1), (XR, W, zt1), (XR, W, 0.62)])
-add('detail', [(XR - 0.004, -0.80, 0.66), (XR - 0.004, 0.80, 0.66), (XR - 0.004, 0.80, 1.40), (XR - 0.004, -0.80, 1.40)], close=True)
-add('detail', [(XR - 0.004, -0.80, 0.80), (XR - 0.004, 0.80, 0.80)])
-add('tail', [(XR - 0.006, -0.81, 1.36), (XR - 0.006, 0.81, 1.36)])
+add('detail', [(XR - 0.004, -0.82, 1.33), (XR - 0.004, 0.82, 1.33)])             # top cap of the tailgate
+add('tail', [(XR - 0.006, -0.82, 1.29), (XR - 0.006, 0.82, 1.29)])               # full-width light bar
+add('tail', [(XR - 0.006, -0.82, 1.26), (XR - 0.006, 0.82, 1.26)])
+add('detail', [(XR - 0.004, -0.82, 0.66), (XR - 0.004, 0.82, 0.66), (XR - 0.004, 0.82, 1.43)])
+add('detail', [(XR - 0.004, -0.82, 0.66), (XR - 0.004, -0.82, 1.43)])
+add('detail', [(XR - 0.004, -0.82, 0.8), (XR - 0.004, 0.82, 0.8)])               # badge band
 for sd in (1, -1):
-    add('tail', [(XR - 0.006, sd * 0.98, 1.42), (XR - 0.006, sd * 0.82, 1.42), (XR - 0.006, sd * 0.82, 0.92), (XR - 0.006, sd * 0.98, 0.92)], close=True)
-    for z in (1.04, 1.16, 1.28):
-        add('tail', [(XR - 0.008, sd * 0.85, z), (XR - 0.008, sd * 0.95, z)])
-word('detail', 'BYD', XR - 0.006, -1, 1.12, 0.17, 0.27, 0.09)
+    # tall corner lamps that wrap round onto the bed sides
+    lamp = [(XR - 0.006, sd * 0.84, 1.38), (XR - 0.006, sd * 0.84, 0.92), (XR - 0.006, sd * W, 0.9), (XR + 0.17, sd * (W + 0.005), 0.92), (XR + 0.17, sd * (W + 0.005), 1.3), (XR - 0.006, sd * W, 1.38)]
+    add('tail', lamp, close=True)
+    for z in (1.02, 1.12, 1.22):
+        add('tail', [(XR - 0.008, sd * 0.87, z), (XR - 0.008, sd * 0.96, z), (XR + 0.15, sd * (W + 0.006), z)])
+word('detail', 'BYD', XR - 0.006, -1, 1.06, 0.26, 0.36, 0.1)
 XB = P(1607, 0)[0] - 0.02
 for x in (XR, XB):
-    add('body', [(x, -0.98, 0.62), (x, 0.98, 0.62), (x, 0.98, 0.38), (x, -0.98, 0.38)], close=True)
+    add('body', [(x, -0.98, 0.62), (x, 0.98, 0.62), (x, 0.98, 0.36), (x, -0.98, 0.36)], close=True)
 for sd in (1, -1):
     add('body', [(XR, sd * 0.98, 0.62), (XB, sd * 0.98, 0.62)])
-    add('body', [(XR, sd * 0.98, 0.38), (XB, sd * 0.98, 0.38)])
-    add('tail', [(XB - 0.003, sd * 0.78, 0.47), (XB - 0.003, sd * 0.92, 0.47)])
-add('detail', [(XB - 0.003, -0.27, 0.43), (XB - 0.003, 0.27, 0.43), (XB - 0.003, 0.27, 0.57), (XB - 0.003, -0.27, 0.57)], close=True)
-add('detail', [(XB, 0, 0.36), (XB - 0.2, 0, 0.36), (XB - 0.2, 0, 0.42)])
+    add('body', [(XR, sd * 0.98, 0.36), (XB, sd * 0.98, 0.36)])
+    add('tail', [(XB - 0.003, sd * 0.66, 0.45), (XB - 0.003, sd * 0.86, 0.45)])
+add('detail', [(XB - 0.003, -0.98, 0.56), (XB - 0.003, 0.98, 0.56)])             # step
+rect('detail', XB - 0.003, -0.27, 0.27, 0.42, 0.55)
+add('detail', [(XB, 0, 0.34), (XB - 0.22, 0, 0.34), (XB - 0.22, 0, 0.42)])
 
 # ---- wheels
 for c in (FW, RW):

@@ -9,7 +9,7 @@
   var st = { accent: '#D42A3A', tyres: [], labels: ['FL', 'FR', 'RL', 'RR'] };
   var cv = null, ctx = null, raf = 0, last = 0;
   var yaw = REST_YAW, pitch = REST_PITCH, dist = REST_D, vy = 0, vp = 0;
-  var drag = null, touched = false, lastTouch = 0, intro = null;
+  var drag = null, touched = false, lastTouch = 0, intro = null, lastDraw = 0, SPIN = 0.16;
   // centroid X and depth helpers per polyline (precomputed)
   var cx = lines.map(function (l) { var p = l[1], s = 0, n = p.length / 3; for (var i = 0; i < p.length; i += 3) s += p[i]; return s / n; });
   var STY = {
@@ -54,6 +54,9 @@
   function frame(now) {
     raf = 0;
     if (!cv || !cv.isConnected || !cv.offsetParent) { cv = null; return; }
+    // The slow spin only needs ~30 fps; skip alternate frames when nothing else is moving.
+    if (!intro && !drag && now - lastDraw < 30) { schedule(); return; }
+    lastDraw = now;
     var dt = last ? Math.min(0.05, (now - last) / 1000) : 0.016; last = now;
     var bw = cv.offsetWidth, bh = cv.offsetHeight;
     if (!bw || !bh) { schedule(); return; }
@@ -67,13 +70,16 @@
     // motion: intro sweep, finger inertia, idle drift
     var p = 1;
     if (intro) {
-      p = Math.min(1, (now - intro) / 1700);
+      // Bird's-eye start: straight down on the roof, then swing down and round to the usual three-quarter view.
+      p = Math.min(1, (now - intro) / 2400);
       var e = ease(p);
-      yaw = REST_YAW + 1.9 * (1 - e); pitch = REST_PITCH + 0.42 * (1 - e); dist = REST_D + 6 * (1 - e);
+      yaw = REST_YAW + 1.4 * (1 - e); pitch = REST_PITCH + (1.5 - REST_PITCH) * (1 - e); dist = REST_D + 3 * (1 - e);
       if (p >= 1) { intro = null; yaw = REST_YAW; pitch = REST_PITCH; dist = REST_D; }
     } else if (!drag) {
       yaw += vy; pitch = Math.max(0.02, Math.min(0.8, pitch + vp));
       vy *= 0.93; vp *= 0.9;
+      // slow, constant turntable spin (pauses for 3 s after a finger lets go)
+      if (now - lastTouch > 3000) yaw += SPIN * dt;
     }
     var C = camera(bw, bh), A = [0, 0, 0], B = [0, 0, 0];
     var a = hexRgb(st.accent);
@@ -106,7 +112,7 @@
       zn = Math.min(zn, A[2]); zf = Math.max(zf, A[2]);
     }
     // build one path per class x depth bucket (x glow), partial lines during the intro
-    var reveal = intro ? p * 1.55 : 9;
+    var reveal = intro ? p * 2.2 : 9;
     var paths = {};
     for (i = 0; i < lines.length; i++) {
       var L = lines[i], cls = L[0], pts = L[1], n = pts.length / 3;
@@ -181,7 +187,7 @@
       ctx.fillText('DRAG TO ROTATE', bw / 2, bh - 10);
     }
     // Only keep drawing while something moves; a still model costs nothing.
-    if (intro || drag || Math.abs(vy) > 0.0004 || Math.abs(vp) > 0.0004) schedule();
+    schedule();
   }
   function schedule() { if (!raf && cv) raf = requestAnimationFrame(frame); }
 
