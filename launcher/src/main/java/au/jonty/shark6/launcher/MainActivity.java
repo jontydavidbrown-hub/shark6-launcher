@@ -155,6 +155,7 @@ public class MainActivity extends Activity {
             try { o.put("media", media.read()); } catch (Exception ignored) { }
             double[] t = tilt.read();
             if (t != null) try { o.put("tilt", new JSONObject().put("p", Math.round(t[0] * 10) / 10.0).put("r", Math.round(t[1] * 10) / 10.0)); } catch (Exception ignored) { }
+            ui.post(compass::start);
             double hd = compass.read();
             if (!Double.isNaN(hd)) try { o.put("heading", Math.round(hd)); } catch (Exception ignored) { }
             final String js = "window.onCar && window.onCar(" + JSONObject.quote(o.toString()) + ")";

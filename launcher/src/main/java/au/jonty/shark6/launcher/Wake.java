@@ -52,6 +52,11 @@ public class Wake extends Service {
                 }
             }
         } catch (Exception ignored) { }
+        // Compass: the GPS bearing needs location switched on.
+        try {
+            android.location.LocationManager lm = c.getSystemService(android.location.LocationManager.class);
+            if (lm != null && !lm.isLocationEnabled()) cmd.append("cmd location set-location-enabled true 2>/dev/null;");
+        } catch (Exception ignored) { }
         // Now playing reads other apps' media sessions, which needs notification access.
         try {
             android.content.ComponentName ml = new android.content.ComponentName(c, MediaListener.class);

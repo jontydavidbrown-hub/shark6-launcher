@@ -27,6 +27,7 @@ final class Compass implements SensorEventListener, LocationListener {
     private boolean haveM, haveG;
     private double magHeading = Double.NaN, gpsHeading;
     private long gpsAt;
+    private int fixes;
     private volatile String state = "not started";
 
     Compass(Context c) {
@@ -42,17 +43,30 @@ final class Compass implements SensorEventListener, LocationListener {
 
     boolean available() { return true; }
 
+    private boolean listening;
+    private Location prev;
+
+    /** Called on resume and again on every car poll, so it picks up the location permission as soon as it's granted. */
     void start() {
-        if (mag != null && grav != null) {
+        if (listening) return;
+        if (mag != null && grav != null && !haveM) {
             sm.registerListener(this, mag, SensorManager.SENSOR_DELAY_UI);
             sm.registerListener(this, grav, SensorManager.SENSOR_DELAY_UI);
         }
         try {
             LocationManager lm = (LocationManager) ctx.getSystemService(Context.LOCATION_SERVICE);
-            if (lm != null && lm.getAllProviders().contains(LocationManager.GPS_PROVIDER)) {
-                lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this, Looper.getMainLooper());
-                state = "gps listening";
-            } else state = "no gps provider";
+            if (lm == null) { state = "no location service"; return; }
+            java.util.List<String> all = lm.getAllProviders();
+            int n = 0;
+            for (String p : new String[]{LocationManager.GPS_PROVIDER, "fused", LocationManager.NETWORK_PROVIDER}) {
+                if (!all.contains(p)) continue;
+                lm.requestLocationUpdates(p, 1000, 0, this, Looper.getMainLooper());
+                Location last = lm.getLastKnownLocation(p);
+                if (last != null && prev == null) prev = last;
+                n++;
+            }
+            listening = n > 0;
+            state = n > 0 ? "listening (" + all + ", gps on: " + lm.isProviderEnabled(LocationManager.GPS_PROVIDER) + ")" : "no location providers " + all;
         } catch (SecurityException e) {
             state = "no location permission yet";
         } catch (Throwable t) {
@@ -61,14 +75,22 @@ final class Compass implements SensorEventListener, LocationListener {
     }
 
     void stop() {
+        listening = false;
         if (sm != null) sm.unregisterListener(this);
         try { ((LocationManager) ctx.getSystemService(Context.LOCATION_SERVICE)).removeUpdates(this); } catch (Throwable ignored) { }
     }
 
     @Override public synchronized void onLocationChanged(Location l) {
-        // Bearing is only meaningful while moving (above ~8 km/h).
-        if (l == null || !l.hasBearing() || !l.hasSpeed() || l.getSpeed() < 2.2f) return;
-        gpsHeading = l.getBearing();
+        if (l == null) return;
+        fixes++;
+        // Bearing is only meaningful while moving. Use the GPS's own bearing, or work it out from the
+        // last fix when the receiver doesn't give one.
+        double b = Double.NaN;
+        if (l.hasBearing() && l.hasSpeed() && l.getSpeed() >= 2.2f) b = l.getBearing();
+        else if (prev != null && prev.distanceTo(l) > 12) b = prev.bearingTo(l);
+        if (prev == null || prev.distanceTo(l) > 12) prev = l;
+        if (Double.isNaN(b)) return;
+        gpsHeading = (b + 360) % 360;
         gpsAt = System.currentTimeMillis();
         state = "gps bearing";
         prefs.edit().putFloat("gps", (float) gpsHeading).apply();
@@ -98,7 +120,7 @@ final class Compass implements SensorEventListener, LocationListener {
     }
 
     String report() {
-        return "compass: " + state + ", gps " + (Double.isNaN(gpsHeading) ? "-" : Math.round(gpsHeading) + "°" + (gpsAt == 0 ? " (remembered)" : ""))
+        return "compass: " + state + ", fixes " + fixes + ", gps " + (Double.isNaN(gpsHeading) ? "-" : Math.round(gpsHeading) + "°" + (gpsAt == 0 ? " (remembered)" : ""))
                 + ", magnetometer " + (mag == null ? "none" : Double.isNaN(magHeading) ? "silent" : Math.round(magHeading) + "°");
     }
 }
