@@ -2,50 +2,22 @@
 // Model (metres, X forward, Y left, Z up) comes from wire-model.js, traced from the side photo by tools/wire_model.py.
 (function () {
   var M = window.S6_MODEL;
-  if (!M || !M.f) return;
-  var meta = M.meta;
+  if (!M) return;
+  var lines = M.lines, meta = M.meta;
   var XF = meta.len[0], XB = meta.len[1];
   var REST_YAW = 0.72, REST_PITCH = 0.2, REST_D = 15;
   var st = { accent: '#D42A3A', tyres: [], labels: ['FL', 'FR', 'RL', 'RR'] };
   var cv = null, ctx = null, raf = 0, last = 0;
   var yaw = REST_YAW, pitch = REST_PITCH, dist = REST_D, vy = 0, vp = 0;
   var drag = null, touched = false, lastTouch = 0, intro = null, lastDraw = 0, SPIN = 0.16;
+  // centroid X and depth helpers per polyline (precomputed)
+  var cx = lines.map(function (l) { var p = l[1], s = 0, n = p.length / 3; for (var i = 0; i < p.length; i += 3) s += p[i]; return s / n; });
+  var STY = {
+    rib: [1, 0.30, 0], tread: [0.8, 0.28, 0], tyreIn: [1, 0.4, 0], detail: [1.2, 0.62, 0],
+    glass: [1.4, 0.75, 0], rim: [1.2, 0.75, 0], body: [2, 1, 1], tyre: [2, 1, 1], light: [1.6, 0.9, 1], tail: [2.6, 1, 1]
+  };
+  var ORDER = ['rib', 'tread', 'tyreIn', 'detail', 'glass', 'rim', 'body', 'tyre', 'light', 'tail'];
 
-  // ---- mesh, prepared once: per-face normal + centre, decal lines split into short pieces
-  var V = M.v, NV = V.length / 3, FACES = M.f, NF = FACES.length;
-  var fn = new Float32Array(NF * 3), fc = new Float32Array(NF * 3), fx = new Float32Array(NF);
-  for (var f = 0; f < NF; f++) {
-    var F0 = FACES[f], n = F0[4] < 0 ? 3 : F0.length - 1, nx = 0, ny = 0, nz = 0, sx = 0, sy = 0, sz = 0;
-    for (var k = 0; k < n; k++) {
-      var ia = F0[1 + k] * 3, ib = F0[1 + (k + 1) % n] * 3;
-      nx += (V[ia + 1] - V[ib + 1]) * (V[ia + 2] + V[ib + 2]);
-      ny += (V[ia + 2] - V[ib + 2]) * (V[ia] + V[ib]);
-      nz += (V[ia] - V[ib]) * (V[ia + 1] + V[ib + 1]);
-      sx += V[ia]; sy += V[ia + 1]; sz += V[ia + 2];
-    }
-    var nl = Math.hypot(nx, ny, nz) || 1;
-    fn[f * 3] = nx / nl; fn[f * 3 + 1] = ny / nl; fn[f * 3 + 2] = nz / nl;
-    fc[f * 3] = sx / n; fc[f * 3 + 1] = sy / n; fc[f * 3 + 2] = sz / n; fx[f] = sx / n;
-  }
-  var DCL = [], DN = [], DP = [];
-  M.d.forEach(function (d) {
-    for (var i = 4; i + 5 < d.length; i += 3) { DCL.push(d[0]); DN.push(d[1], d[2], d[3]); DP.push(d[i], d[i + 1], d[i + 2], d[i + 3], d[i + 4], d[i + 5]); }
-  });
-  var ND = DCL.length;
-  var PX = new Float32Array(NV), PY = new Float32Array(NV), PZ = new Float32Array(NV);
-  var order = new Int32Array(NF + ND), depth = new Float32Array(NF + ND), A3 = [0, 0, 0], B3 = [0, 0, 0];
-  // materials: 0 body 1 black 2 glass 3 tyre 4 rim 5 silver 6 light 7 tail 8 bed
-  // [fill tint, edge strength, use accent?]
-  var MATS = [[0.15, 1.0, 1], [0.07, 0.40, 0], [0.04, 0.6, 2], [0.06, 0.30, 0], [0.12, 0.75, 2], [0.22, 0.9, 0], [0.4, 1, 0], [0.35, 1, 3], [0.08, 0.5, 1]];
-  var DSTY = { detail: [1.2, 0.75], glass: [1.1, 0.7], silver: [1.6, 1], light: [1.8, 1], tail: [2.4, 1], rim: [1.2, 0.8] };
-
-  // colour strings are cached per (colour, level): building thousands of strings a frame is slow on the car
-  var rgbCache = {};
-  function rgb(c, t, steps) {
-    var lv = Math.round(Math.max(0, Math.min(1, t)) * steps), key = c.k * 2 + (steps > 50 ? 1 : 0) + lv * 16, v = rgbCache[key];
-    if (!v) { var tt = lv / steps; v = rgbCache[key] = 'rgb(' + Math.round(8 + c[0] * tt) + ',' + Math.round(8 + c[1] * tt) + ',' + Math.round(10 + c[2] * tt) + ')'; }
-    return v;
-  }
   function hexRgb(h) {
     var m = /^#?([0-9a-f]{6})$/i.exec(h || '');
     if (!m) { var r = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(h || ''); return r ? [+r[1], +r[2], +r[3]] : [212, 42, 58]; }
@@ -139,57 +111,48 @@
       proj(C, i & 1 ? XF : XB, i & 2 ? 1 : -1, i & 4 ? 2 : 0, A);
       zn = Math.min(zn, A[2]); zf = Math.max(zf, A[2]);
     }
-    for (i = 0; i < NV; i++) { proj(C, V[i * 3], V[i * 3 + 1], V[i * 3 + 2], A); PX[i] = A[0]; PY[i] = A[1]; PZ[i] = A[2]; }
-    // visible faces and decal pieces, sorted far -> near (painter's algorithm hides what is behind)
-    var reveal = intro ? p * 2.2 : 9, cnt = 0, cam = C.c;
-    for (f = 0; f < NF; f++) {
-      var q = f * 3;
-      if (fn[q] * (cam[0] - fc[q]) + fn[q + 1] * (cam[1] - fc[q + 1]) + fn[q + 2] * (cam[2] - fc[q + 2]) <= 0) continue;
-      if (reveal < 9 && reveal - (XF - fx[f]) / (XF - XB) * 0.85 < 0) continue;
-      var Fa = FACES[f], nn = Fa[4] < 0 ? 3 : Fa.length - 1, dz = 0;
-      for (k = 1; k <= nn; k++) dz += PZ[Fa[k]];
-      order[cnt++] = f; depth[f] = dz / nn;
+    // build one path per class x depth bucket (x glow), partial lines during the intro
+    var reveal = intro ? p * 2.2 : 9;
+    var paths = {};
+    for (i = 0; i < lines.length; i++) {
+      var L = lines[i], cls = L[0], pts = L[1], n = pts.length / 3;
+      var ti = (XF - cx[i]) / (XF - XB), fr = Math.max(0, Math.min(1, (reveal - ti * 0.85) / 0.55));
+      if (fr <= 0) continue;
+      var m = Math.floor(pts.length / 3 / 2) * 3;
+      proj(C, pts[m], pts[m + 1], pts[m + 2], A);
+      var bucket = Math.min(2, Math.floor((A[2] - zn) / ((zf - zn) / 3 + 1e-6)));
+      var key = cls + bucket;
+      var path = paths[key] || (paths[key] = { cls: cls, b: bucket, segs: [] });
+      var seg = [], upto = fr * (n - 1);
+      for (var j = 0; j < n; j++) {
+        if (j > upto + 1) break;
+        var t = j > upto ? upto - (j - 1) : 1, q = j * 3;
+        if (t < 1) {
+          var q0 = q - 3;
+          proj(C, pts[q0] + (pts[q] - pts[q0]) * t, pts[q0 + 1] + (pts[q + 1] - pts[q0 + 1]) * t, pts[q0 + 2] + (pts[q + 2] - pts[q0 + 2]) * t, B);
+        } else proj(C, pts[q], pts[q + 1], pts[q + 2], B);
+        seg.push(B[0], B[1]);
+      }
+      path.segs.push(seg);
     }
-    for (i = 0; i < ND; i++) {
-      var o = i * 6, nq = i * 3;
-      if (DN[nq] * (cam[0] - DP[o]) + DN[nq + 1] * (cam[1] - DP[o + 1]) + DN[nq + 2] * (cam[2] - DP[o + 2]) <= 0) continue;
-      if (reveal < 9 && reveal - (XF - DP[o]) / (XF - XB) * 0.85 < 0.3) continue;
-      proj(C, (DP[o] + DP[o + 3]) / 2, (DP[o + 1] + DP[o + 4]) / 2, (DP[o + 2] + DP[o + 5]) / 2, A);
-      order[cnt++] = NF + i; depth[NF + i] = A[2] - 0.25;
-    }
-    var idx = Array.prototype.slice.call(order, 0, cnt);
-    idx.sort(function (x, y) { return depth[y] - depth[x]; });
-    // light comes from above and slightly from the viewer's side
-    var Lx = C.c[0] - 0, Ly = C.c[1] * 0.6, Lz = 9, Ll = Math.hypot(Lx, Ly, Lz); Lx /= Ll; Ly /= Ll; Lz /= Ll;
-    var white = [242, 242, 242], red = [255, 45, 61], silv = [200, 204, 212];
-    var tintA = [Math.round(a[0] + (255 - a[0]) * 0.45), Math.round(a[1] + (255 - a[1]) * 0.45), Math.round(a[2] + (255 - a[2]) * 0.45)];
-    a.k = 0; tintA.k = 1; white.k = 2; red.k = 3; silv.k = 4;
-    if (rgbCache.acc !== st.accent) { rgbCache = { acc: st.accent }; }
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-    for (i = 0; i < cnt; i++) {
-      var it = idx[i];
-      var dep = 1 - 0.5 * Math.max(0, Math.min(1, (depth[it] - zn) / (zf - zn + 1e-6)));
-      if (it < NF) {
-        var Fb = FACES[it], m = MATS[Fb[0]], q3 = it * 3, nb = Fb[4] < 0 ? 3 : Fb.length - 1;
-        var lam = Math.max(0, fn[q3] * Lx + fn[q3 + 1] * Ly + fn[q3 + 2] * Lz), sh = 0.35 + 0.65 * lam;
-        var base = m[2] === 1 ? a : m[2] === 2 ? tintA : m[2] === 3 ? red : Fb[0] === 5 ? silv : white;
-        var ft = m[0] * sh, et = m[1] * (0.55 + 0.45 * sh) * dep;
-        ctx.beginPath();
-        ctx.moveTo(PX[Fb[1]], PY[Fb[1]]);
-        for (k = 2; k <= nb; k++) ctx.lineTo(PX[Fb[k]], PY[Fb[k]]);
-        ctx.closePath();
-        ctx.fillStyle = rgb(base, ft, 100);
-        ctx.fill();
-        ctx.strokeStyle = rgb(base, et, 40);
-        ctx.lineWidth = 0.9;
-        ctx.stroke();
-      } else {
-        var dI = it - NF, s6 = dI * 6, cls = DCL[dI], sty = DSTY[cls] || DSTY.detail;
-        var c3 = cls === 'light' ? white : cls === 'tail' ? red : cls === 'silver' ? silv : cls === 'glass' || cls === 'rim' ? tintA : a;
-        proj(C, DP[s6], DP[s6 + 1], DP[s6 + 2], A); proj(C, DP[s6 + 3], DP[s6 + 4], DP[s6 + 5], B);
-        ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]);
-        ctx.strokeStyle = 'rgba(' + c3 + ',' + sty[1] * dep + ')'; ctx.lineWidth = sty[0];
-        ctx.stroke();
+    for (var pass = 0; pass < 2; pass++) {
+      for (var oi = 0; oi < ORDER.length; oi++) {
+        for (var b = 2; b >= 0; b--) {
+          var P = paths[ORDER[oi] + b];
+          if (!P) continue;
+          var s = STY[P.cls], c = col(P.cls), depthA = [1, 0.62, 0.32][b];
+          if (pass === 0 && (!s[2] || b === 2)) continue;
+          ctx.beginPath();
+          for (var si = 0; si < P.segs.length; si++) {
+            var sg = P.segs[si];
+            ctx.moveTo(sg[0], sg[1]);
+            for (var sj = 2; sj < sg.length; sj += 2) ctx.lineTo(sg[sj], sg[sj + 1]);
+          }
+          ctx.strokeStyle = 'rgba(' + c + ',' + (pass ? s[1] * depthA : 0.16 * depthA) + ')';
+          ctx.lineWidth = pass ? s[0] : s[0] * 3.2;
+          ctx.stroke();
+        }
       }
     }
     // tyre callouts on the ground beside each wheel
