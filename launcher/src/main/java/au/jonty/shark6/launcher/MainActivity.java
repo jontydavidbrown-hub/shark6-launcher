@@ -355,7 +355,7 @@ public class MainActivity extends Activity {
                     + media.report() + "\n"
                     + "Shark 6 Home " + ver + "   home screen: " + homeName() + "\n" + car.openReport()
                     + "turn: " + (f == null ? "-" : (int) f[2]) + " via " + car.turnSource() + "\n"
-                    + "compass: " + compass.available() + " heading " + compass.read() + "\n"
+                    + compass.report() + "\n"
                     + "tilt sensor: " + tilt.available() + (t == null ? "" : String.format(" pitch %.1f roll %.1f", t[0], t[1])) + "\n"
                     + "draw over apps: " + android.provider.Settings.canDrawOverlays(MainActivity.this) + "   last wake: " + Wake.lastWake + "\n"
                     + "media access: " + getSystemService(android.app.NotificationManager.class)

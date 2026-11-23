@@ -46,7 +46,7 @@ public class Wake extends Service {
         try {
             String[] req = c.getPackageManager().getPackageInfo(pkg, PackageManager.GET_PERMISSIONS).requestedPermissions;
             if (req != null) for (String p : req) {
-                if (p.startsWith("android.permission.BYDAUTO_")
+                if ((p.startsWith("android.permission.BYDAUTO_") || p.endsWith("_LOCATION"))
                         && c.checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) {
                     cmd.append("pm grant ").append(pkg).append(' ').append(p).append(" 2>/dev/null;");
                 }

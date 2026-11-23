@@ -125,6 +125,10 @@ html[data-page="offroad"] #fit:not(.portrait) #stage section[aria-label="Media a
 #stage section[aria-label="Climate and seats"] button, #stage section[aria-label="Climate and seats"]>div>div[style*="height: 108px"]{background:transparent!important;box-shadow:none!important;border:0!important}
 #stage section[aria-label="Climate and seats"] button{position:relative}
 #stage section[aria-label="Climate and seats"] button[aria-pressed="true"], #stage section[aria-label="Climate and seats"] button[aria-pressed="false"]{background:transparent!important;border:0!important;box-shadow:none!important}
+/* 0.67 (Jonty): a subtle glass tile back behind each control, same glass as now playing */
+#stage section[aria-label="Climate and seats"]>div>div>button, #stage section[aria-label="Climate and seats"]>div>div[style*="height: 108px"]{background:linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.02))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08), inset 0 0 0 1px rgba(255,255,255,0.04)!important;border-radius:18px!important}
+#stage section[aria-label="Climate and seats"]>div>div>button[aria-pressed="true"]{background:linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.035))!important}
+#stage section[aria-label="Climate and seats"]>div>div[style*="height: 108px"] button{background:transparent!important;box-shadow:none!important}
 #stage section[aria-label="Climate and seats"] button>span{display:block!important;font-size:13px!important;letter-spacing:.18em!important;margin-top:8px}
 #stage section[aria-label="Climate and seats"] button svg{-webkit-transform:scale(1.2);transform:scale(1.2)}
 #stage section[aria-label="Climate and seats"] button[aria-pressed="true"] svg{-webkit-filter:drop-shadow(0 0 8px rgba(255,255,255,0.35));filter:drop-shadow(0 0 8px rgba(255,255,255,0.35))}

@@ -47,7 +47,7 @@
     // Size from the middle column, not the whole canvas: the canvas runs under the dials so nothing is cropped.
     var fw = Math.min(w, h * 1.2);
     var F = Math.min((h > w ? 1.0 : 0.88) * fw * REST_D / 5.6, 0.5 * h * REST_D / 2.4);
-    return { c: c, f: f, r: r, u: u, F: F, ox: w / 2, oy: h * 0.54 };
+    return { c: c, f: f, r: r, u: u, F: F, ox: w / 2, oy: h * 0.47 };
   }
   function proj(C, x, y, z, out) {
     var dx = x - C.c[0], dy = y - C.c[1], dz = z - C.c[2];
@@ -88,16 +88,13 @@
       yaw += vy; pitch = Math.max(0.02, Math.min(0.8, pitch + vp));
       vy *= 0.93; vp *= 0.9;
       if (now - lastTouch > 3000) {
-        if (heading == null) yaw += SPIN * dt;      // no compass: slow turntable spin
-        else {
-          // follow the heading smoothly, then settle the camera back to its place
-          var dh = wrapA(heading - (hdShow == null ? heading : hdShow));
-          hdShow = wrapA((hdShow == null ? heading : hdShow) + dh * Math.min(1, dt * 2.5));
-          var dy = wrapA(homeYaw() - yaw);
-          yaw += dy * Math.min(1, dt * 2.5);
-          pitch += (REST_PITCH - pitch) * Math.min(1, dt * 2.5);
-          moving = Math.abs(dy) > 0.002 || Math.abs(dh) > 0.002 || Math.abs(vy) > 0.0005;
-        }
+        // follow the heading smoothly (if there is one), and settle the camera back to its place
+        var dh = 0;
+        if (heading != null) { dh = wrapA(heading - (hdShow == null ? heading : hdShow)); hdShow = wrapA((hdShow == null ? heading : hdShow) + dh * Math.min(1, dt * 2.5)); }
+        var dy = wrapA(homeYaw() - yaw);
+        yaw += dy * Math.min(1, dt * 2.5);
+        pitch += (REST_PITCH - pitch) * Math.min(1, dt * 2.5);
+        moving = Math.abs(dy) > 0.002 || Math.abs(dh) > 0.002 || Math.abs(vy) > 0.0005;
       }
     }
     var C = camera(bw, bh), A = [0, 0, 0], B = [0, 0, 0];
@@ -133,7 +130,7 @@
         ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]);
         ctx.strokeStyle = i ? 'rgba(242,242,242,0.45)' : 'rgba(' + a + ',0.95)'; ctx.lineWidth = i ? 1.5 : 3; ctx.stroke();
         proj(C, 3.95 * cx0, 3.95 * cy0, 0, A);
-        ctx.font = (i ? '600 20px' : '700 26px') + " 'Barlow Condensed', sans-serif";
+        ctx.font = (i ? '700 24px' : '700 32px') + " 'Barlow Condensed', sans-serif";
         ctx.fillStyle = i ? 'rgba(166,166,172,0.85)' : 'rgb(' + a + ')';
         ctx.fillText(CARD[i][0], A[0], A[1]);
       }

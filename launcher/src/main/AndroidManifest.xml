@@ -82,6 +82,9 @@
 
     <!-- Over-the-air updates from the public GitHub releases. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Heading for the wireframe compass (GPS bearing while driving); granted through the car's ADB. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Start on boot: the receiver opens the home screen; drawing over apps lets it do so from the background. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
