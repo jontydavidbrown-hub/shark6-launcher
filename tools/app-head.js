@@ -57,7 +57,7 @@ class Home extends Component {
         t.last = now;
         const d = sp * dt / 3600;
         t.km += d;
-        if (num(car.engineKw) >= 3) t.engKm += d;
+        if (num(car.engineRpm) > 300) t.engKm += d;
       }
     } else if (gear === 1 && t) {
       this.trip = null;
@@ -174,9 +174,9 @@ class Home extends Component {
   // Power in kW, negative while regenerating. The Shark doesn't share motor power with Android,
   // so when it's missing estimate it from how fast the car speeds up or slows down.
   kwTarget(c) {
-    if (typeof c.motorKw === 'number') return c.motorKw + Math.max(0, num(c.engineKw));
+    if (typeof c.motorKw === 'number') return c.motorKw;
     const h = this.spHist || [], now = performance.now(), sp = num(c.speed);
-    if (!(c.gear >= 2 && c.gear <= 6) || sp < 3 || h.length < 2) return Math.max(0, num(c.engineKw));
+    if (!(c.gear >= 2 && c.gear <= 6) || sp < 3 || h.length < 2) return 0;
     // Speed is a step function of the samples: compare with what it was ~1.2 s ago
     // (so a speed that has held steady reads as no acceleration).
     let ref = h[0];
@@ -333,11 +333,11 @@ class Home extends Component {
     const span = Math.min(1, Math.abs(kw) / 150) * 50 * kBars;
 
     const em = c.energyMode;
-    const engineOn = engineKw >= 3;
+    const engineOn = num(c.engineRpm) > 300;
     const modeLabel = ENERGY[em] || '—';
     const drive = driveName(c.opMode);
     const modePower = (drive ? drive + ' · ' : '') + (hasPower
-      ? (regen ? Math.round(-kw) + ' kW back to battery' : engineOn ? 'Engine ' + Math.round(engineKw) + ' kW' : Math.round(kw) + ' kW out')
+      ? (regen ? Math.round(-kw) + ' kW back to battery' : engineOn ? 'Engine on · ' + Math.round(kw) + ' kW' : Math.round(kw) + ' kW out')
       : 'Power reading unavailable');
 
     const tyres = Array.isArray(c.tyres) ? c.tyres : [];

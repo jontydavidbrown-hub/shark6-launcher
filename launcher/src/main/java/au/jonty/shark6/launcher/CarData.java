@@ -323,8 +323,11 @@ final class CarData {
             }
             powerLine = "power: motor dev " + num("motor", "getMotorPower") + "  engine " + engRaw
                     + "  front " + fRpm + " rpm " + fNm + " Nm  rear " + rRpm + " rpm  est " + (est == null ? "-" : String.format(java.util.Locale.ROOT, "%.1f kW", est));
-            put(o, "motorKw", motor, -400, 400);
-            put(o, "engineKw", num("engine", "getEnginePower"), 0, 400);
+            // engine.getEnginePower is the car's drive power, not the engine's: the 0.68 report shows it going
+            // to -28..-34 kW while coasting with the throttle off (2026-11-23). It's what BYD's own power
+            // readout shows, negative = regen, so it is the power reading. The engine is "on" when it turns.
+            put(o, "motorKw", engRaw, -400, 400);
+            put(o, "engineRpm", num("engine", "getEngineSpeed"), 0, 9000);
             // Tyres: psi x10 on this car (ByType), else kPa.
             JSONArray tyres = new JSONArray(), states = new JSONArray();
             for (int area = 1; area <= 4; area++) {
