@@ -674,8 +674,8 @@ class Home extends Component {
 
     
     <section aria-label="Range" class="gy-10" style="padding: 4px 24px 18px; display: flex; flex-direction: column; align-items: center;  min-height: 0; min-width: 0; overflow: hidden;">
-      <div style="align-self: stretch; height: 64px; flex-shrink: 0; display: flex; justify-content: center; align-items: center;">
-        <div aria-label="Drive mode" style="text-align: center;"><div style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 40px; line-height: 1; color: ${v.accent};">${v.modeLabel}</div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.2em; color: #6B6B72; margin-top: 6px;">DRIVE MODE · ${v.driveMode}</div></div>
+      <div style="align-self: stretch; height: 64px; flex-shrink: 0; display: flex; justify-content: flex-start; align-items: center;">
+        <div aria-label="Drive mode" style="text-align: left;"><div style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 40px; line-height: 1; color: ${v.accent};">${v.modeLabel}</div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.2em; color: #6B6B72; margin-top: 6px;">DRIVE MODE · ${v.driveMode}</div></div>
       </div>
       <div style="position: relative; width: 380px; height: 380px; flex-shrink: 0; margin: 6px 0 -54px;">
         <svg width="380" height="380" viewBox="0 0 320 320" aria-hidden="true">
@@ -703,8 +703,8 @@ class Home extends Component {
 
     
     <section aria-label="Speed" class="gy-10" style="padding: 4px 24px 18px; display: flex; flex-direction: column; align-items: center;  min-height: 0; min-width: 0; overflow: hidden;">
-      <div style="align-self: stretch; position: relative; height: 64px; flex-shrink: 0; display: flex; justify-content: center; align-items: center;">
-        <div aria-label="Odometer" style="text-align: center;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 34px; line-height: 1.12;">${v.odo}<span style="font-size: 14px; color: #7C7C84; letter-spacing: 0.12em; margin-left: 5px;">KM</span></div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.2em; color: #6B6B72; margin-top: 6px;">ODOMETER · ${v.avgElec} KWH/100</div></div>
+      <div style="align-self: stretch; position: relative; height: 64px; flex-shrink: 0; display: flex; justify-content: flex-end; align-items: center;">
+        <div aria-label="Odometer" style="text-align: right;"><div style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 40px; line-height: 1;">${v.odo}<span style="font-style: normal; font-size: 16px; color: #7C7C84; letter-spacing: 0.12em; margin-left: 6px;">KM</span></div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.2em; color: #6B6B72; margin-top: 6px;">ODOMETER · ${v.avgElec} KWH/100</div></div>
       </div>
       <div style="position: relative; width: 380px; height: 380px; flex-shrink: 0; margin: 6px 0 -54px;">
         <svg width="380" height="356" viewBox="0 0 320 300" aria-hidden="true" style="position: absolute; left: 0; top: -6px;">
