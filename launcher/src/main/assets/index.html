@@ -121,6 +121,8 @@ html[data-page="home"] #fit:not(.portrait) #stage section[aria-label="Range"], h
 html[data-page="offroad"] #fit:not(.portrait) #stage>div>section[aria-label="Drive"]{grid-row:2!important}
 html[data-page="offroad"] #fit:not(.portrait) #stage section[aria-label="Media and shortcuts"]{display:none!important}
 #stage div[aria-label="Drive mode"], #stage div[aria-label="Odometer"]{white-space:nowrap}
+/* low-speed front camera: the main grid lost a row in 0.66, so it has to sit in row 2 (it was squashed into the climate row) */
+html[data-page="home"] #fit:not(.portrait) #stage div[aria-label="Front camera, shown at low speed"]{grid-row:2!important;z-index:6}
 /* climate: no tiles, each control stands on its own */
 #stage section[aria-label="Climate and seats"] button, #stage section[aria-label="Climate and seats"]>div>div[style*="height: 108px"]{background:transparent!important;box-shadow:none!important;border:0!important}
 #stage section[aria-label="Climate and seats"] button{position:relative}
