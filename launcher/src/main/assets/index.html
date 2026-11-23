@@ -99,6 +99,38 @@ html[data-page="offroad"] #stage>div>section[aria-label="Drive"]{grid-column:1 /
 #stage div[aria-label="Off-road view"]{background:transparent!important}
 #stage div[aria-label="Off-road view"]>div{background:rgba(255,255,255,0.03)!important;border:0!important;box-shadow:inset 0 1px 0 rgba(255,255,255,0.07), inset 0 0 0 1px rgba(255,255,255,0.04)!important;border-radius:20px!important}
 html[data-off="1"] #stage section[aria-label="Drive"]>section, html[data-off="1"] #stage div[aria-label="Gear"]{visibility:hidden}
+/* 0.66 (Jonty 2026-11-23): no page tabs (off-road opens by itself), clock top-left, now playing up top and wider
+   with a 16:9 cover, drive mode above the left dial and odometer above the right, the wireframe runs under the dials
+   (no hard crop) and sits higher, and the climate bar is a row of free-standing controls like the dials above it. */
+#stage div[aria-label="Pages"]{display:none!important}
+#stage>div>div[aria-label="Status"]>div:first-child{display:none!important}
+#stage div[aria-label="Status"]{grid-template-columns:auto minmax(0,1fr) auto!important}
+#stage div[aria-label="Status"]>div:nth-child(3){grid-column:3}
+#stage div[aria-label="Time"]{padding:0 0 0 4px!important;grid-column:1}
+#stage div[aria-label="Time"] span:first-child{font-size:46px!important}
+#fit:not(.portrait) #stage>div>div[aria-label="Status"]{position:absolute;left:28px;right:28px;top:20px;height:60px;z-index:6;pointer-events:none}
+#fit:not(.portrait) #stage>div>div[aria-label="Status"] div[aria-label="Time"], #fit:not(.portrait) #stage>div>div[aria-label="Status"] button{pointer-events:auto}
+#fit:not(.portrait) #stage>div{grid-template-rows:136px minmax(0,1fr) 140px!important}
+#fit:not(.portrait) #stage>div>section[aria-label="Media and shortcuts"]{grid-row:1!important;width:780px;align-self:stretch}
+#stage a[aria-label="Open CarPlay"]{width:200px!important;height:112px!important}
+#stage section[aria-label="Now playing"]{padding:12px 18px 12px 12px!important}
+html[data-page="home"] #fit:not(.portrait) #stage section[aria-label="Range"], html[data-page="home"] #fit:not(.portrait) #stage section[aria-label="Speed"], html[data-page="home"] #fit:not(.portrait) #stage div[aria-label="Gear"]{grid-row:2!important;position:relative;z-index:2;pointer-events:none}
+#fit:not(.portrait) #stage>div>section[aria-label="Vehicle"]{grid-column:1 / -1!important;grid-row:2!important;overflow:visible!important;z-index:1}
+#fit:not(.portrait) #stage>div>section[aria-label="Cameras"]{grid-column:2!important;grid-row:2!important;z-index:5}
+#fit:not(.portrait) #stage>div>section[aria-label="Climate and seats"]{grid-row:3!important;position:relative;z-index:3}
+html[data-page="offroad"] #fit:not(.portrait) #stage>div>section[aria-label="Drive"]{grid-row:2!important}
+html[data-page="offroad"] #fit:not(.portrait) #stage section[aria-label="Media and shortcuts"]{display:none!important}
+#stage div[aria-label="Drive mode"], #stage div[aria-label="Odometer"]{white-space:nowrap}
+/* climate: no tiles, each control stands on its own */
+#stage section[aria-label="Climate and seats"] button, #stage section[aria-label="Climate and seats"]>div>div[style*="height: 108px"]{background:transparent!important;box-shadow:none!important;border:0!important}
+#stage section[aria-label="Climate and seats"] button{position:relative}
+#stage section[aria-label="Climate and seats"] button[aria-pressed="true"], #stage section[aria-label="Climate and seats"] button[aria-pressed="false"]{background:transparent!important;border:0!important;box-shadow:none!important}
+#stage section[aria-label="Climate and seats"] button>span{display:block!important;font-size:13px!important;letter-spacing:.18em!important;margin-top:8px}
+#stage section[aria-label="Climate and seats"] button svg{-webkit-transform:scale(1.2);transform:scale(1.2)}
+#stage section[aria-label="Climate and seats"] button[aria-pressed="true"] svg{-webkit-filter:drop-shadow(0 0 8px rgba(255,255,255,0.35));filter:drop-shadow(0 0 8px rgba(255,255,255,0.35))}
+#stage section[aria-label="Climate and seats"] button[aria-pressed="true"]::after{content:"";position:absolute;left:38px;right:38px;bottom:6px;height:3px;border-radius:2px;background:rgba(255,255,255,0.55)}
+#stage section[aria-label="Climate and seats"] button[aria-pressed="true"]>div{text-shadow:0 0 16px rgba(255,255,255,0.45)}
+#stage section[aria-label="Climate and seats"] button[aria-label$="temperature down"], #stage section[aria-label="Climate and seats"] button[aria-label$="temperature up"]{width:48px!important;color:#55555C!important;font-size:34px!important}
 /* Portrait (screen rotated): 900 wide, as tall as the screen. */
 #fit.portrait #stage div[aria-label="Pages"]{top:18px!important}
 #fit.portrait #stage>div{width:900px!important;height:100%!important;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:44px 120px 520px minmax(0,1fr) 236px!important}

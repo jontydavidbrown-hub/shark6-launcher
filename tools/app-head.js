@@ -187,7 +187,7 @@ class Home extends Component {
     const drag = 0.12 + 0.5 * 1.2 * 1.25 * v * v / MASS; // rolling + air, m/s²
     const wheelKw = MASS * (a + drag) * v / 1000;
     // Regen recovers most of the slowing (hard stops also use the brakes); the Shark tops out near 80 kW back.
-    const kw = wheelKw < 0 ? Math.max(-80, wheelKw * 0.75) : Math.min(300, wheelKw / 0.9);
+    const kw = wheelKw < 0 ? Math.max(-120, wheelKw * 0.8) : Math.min(300, wheelKw / 0.9);
     return Math.abs(kw) < 1.5 ? 0 : kw;
   }
   smoothStep() {
@@ -237,6 +237,36 @@ class Home extends Component {
     if (args && args.quiet) (this.cmdQuiet = this.cmdQuiet || {})[this.cmdSeq] = true;
     Bridge.command(name, JSON.stringify(Object.assign({ id: this.cmdSeq }, args || {})));
   }
+  // Temperature: hold and slide. A tap with no slide still opens the slider sheet.
+  tempPress(e, zone, start, setTemp, clampT) {
+    if (!e || e.button > 0) return;
+    const fit = document.getElementById('fit');
+    const m = /scale\(([\d.]+)\)/.exec(fit && fit.style.transform || ''), k = m ? parseFloat(m[1]) : 1;
+    const d = this.tDrag = { zone, x0: e.clientX, t0: start, v: start, moved: false, sent: start, at: 0, timer: 0 };
+    const flush = () => { clearTimeout(d.timer); d.timer = 0; if (d.v !== d.sent) { d.sent = d.v; d.at = Date.now(); setTemp(zone, d.v); } };
+    const move = (ev) => {
+      const dx = (ev.clientX - d.x0) / k;
+      if (!d.moved && Math.abs(dx) < 14) return;
+      if (!d.moved) { d.moved = true; this.forceUpdate(); }
+      const v = clampT(d.t0 + Math.round(dx / 36));
+      if (v === d.v) return;
+      d.v = v; sfx('tick');
+      this.pending = this.pending || {};
+      this.pending[zone === 1 ? 'drvTemp' : 'pasTemp'] = { val: v, until: Date.now() + 3000 };
+      if (this.syncMode !== false) this.pending[zone === 1 ? 'pasTemp' : 'drvTemp'] = { val: v, until: Date.now() + 3000 };
+      this.forceUpdate();
+      // send at most every 250 ms while sliding; the last value always goes on release
+      if (Date.now() - d.at > 250) flush(); else if (!d.timer) d.timer = setTimeout(flush, 250);
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+      flush();
+      this.tDragDone = d.moved ? Date.now() : 0;
+      this.tDrag = null; this.forceUpdate();
+    };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+  }
+  tUsed() { return this.tDragDone && Date.now() - this.tDragDone < 400; }
   commandResult(id, r) {
     if (r === 'ok' || (this.cmdQuiet || {})[id]) return;
     const key = (this.cmdKeys || {})[id];
@@ -273,7 +303,8 @@ class Home extends Component {
     }
     const set = (o) => this.setState(o);
     // Pages (tabs under the clock). CSS in index.html hides and widens sections per page.
-    const page = s.page === 'offroad' ? 'offroad' : 'home';
+    // 0.66 (Jonty): no page tabs. The off-road page opens by itself in Snow, Mud and Sand.
+    const page = TERRAIN_SUB[c.opMode] ? 'offroad' : 'home';
     if (page !== this.lastPage) { this.lastPage = page; document.documentElement.setAttribute('data-page', page); }
     const tabV = (p) => ({ bg: page === p ? 'rgba(255,255,255,0.08)' : 'transparent', color: page === p ? '#F2F2F2' : '#7C7C84', go: () => { if (this.state.page !== p) { sfx('tap'); this.setState({ page: p }); } } });
     const tH = tabV('home'), tV = tabV('vehicle'), tO = tabV('offroad'), tC = tabV('cameras');
@@ -318,7 +349,7 @@ class Home extends Component {
     if (page === 'home' && window.S6Wire) {
       const enter = this.wirePage !== 'home';
       const ty = [0, 1, 2, 3].map((i) => (typeof tyres[i] === 'number' ? tyres[i].toFixed(1) : ''));
-      setTimeout(() => window.S6Wire.update({ accent, tyres: ty, enter }), 0);
+      setTimeout(() => window.S6Wire.update({ accent, tyres: ty, enter, heading: c.heading }), 0);
     }
     this.wirePage = page;
     const tyreLow = Array.isArray(c.tyreStates) && c.tyreStates.some((x) => x === 2);
@@ -519,6 +550,14 @@ class Home extends Component {
       prevTrack: () => Bridge.media('prev'), nextTrack: () => Bridge.media('next'),
       drvTemp, pasTemp, // shown straight away, no count-up at launch
       drvUp: () => setTemp(1, clampT(drvTemp + 1)), drvDown: () => setTemp(1, clampT(drvTemp - 1)),
+      // 0.66 (Jonty): hold the number and slide left (cooler) or right (warmer). One degree every 36 px;
+      // the number follows the finger straight away and the car gets the new value as it changes.
+      drvPress: (e) => this.tempPress(e, 1, drvTemp, setTemp, clampT), pasPress: (e) => this.tempPress(e, 2, pasTemp, setTemp, clampT),
+      drvTempPct: Math.round((drvTemp - 17) / 16 * 100), pasTempPct: Math.round((pasTemp - 17) / 16 * 100),
+      drvTempColor: drvTemp <= 20 ? '#2FB3FF' : drvTemp >= 24 ? accent : '#E9E9EE', pasTempColor: pasTemp <= 20 ? '#2FB3FF' : pasTemp >= 24 ? accent : '#E9E9EE',
+      drvTempGlow: this.tDrag && this.tDrag.zone === 1 ? '0 0 12px ' + (drvTemp <= 20 ? '#2FB3FF' : drvTemp >= 24 ? accent : '#E9E9EE') : 'none',
+      pasTempGlow: this.tDrag && this.tDrag.zone === 2 ? '0 0 12px ' + (pasTemp <= 20 ? '#2FB3FF' : pasTemp >= 24 ? accent : '#E9E9EE') : 'none',
+      drvTempScale: this.tDrag && this.tDrag.zone === 1 ? 'scale(1.18)' : 'none', pasTempScale: this.tDrag && this.tDrag.zone === 2 ? 'scale(1.18)' : 'none',
       pasUp: () => setTemp(2, clampT(pasTemp + 1)), pasDown: () => setTemp(2, clampT(pasTemp - 1)),
       fanLabel: auto ? 'AUTO' : String(fan),
       fanAnim: fan > 0 ? 's6-spin s6-slow' : '', fanSegs: this.segs(Math.round(fan * kClimate), 7, accent),
@@ -541,7 +580,7 @@ class Home extends Component {
       pasHeat: this.seat('heat', num(seats.pasHeat), 2, '#FF8A00', 0.4),
       pasVent: this.seat('vent', num(seats.pasVent), 2, '#2FB3FF', 0.4),
       // Temperature / fan bar: slides over the climate strip, closes after 5 s idle or a tap outside.
-      openDrv: () => { set({ slider: 'drv' }); this.armClose(); }, openPas: () => { set({ slider: 'pas' }); this.armClose(); },
+      openDrv: () => { if (this.tUsed()) return; set({ slider: 'drv' }); this.armClose(); }, openPas: () => { if (this.tUsed()) return; set({ slider: 'pas' }); this.armClose(); },
       openFan: () => { set({ slider: 'fan' }); this.armClose(); },
       closeSlider: () => { clearTimeout(this.closeT); set({ slider: null }); },
       sliderOpen: !!s.slider, sliderIsTemp: !!s.slider && s.slider !== 'fan', sliderIsFan: s.slider === 'fan',

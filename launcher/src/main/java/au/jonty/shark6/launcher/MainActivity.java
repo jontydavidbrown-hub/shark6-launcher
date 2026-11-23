@@ -42,6 +42,7 @@ public class MainActivity extends Activity {
     private boolean pageReady;
     private CamView cam, cam2, cam3;
     private Tilt tilt;
+    private Compass compass;
     private static boolean welcomed;
     private CamFeed feed;
     private boolean camPlaced, reversing;
@@ -87,6 +88,7 @@ public class MainActivity extends Activity {
         cam3.setZOrderMediaOverlay(true);
         feed = new CamFeed(this, t -> pushJs("window.onCamStatus && window.onCamStatus(" + JSONObject.quote(t) + ")"), cam, cam2, cam3);
         tilt = new Tilt(this);
+        compass = new Compass(this);
         android.widget.FrameLayout root = new android.widget.FrameLayout(this);
         root.addView(web, new android.widget.FrameLayout.LayoutParams(-1, -1));
         root.addView(cam, new android.widget.FrameLayout.LayoutParams(1, 1));
@@ -153,6 +155,8 @@ public class MainActivity extends Activity {
             try { o.put("media", media.read()); } catch (Exception ignored) { }
             double[] t = tilt.read();
             if (t != null) try { o.put("tilt", new JSONObject().put("p", Math.round(t[0] * 10) / 10.0).put("r", Math.round(t[1] * 10) / 10.0)); } catch (Exception ignored) { }
+            double hd = compass.read();
+            if (!Double.isNaN(hd)) try { o.put("heading", Math.round(hd)); } catch (Exception ignored) { }
             final String js = "window.onCar && window.onCar(" + JSONObject.quote(o.toString()) + ")";
             ui.post(() -> { if (pageReady) web.evaluateJavascript(js, null); });
             bg.postDelayed(this, POLL_MS);
@@ -191,6 +195,7 @@ public class MainActivity extends Activity {
         cam2.onResume();
         cam3.onResume();
         tilt.start();
+        compass.start();
         updateCamera();
     }
 
@@ -201,6 +206,7 @@ public class MainActivity extends Activity {
         cam2.onPause();
         cam3.onPause();
         tilt.stop();
+        compass.stop();
         resumed = false;
         ui.removeCallbacks(updateTick);
         updateCamera();
@@ -309,7 +315,8 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void media(String action) { cmd.post(() -> media.control(action)); }
         @JavascriptInterface public void sfx(String name) {
             int id = "on".equals(name) ? sfxOn : "off".equals(name) ? sfxOff : sfxTap;
-            sounds.play(id, 0.6f, 0.6f, 1, 0, 1f);
+            float vol = "tick".equals(name) ? 0.3f : 0.6f;
+            sounds.play(id, vol, vol, 1, 0, "tick".equals(name) ? 1.4f : 1f);
         }
         /** Where the page's two camera boxes are, in screen pixels: "left,top,width,height;left,top,width,height". */
         @JavascriptInterface public void camRects(String r) {
@@ -344,10 +351,11 @@ public class MainActivity extends Activity {
             String ver = "?";
             try { ver = getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception ignored) { }
             return "SIDELOAD|" + Sideload.address() + "|" + Sideload.PIN + "\nlast app sent: " + Sideload.last + "\n"
-                    + car.powerReport() + "\n"
+                    + car.powerReport() + "\n" + car.huntReport()
                     + media.report() + "\n"
                     + "Shark 6 Home " + ver + "   home screen: " + homeName() + "\n" + car.openReport()
                     + "turn: " + (f == null ? "-" : (int) f[2]) + " via " + car.turnSource() + "\n"
+                    + "compass: " + compass.available() + " heading " + compass.read() + "\n"
                     + "tilt sensor: " + tilt.available() + (t == null ? "" : String.format(" pitch %.1f roll %.1f", t[0], t[1])) + "\n"
                     + "draw over apps: " + android.provider.Settings.canDrawOverlays(MainActivity.this) + "   last wake: " + Wake.lastWake + "\n"
                     + "media access: " + getSystemService(android.app.NotificationManager.class)

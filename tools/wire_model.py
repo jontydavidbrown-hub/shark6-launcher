@@ -49,7 +49,7 @@ R_FLARE = [(1178, 700), (1180, 602), (1194, 566), (1222, 540), (1262, 527), (135
 side_lo += [P(*q) for q in F_OPEN[1:-1]]
 side_lo += [P(616, 700), P(640, 712), P(1150, 712), P(1190, 700)]
 side_lo += [P(*q) for q in R_OPEN[1:-1]]
-side_lo += [P(1426, 700), P(1440, 692), P(1555, 690), P(1558, 640), P(1600, 632), P(1607, 690), P(1560, 702)]
+side_lo += [P(1426, 700), P(1440, 692), P(1555, 690), P(1572, 650), P(1608, 646), P(1608, 690), P(1580, 698)]
 for s in (1, -1):
     add('body', [(x, s * W, z) for x, z in side_lo])
 # fender flares: black cladding standing proud of the body, inner and outer edge
@@ -210,16 +210,18 @@ for sd in (1, -1):
     for z in (1.02, 1.12, 1.22):
         add('tail', [(XR - 0.008, sd * 0.87, z), (XR - 0.008, sd * 0.96, z), (XR + 0.15, sd * (W + 0.006), z)])
 word('detail', 'BYD', XR - 0.006, -1, 1.06, 0.26, 0.36, 0.1)
-XB = P(1607, 0)[0] - 0.02
-for x in (XR, XB):
-    add('body', [(x, -0.98, 0.62), (x, 0.98, 0.62), (x, 0.98, 0.36), (x, -0.98, 0.36)], close=True)
+# Rear bumper (0.66, Jonty: it sat too low and looked detached): a slim bar tucked straight under the
+# tailgate, only a hand's width deep, with its top joined to the body.
+XB = XR - 0.07
+ZB0, ZB1 = 0.45, 0.65
+add('body', [(XB, -0.97, ZB1), (XB, 0.97, ZB1), (XB, 0.97, ZB0), (XB, -0.97, ZB0)], close=True)
 for sd in (1, -1):
-    add('body', [(XR, sd * 0.98, 0.62), (XB, sd * 0.98, 0.62)])
-    add('body', [(XR, sd * 0.98, 0.36), (XB, sd * 0.98, 0.36)])
-    add('tail', [(XB - 0.003, sd * 0.66, 0.45), (XB - 0.003, sd * 0.86, 0.45)])
-add('detail', [(XB - 0.003, -0.98, 0.56), (XB - 0.003, 0.98, 0.56)])             # step
-rect('detail', XB - 0.003, -0.27, 0.27, 0.42, 0.55)
-add('detail', [(XB, 0, 0.34), (XB - 0.22, 0, 0.34), (XB - 0.22, 0, 0.42)])
+    add('body', [(XR, sd * 0.97, ZB1), (XB, sd * 0.97, ZB1), (XB, sd * 0.97, ZB0), (XR - 0.02, sd * 0.97, ZB0 - 0.03)])
+    add('tail', [(XB - 0.003, sd * 0.68, 0.5), (XB - 0.003, sd * 0.86, 0.5)])
+add('body', [(XR - 0.02, -0.97, ZB0 - 0.03), (XR - 0.02, 0.97, ZB0 - 0.03)])
+add('detail', [(XB - 0.003, -0.97, 0.6), (XB - 0.003, 0.97, 0.6)])             # step
+rect('detail', XB - 0.003, -0.26, 0.26, 0.47, 0.58)
+add('detail', [(XB, 0, 0.44), (XB - 0.14, 0, 0.44), (XB - 0.14, 0, 0.47)])
 
 # ---- wheels
 for c in (FW, RW):

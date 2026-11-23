@@ -10,6 +10,12 @@
   var cv = null, ctx = null, raf = 0, last = 0;
   var yaw = REST_YAW, pitch = REST_PITCH, dist = REST_D, vy = 0, vp = 0;
   var drag = null, touched = false, lastTouch = 0, intro = null, lastDraw = 0, SPIN = 0.16;
+  // Compass (0.66, Jonty): with the car's heading, the floor carries N/E/S/W and the car turns to its real
+  // heading under a camera that stays put relative to north (north runs into the screen). Without a
+  // heading it falls back to the slow turntable spin.
+  var heading = null, hdShow = null, VIEW = 0.5;
+  function wrapA(x) { while (x > Math.PI) x -= 2 * Math.PI; while (x < -Math.PI) x += 2 * Math.PI; return x; }
+  function homeYaw() { return hdShow == null ? REST_YAW : hdShow + Math.PI + VIEW; }
   // centroid X and depth helpers per polyline (precomputed)
   var cx = lines.map(function (l) { var p = l[1], s = 0, n = p.length / 3; for (var i = 0; i < p.length; i += 3) s += p[i]; return s / n; });
   var STY = {
@@ -38,8 +44,10 @@
     var f = [T[0] - c[0], T[1] - c[1], T[2] - c[2]], fl = Math.hypot(f[0], f[1], f[2]); f = [f[0] / fl, f[1] / fl, f[2] / fl];
     var r = [f[1], -f[0], 0], rl = Math.hypot(r[0], r[1]); r = [r[0] / rl, r[1] / rl, 0];
     var u = [r[1] * f[2] - r[2] * f[1], r[2] * f[0] - r[0] * f[2], r[0] * f[1] - r[1] * f[0]];
-    var F = Math.min((h > w ? 1.0 : 0.88) * w * REST_D / 5.6, 0.52 * h * REST_D / 2.4);
-    return { c: c, f: f, r: r, u: u, F: F, ox: w / 2, oy: h * 0.6 };
+    // Size from the middle column, not the whole canvas: the canvas runs under the dials so nothing is cropped.
+    var fw = Math.min(w, h * 1.2);
+    var F = Math.min((h > w ? 1.0 : 0.88) * fw * REST_D / 5.6, 0.5 * h * REST_D / 2.4);
+    return { c: c, f: f, r: r, u: u, F: F, ox: w / 2, oy: h * 0.54 };
   }
   function proj(C, x, y, z, out) {
     var dx = x - C.c[0], dy = y - C.c[1], dz = z - C.c[2];
@@ -55,7 +63,7 @@
     raf = 0;
     if (!cv || !cv.isConnected || !cv.offsetParent) { cv = null; return; }
     // The slow spin only needs ~30 fps; skip alternate frames when nothing else is moving.
-    if (!intro && !drag && now - lastDraw < 30) { schedule(); return; }
+    if (!intro && !drag && now - lastDraw < 45) { schedule(); return; }
     lastDraw = now;
     var dt = last ? Math.min(0.05, (now - last) / 1000) : 0.016; last = now;
     var bw = cv.offsetWidth, bh = cv.offsetHeight;
@@ -68,18 +76,29 @@
     ctx.clearRect(0, 0, bw, bh);
 
     // motion: intro sweep, finger inertia, idle drift
-    var p = 1;
+    var p = 1, moving = true;
     if (intro) {
       // Bird's-eye start: straight down on the roof, then swing down and round to the usual three-quarter view.
       p = Math.min(1, (now - intro) / 2400);
       var e = ease(p);
-      yaw = REST_YAW + 1.4 * (1 - e); pitch = REST_PITCH + (1.5 - REST_PITCH) * (1 - e); dist = REST_D + 3 * (1 - e);
-      if (p >= 1) { intro = null; yaw = REST_YAW; pitch = REST_PITCH; dist = REST_D; }
+      var hy = homeYaw();
+      yaw = hy + 1.4 * (1 - e); pitch = REST_PITCH + (1.5 - REST_PITCH) * (1 - e); dist = REST_D + 3 * (1 - e);
+      if (p >= 1) { intro = null; yaw = hy; pitch = REST_PITCH; dist = REST_D; }
     } else if (!drag) {
       yaw += vy; pitch = Math.max(0.02, Math.min(0.8, pitch + vp));
       vy *= 0.93; vp *= 0.9;
-      // slow, constant turntable spin (pauses for 3 s after a finger lets go)
-      if (now - lastTouch > 3000) yaw += SPIN * dt;
+      if (now - lastTouch > 3000) {
+        if (heading == null) yaw += SPIN * dt;      // no compass: slow turntable spin
+        else {
+          // follow the heading smoothly, then settle the camera back to its place
+          var dh = wrapA(heading - (hdShow == null ? heading : hdShow));
+          hdShow = wrapA((hdShow == null ? heading : hdShow) + dh * Math.min(1, dt * 2.5));
+          var dy = wrapA(homeYaw() - yaw);
+          yaw += dy * Math.min(1, dt * 2.5);
+          pitch += (REST_PITCH - pitch) * Math.min(1, dt * 2.5);
+          moving = Math.abs(dy) > 0.002 || Math.abs(dh) > 0.002 || Math.abs(vy) > 0.0005;
+        }
+      }
     }
     var C = camera(bw, bh), A = [0, 0, 0], B = [0, 0, 0];
     var a = hexRgb(st.accent);
@@ -104,6 +123,22 @@
       ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]);
     }
     ctx.strokeStyle = 'rgba(' + a + ',0.22)'; ctx.stroke();
+    // compass marks on the floor, fixed to the world
+    if (hdShow != null) {
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      var CARD = [['N', 0], ['E', -Math.PI / 2], ['S', Math.PI], ['W', Math.PI / 2]];
+      for (i = 0; i < 4; i++) {
+        var ca = hdShow + CARD[i][1], cx0 = Math.cos(ca), cy0 = Math.sin(ca);
+        proj(C, 3.25 * cx0, 3.25 * cy0, 0, A); proj(C, 3.6 * cx0, 3.6 * cy0, 0, B);
+        ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]);
+        ctx.strokeStyle = i ? 'rgba(242,242,242,0.45)' : 'rgba(' + a + ',0.95)'; ctx.lineWidth = i ? 1.5 : 3; ctx.stroke();
+        proj(C, 3.95 * cx0, 3.95 * cy0, 0, A);
+        ctx.font = (i ? '600 20px' : '700 26px') + " 'Barlow Condensed', sans-serif";
+        ctx.fillStyle = i ? 'rgba(166,166,172,0.85)' : 'rgb(' + a + ')';
+        ctx.fillText(CARD[i][0], A[0], A[1]);
+      }
+      ctx.lineWidth = 1;
+    }
 
     // depth range
     var zn = 1e9, zf = -1e9;
@@ -186,8 +221,8 @@
       ctx.font = "700 13px 'Barlow Condensed', sans-serif";
       ctx.fillText('DRAG TO ROTATE', bw / 2, bh - 10);
     }
-    // Only keep drawing while something moves; a still model costs nothing.
-    schedule();
+    // Only keep drawing while something moves; a still model costs nothing (keeps the climate buttons snappy).
+    if (moving || drag || intro) schedule();
   }
   function schedule() { if (!raf && cv) raf = requestAnimationFrame(frame); }
 
@@ -209,7 +244,7 @@
       drag.x = e.clientX; drag.y = e.clientY; lastTouch = performance.now();
       schedule();
     }
-    function up() { drag = null; lastTouch = performance.now(); }
+    function up() { drag = null; lastTouch = performance.now(); setTimeout(schedule, 3050); schedule(); }
     c.addEventListener('pointerdown', down);
     c.addEventListener('pointermove', move);
     c.addEventListener('pointerup', up);
@@ -220,6 +255,11 @@
   window.S6Wire = {
     // Called on every app render; cheap. show = the Vehicle page is visible.
     update: function (o) {
+      if (typeof o.heading === 'number' && isFinite(o.heading)) {
+        // car heading: degrees clockwise from north -> radians counter-clockwise in the model's frame
+        var hr = wrapA(o.heading * Math.PI / 180);
+        if (heading == null || Math.abs(wrapA(hr - heading)) > 0.01) { heading = hr; if (hdShow == null) { hdShow = hr; yaw = homeYaw(); } if (cv) schedule(); }
+      }
       var sig = (o.accent || '') + '|' + (o.tyres || []).join(',');
       var changed = sig !== st.sig;
       st.sig = sig;
@@ -227,7 +267,7 @@
       if (o.tyres) st.tyres = o.tyres;
       var c = document.querySelector('canvas[aria-label="Vehicle model"]');
       if (!c) { cv = null; return; }
-      if (c !== cv || o.enter) { changed = true; bind(c); if (o.enter) { intro = performance.now(); yaw = REST_YAW + 1.9; } }
+      if (c !== cv || o.enter) { changed = true; bind(c); if (o.enter) { intro = performance.now(); yaw = homeYaw() + 1.9; } }
       if (changed || c.width === 0) schedule();
     }
   };

@@ -187,7 +187,7 @@ class Home extends Component {
     const drag = 0.12 + 0.5 * 1.2 * 1.25 * v * v / MASS; // rolling + air, m/s²
     const wheelKw = MASS * (a + drag) * v / 1000;
     // Regen recovers most of the slowing (hard stops also use the brakes); the Shark tops out near 80 kW back.
-    const kw = wheelKw < 0 ? Math.max(-80, wheelKw * 0.75) : Math.min(300, wheelKw / 0.9);
+    const kw = wheelKw < 0 ? Math.max(-120, wheelKw * 0.8) : Math.min(300, wheelKw / 0.9);
     return Math.abs(kw) < 1.5 ? 0 : kw;
   }
   smoothStep() {
@@ -237,6 +237,36 @@ class Home extends Component {
     if (args && args.quiet) (this.cmdQuiet = this.cmdQuiet || {})[this.cmdSeq] = true;
     Bridge.command(name, JSON.stringify(Object.assign({ id: this.cmdSeq }, args || {})));
   }
+  // Temperature: hold and slide. A tap with no slide still opens the slider sheet.
+  tempPress(e, zone, start, setTemp, clampT) {
+    if (!e || e.button > 0) return;
+    const fit = document.getElementById('fit');
+    const m = /scale\(([\d.]+)\)/.exec(fit && fit.style.transform || ''), k = m ? parseFloat(m[1]) : 1;
+    const d = this.tDrag = { zone, x0: e.clientX, t0: start, v: start, moved: false, sent: start, at: 0, timer: 0 };
+    const flush = () => { clearTimeout(d.timer); d.timer = 0; if (d.v !== d.sent) { d.sent = d.v; d.at = Date.now(); setTemp(zone, d.v); } };
+    const move = (ev) => {
+      const dx = (ev.clientX - d.x0) / k;
+      if (!d.moved && Math.abs(dx) < 14) return;
+      if (!d.moved) { d.moved = true; this.forceUpdate(); }
+      const v = clampT(d.t0 + Math.round(dx / 36));
+      if (v === d.v) return;
+      d.v = v; sfx('tick');
+      this.pending = this.pending || {};
+      this.pending[zone === 1 ? 'drvTemp' : 'pasTemp'] = { val: v, until: Date.now() + 3000 };
+      if (this.syncMode !== false) this.pending[zone === 1 ? 'pasTemp' : 'drvTemp'] = { val: v, until: Date.now() + 3000 };
+      this.forceUpdate();
+      // send at most every 250 ms while sliding; the last value always goes on release
+      if (Date.now() - d.at > 250) flush(); else if (!d.timer) d.timer = setTimeout(flush, 250);
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+      flush();
+      this.tDragDone = d.moved ? Date.now() : 0;
+      this.tDrag = null; this.forceUpdate();
+    };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+  }
+  tUsed() { return this.tDragDone && Date.now() - this.tDragDone < 400; }
   commandResult(id, r) {
     if (r === 'ok' || (this.cmdQuiet || {})[id]) return;
     const key = (this.cmdKeys || {})[id];
@@ -273,7 +303,8 @@ class Home extends Component {
     }
     const set = (o) => this.setState(o);
     // Pages (tabs under the clock). CSS in index.html hides and widens sections per page.
-    const page = s.page === 'offroad' ? 'offroad' : 'home';
+    // 0.66 (Jonty): no page tabs. The off-road page opens by itself in Snow, Mud and Sand.
+    const page = TERRAIN_SUB[c.opMode] ? 'offroad' : 'home';
     if (page !== this.lastPage) { this.lastPage = page; document.documentElement.setAttribute('data-page', page); }
     const tabV = (p) => ({ bg: page === p ? 'rgba(255,255,255,0.08)' : 'transparent', color: page === p ? '#F2F2F2' : '#7C7C84', go: () => { if (this.state.page !== p) { sfx('tap'); this.setState({ page: p }); } } });
     const tH = tabV('home'), tV = tabV('vehicle'), tO = tabV('offroad'), tC = tabV('cameras');
@@ -318,7 +349,7 @@ class Home extends Component {
     if (page === 'home' && window.S6Wire) {
       const enter = this.wirePage !== 'home';
       const ty = [0, 1, 2, 3].map((i) => (typeof tyres[i] === 'number' ? tyres[i].toFixed(1) : ''));
-      setTimeout(() => window.S6Wire.update({ accent, tyres: ty, enter }), 0);
+      setTimeout(() => window.S6Wire.update({ accent, tyres: ty, enter, heading: c.heading }), 0);
     }
     this.wirePage = page;
     const tyreLow = Array.isArray(c.tyreStates) && c.tyreStates.some((x) => x === 2);
@@ -519,6 +550,14 @@ class Home extends Component {
       prevTrack: () => Bridge.media('prev'), nextTrack: () => Bridge.media('next'),
       drvTemp, pasTemp, // shown straight away, no count-up at launch
       drvUp: () => setTemp(1, clampT(drvTemp + 1)), drvDown: () => setTemp(1, clampT(drvTemp - 1)),
+      // 0.66 (Jonty): hold the number and slide left (cooler) or right (warmer). One degree every 36 px;
+      // the number follows the finger straight away and the car gets the new value as it changes.
+      drvPress: (e) => this.tempPress(e, 1, drvTemp, setTemp, clampT), pasPress: (e) => this.tempPress(e, 2, pasTemp, setTemp, clampT),
+      drvTempPct: Math.round((drvTemp - 17) / 16 * 100), pasTempPct: Math.round((pasTemp - 17) / 16 * 100),
+      drvTempColor: drvTemp <= 20 ? '#2FB3FF' : drvTemp >= 24 ? accent : '#E9E9EE', pasTempColor: pasTemp <= 20 ? '#2FB3FF' : pasTemp >= 24 ? accent : '#E9E9EE',
+      drvTempGlow: this.tDrag && this.tDrag.zone === 1 ? '0 0 12px ' + (drvTemp <= 20 ? '#2FB3FF' : drvTemp >= 24 ? accent : '#E9E9EE') : 'none',
+      pasTempGlow: this.tDrag && this.tDrag.zone === 2 ? '0 0 12px ' + (pasTemp <= 20 ? '#2FB3FF' : pasTemp >= 24 ? accent : '#E9E9EE') : 'none',
+      drvTempScale: this.tDrag && this.tDrag.zone === 1 ? 'scale(1.18)' : 'none', pasTempScale: this.tDrag && this.tDrag.zone === 2 ? 'scale(1.18)' : 'none',
       pasUp: () => setTemp(2, clampT(pasTemp + 1)), pasDown: () => setTemp(2, clampT(pasTemp - 1)),
       fanLabel: auto ? 'AUTO' : String(fan),
       fanAnim: fan > 0 ? 's6-spin s6-slow' : '', fanSegs: this.segs(Math.round(fan * kClimate), 7, accent),
@@ -541,7 +580,7 @@ class Home extends Component {
       pasHeat: this.seat('heat', num(seats.pasHeat), 2, '#FF8A00', 0.4),
       pasVent: this.seat('vent', num(seats.pasVent), 2, '#2FB3FF', 0.4),
       // Temperature / fan bar: slides over the climate strip, closes after 5 s idle or a tap outside.
-      openDrv: () => { set({ slider: 'drv' }); this.armClose(); }, openPas: () => { set({ slider: 'pas' }); this.armClose(); },
+      openDrv: () => { if (this.tUsed()) return; set({ slider: 'drv' }); this.armClose(); }, openPas: () => { if (this.tUsed()) return; set({ slider: 'pas' }); this.armClose(); },
       openFan: () => { set({ slider: 'fan' }); this.armClose(); },
       closeSlider: () => { clearTimeout(this.closeT); set({ slider: null }); },
       sliderOpen: !!s.slider, sliderIsTemp: !!s.slider && s.slider !== 'fan', sliderIsFan: s.slider === 'fan',
@@ -635,8 +674,8 @@ class Home extends Component {
 
     
     <section aria-label="Range" class="gy-10" style="padding: 4px 24px 18px; display: flex; flex-direction: column; align-items: center;  min-height: 0; min-width: 0; overflow: hidden;">
-      <div style="align-self: stretch; height: 36px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">RANGE</span>
+      <div style="align-self: stretch; height: 64px; flex-shrink: 0; display: flex; justify-content: center; align-items: center;">
+        <div aria-label="Drive mode" style="text-align: center;"><div style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 40px; line-height: 1; color: ${v.accent};">${v.modeLabel}</div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.2em; color: #6B6B72; margin-top: 6px;">DRIVE MODE · ${v.driveMode}</div></div>
       </div>
       <div style="position: relative; width: 380px; height: 380px; flex-shrink: 0; margin: 6px 0 -54px;">
         <svg width="380" height="380" viewBox="0 0 320 320" aria-hidden="true">
@@ -664,8 +703,8 @@ class Home extends Component {
 
     
     <section aria-label="Speed" class="gy-10" style="padding: 4px 24px 18px; display: flex; flex-direction: column; align-items: center;  min-height: 0; min-width: 0; overflow: hidden;">
-      <div style="align-self: stretch; position: relative; height: 36px; display: flex; align-items: center;">
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: ${v.accent};">SPEED</span>
+      <div style="align-self: stretch; position: relative; height: 64px; flex-shrink: 0; display: flex; justify-content: center; align-items: center;">
+        <div aria-label="Odometer" style="text-align: center;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 34px; line-height: 1.12;">${v.odo}<span style="font-size: 14px; color: #7C7C84; letter-spacing: 0.12em; margin-left: 5px;">KM</span></div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.2em; color: #6B6B72; margin-top: 6px;">ODOMETER · ${v.avgElec} KWH/100</div></div>
       </div>
       <div style="position: relative; width: 380px; height: 380px; flex-shrink: 0; margin: 6px 0 -54px;">
         <svg width="380" height="356" viewBox="0 0 320 300" aria-hidden="true" style="position: absolute; left: 0; top: -6px;">
@@ -754,8 +793,6 @@ class Home extends Component {
   ${v.pageVehicle ? html`
   <section aria-label="Vehicle" style="position: relative; min-height: 0; min-width: 0; overflow: hidden;">
     <canvas aria-label="Vehicle model" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
-    <div style="position: absolute; left: 20px; top: 14px;"><div style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 40px; line-height: 1; color: ${v.accent};">${v.modeLabel}</div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.2em; color: #6B6B72; margin-top: 6px;">DRIVE MODE · ${v.driveMode}</div></div>
-    <div style="position: absolute; right: 20px; top: 14px; text-align: right;"><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px; line-height: 1;">${v.odo}<span style="font-size: 14px; color: #7C7C84; letter-spacing: 0.12em; margin-left: 5px;">KM</span></div><div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.2em; color: #6B6B72; margin-top: 6px;">ODOMETER · ${v.avgElec} KWH/100</div></div>
   </section>
   ` : null}
 
@@ -778,7 +815,7 @@ class Home extends Component {
     <div style="flex: 1 1 0; min-width: 0; display: flex;">
       <div style="flex: 1 1 0; height: 108px; display: flex; align-items: center; justify-content: space-between; border: 0; background: #161616; border-radius: 6px; padding: 0 6px; min-width: 0; overflow: hidden;">
         <button type="button" onClick=${v.pasDown} aria-label="Passenger temperature down" style="width: 44px; height: 84px; border: 0; background: #1E1E1E; color: #F2F2F2; border-radius: 4px; font-size: 26px; flex-shrink: 0;">–</button>
-        <button type="button" onClick=${v.openPas} aria-label="Passenger temperature ${v.pasTemp} degrees, tap for slider" style="border: 0; background: transparent; color: #F2F2F2; flex: 0 0 100px; width: 100px; padding: 0; text-align: center; white-space: nowrap; overflow: hidden; font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 48px; line-height: 1.1;">${v.pasTemp}°</button>
+        <button type="button" onClick=${v.openPas} onPointerDown=${v.pasPress} aria-label="Passenger temperature ${v.pasTemp} degrees, hold and slide to change" style="border: 0; background: transparent; color: #F2F2F2; flex: 1 1 0; min-width: 0; height: 108px; padding: 0; text-align: center; white-space: nowrap; overflow: hidden; touch-action: none; display: flex; flex-direction: column; align-items: center; justify-content: center;"><div style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 56px; line-height: 1; transform: ${v.pasTempScale}; transition: transform .15s;">${v.pasTemp}°</div><div style="position: relative; width: 150px; height: 6px; margin-top: 12px; border-radius: 3px; background: #17171A;"><div style="position: absolute; left: 0; top: 0; bottom: 0; width: ${v.pasTempPct}%; border-radius: 3px; background: ${v.pasTempColor}; box-shadow: ${v.pasTempGlow};"></div></div></button>
         <button type="button" onClick=${v.pasUp} aria-label="Passenger temperature up" style="width: 44px; height: 84px; border: 0; background: #1E1E1E; color: #F2F2F2; border-radius: 4px; font-size: 26px; flex-shrink: 0;">+</button>
       </div>
     </div>
@@ -794,10 +831,8 @@ class Home extends Component {
         <button type="button" onClick=${v.toggleAuto} aria-pressed=${v.auto} aria-label="Auto" class="gy-7" style="width: 108px; height: 108px; flex-shrink: 0; padding: 0; border: ${v.autoBorder}; background: ${v.autoBg}; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
           <svg width="38" height="38" viewBox="0 -960 960 960" fill=${v.autoIcon} aria-hidden="true"><path d="m626-546-37 95q-3 8-9.5 12.5T565-434q-14 0-21.5-11.5T541-470l130-333q3-7 9-11.5t14-4.5h19q8 0 14 4.5t9 11.5l130 334q5 13-2.5 24T842-434q-8 0-14.5-4.5T818-451l-37-95H626Zm16-47h123l-54-148h-15l-54 148ZM167-174q-53-53-53-129 0-48 24-90.5t66-68.5v-286q0-38 27-65t65-27q38 0 65 27t27 65v286q42 26 66 68.5t24 90.5q0 76-53 129t-129 53q-76 0-129-53Zm7-129h244q0-40-19-71.5T348-420l-20-9v-319q0-14-9-23t-23-9q-14 0-23 9t-9 23v319l-20 9q-32 14-51 46t-19 71Z"></path></svg>
         <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px; line-height: 1; letter-spacing: 0.08em; color: ${v.autoIcon};">AUTO</span></button>
-        <button type="button" onClick=${v.toggleSync} aria-pressed=${v.synced} aria-label="Sync driver and passenger temperatures" class="gy-7" style="width: 108px; height: 108px; flex-shrink: 0; padding: 0; border: ${v.syncBorder}; background: ${v.syncBg}; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-          <svg width="38" height="38" viewBox="0 -960 960 960" fill=${v.syncIcon} aria-hidden="true"><path d="M220-477q0 63 23.5 109.5T307-287l30 21v-94q0-13 8.5-21.5T367-390q13 0 21.5 8.5T397-360v170q0 13-8.5 21.5T367-160H197q-13 0-21.5-8.5T167-190q0-13 8.5-21.5T197-220h100l-15-12q-64-51-93-111t-29-134q0-94 49.5-171.5T342-766q11-5 21 0t14 16q5 11 0 22.5T361-710q-64 34-102.5 96.5T220-477Zm520-6q0-48-23.5-97.5T655-668l-29-26v94q0 13-8.5 21.5T596-570q-13 0-21.5-8.5T566-600v-170q0-13 8.5-21.5T596-800h170q13 0 21.5 8.5T796-770q0 13-8.5 21.5T766-740H665l15 14q60 56 90 120t30 123q0 93-48 169.5T623-195q-11 6-22.5 1.5T584-210q-5-11 0-22.5t16-17.5q65-33 102.5-96T740-483Z"
-></path></svg>
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px; line-height: 1; letter-spacing: 0.08em; color: ${v.syncIcon};">SYNC</span></button>
+        <button type="button" onClick=${v.toggleSync} aria-pressed=${v.synced} aria-label="Sync driver and passenger temperatures" style="width: 108px; height: 108px; flex-shrink: 0; padding: 0; border: ${v.syncBorder}; background: ${v.syncBg}; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <div style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 40px; line-height: 1; color: ${v.syncText};">SYNC</div></button>
         <button type="button" onClick=${v.openFan} aria-label="Fan speed ${v.fanLabel}, tap for slider" class="gy-6" style="width: 108px; height: 108px; flex-shrink: 0; padding: 0; border: 1px solid #2A2A2A; background: #161616; color: #F2F2F2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
           <svg width="38" height="38" viewBox="0 -960 960 960" fill="#F2F2F2" aria-hidden="true"><path class=${v.fanAnim} d="M424-80q-51 0-77.5-30.5T320-180q0-26 11.5-50.5T367-271q22-14 36.5-37.5T425-373q-1 0-1-.5t-2-1.5l-116 41q-17 6-33 10t-33 4q-63 0-111.5-55T80-536q0-51 30.5-77.5T179-640q26 0 51 11.5t41 35.5q14 22 39.5 37.5T373-535q.67-1 1.33-2 .67-1 .67-2l-41-115q-6-17-10-33t-4-32q0-64 55-112.5T536-880q51 0 77.5 30.5T640-781q0 26-11.5 51T593-689q-26 17-40.5 45T536-586q1 1 1.5.5t1.5 1.5l115-43q17-6 32.5-9.5T719-640q81 0 121 67t40 149q0 51-32 77.5T777-320q-25 0-48.5-11.5T689-367q-14-22-37.5-36.5T587-426q-1 2-1.6 3.06-.6 1.06-1.4 1.94l42 115q6 16 10 30.5t4 30.5q1 65-54 115T424-80Zm56-340q25 0 42.5-17.5T540-480q0-25-17.5-42.5T480-540q-25 0-42.5 17.5T420-480q0 25 17.5 42.5T480-420Zm-58-165q12-5 26-9t28-6q8-45 29.5-81t54.5-58q10-7 15-17.5t5-24.5q0-16.42-10.5-27.71T536-820q-43 0-98.5 20.55-55.5 20.54-57.5 80.32 0 11.21 2.5 21.17T388-680l34 95ZM240-380q14 0 40-8l95-34q-8-14-11.5-28t-3.5-26q-45-8-81-29.5T221-560q-7-10-19-15t-23-5q-19 0-29 10.5T140-536q0 61.94 25.63 108.97Q191.25-380 240-380Zm184 240q53.13 0 104.57-23Q580-186 580-242q0-11-2-19t-6-19l-34-95q-13 6-26.5 10t-27.5 5q-8 45-29.5 81T400-221q-9 6-14.5 18.5T380-179q1 15 11 27t33 12Zm353-240q16.83 0 29.91-9.17Q820-398.33 820-424q0-44-20.5-99t-81.33-57q-11.17 0-20.67 2-9.5 2-17.5 5l-95 35q5 8 10 25.5t5 28.5q45 8 81 29.5t58 54.5q6 8 16.67 14 10.66 6 21.33 6ZM600-484ZM476-600ZM360-476Zm124 116Z"></path></svg>
           <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px; line-height: 1; letter-spacing: 0.08em; color: #A6A6A6;">FAN <span style="color: #F2F2F2;">${v.fanLabel}</span></span>
@@ -808,7 +843,7 @@ class Home extends Component {
     <div style="flex: 1 1 0; min-width: 0; display: flex;">
       <div style="flex: 1 1 0; height: 108px; display: flex; align-items: center; justify-content: space-between; border: 0; background: #161616; border-radius: 6px; padding: 0 6px; min-width: 0; overflow: hidden;">
         <button type="button" onClick=${v.drvDown} aria-label="Driver temperature down" style="width: 44px; height: 84px; border: 0; background: #1E1E1E; color: #F2F2F2; border-radius: 4px; font-size: 26px; flex-shrink: 0;">–</button>
-        <button type="button" onClick=${v.openDrv} aria-label="Driver temperature ${v.drvTemp} degrees, tap for slider" style="border: 0; background: transparent; color: #F2F2F2; flex: 0 0 100px; width: 100px; padding: 0; text-align: center; white-space: nowrap; overflow: hidden; font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 48px; line-height: 1.1;">${v.drvTemp}°</button>
+        <button type="button" onClick=${v.openDrv} onPointerDown=${v.drvPress} aria-label="Driver temperature ${v.drvTemp} degrees, hold and slide to change" style="border: 0; background: transparent; color: #F2F2F2; flex: 1 1 0; min-width: 0; height: 108px; padding: 0; text-align: center; white-space: nowrap; overflow: hidden; touch-action: none; display: flex; flex-direction: column; align-items: center; justify-content: center;"><div style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 56px; line-height: 1; transform: ${v.drvTempScale}; transition: transform .15s;">${v.drvTemp}°</div><div style="position: relative; width: 150px; height: 6px; margin-top: 12px; border-radius: 3px; background: #17171A;"><div style="position: absolute; left: 0; top: 0; bottom: 0; width: ${v.drvTempPct}%; border-radius: 3px; background: ${v.drvTempColor}; box-shadow: ${v.drvTempGlow};"></div></div></button>
         <button type="button" onClick=${v.drvUp} aria-label="Driver temperature up" style="width: 44px; height: 84px; border: 0; background: #1E1E1E; color: #F2F2F2; border-radius: 4px; font-size: 26px; flex-shrink: 0;">+</button>
       </div>
     </div>

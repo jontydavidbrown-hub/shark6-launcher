@@ -7,6 +7,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.lang.reflect.Method;
+import java.util.Locale;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
@@ -101,6 +102,74 @@ final class CarData {
     volatile String lastTripReset = "not tried yet";
     private volatile String powerLine = "power: not read yet";
     String powerReport() { return powerLine; }
+
+    // ---- Power hunt: the motor power the BYD screen shows isn't in any getter we know. Every 2 s,
+    // read every number-returning getter on the drive devices, plus engine feature ids whose names
+    // mention power/torque/current/voltage, and keep the ones that move. "Send to Claude" includes
+    // the last 40 s next to the speed so the right signal can be picked out from a real regen.
+    private static final String[] HUNT_DEVICES = {"energy", "motor", "engine", "statistic", "instrument", "speed", "gearbox"};
+    private final java.util.LinkedHashMap<String, java.util.ArrayDeque<String>> hunt = new java.util.LinkedHashMap<>();
+    private final java.util.ArrayDeque<String> huntSpeed = new java.util.ArrayDeque<>();
+    private java.util.List<Object[]> huntList;
+    private long huntAt;
+    private void huntStep(Double speed) { synchronized (hunt) { huntStep0(speed); } }
+    private void huntStep0(Double speed) {
+        long now = System.currentTimeMillis();
+        if (now - huntAt < 2000) return;
+        huntAt = now;
+        try {
+            if (huntList == null) {
+                huntList = new java.util.ArrayList<>();
+                for (String d : HUNT_DEVICES) {
+                    Object dev = devices.get(d);
+                    if (dev == null) continue;
+                    for (Method m : dev.getClass().getMethods()) {
+                        Class<?> r = m.getReturnType();
+                        String n = m.getName();
+                        if (m.getParameterTypes().length != 0 || Modifier.isStatic(m.getModifiers()) || !n.startsWith("get")) continue;
+                        if (r != int.class && r != double.class && r != float.class && r != long.class) continue;
+                        if (n.equals("getType") || n.equals("hashCode")) continue;
+                        huntList.add(new Object[]{d + "." + n, m, dev});
+                    }
+                    for (Class<?> w = dev.getClass(); w != null && w != Object.class; w = w.getSuperclass()) {
+                        for (java.lang.reflect.Field f : w.getDeclaredFields()) {
+                            String n = f.getName().toUpperCase(Locale.ROOT);
+                            if (!Modifier.isStatic(f.getModifiers()) || f.getType() != int.class) continue;
+                            if (!(n.contains("POWER") || n.contains("TORQUE") || n.contains("CURRENT") || n.contains("VOLT") || n.contains("REGEN") || n.contains("FEEDBACK") || n.contains("ENERGY_FLOW"))) continue;
+                            try { f.setAccessible(true); huntList.add(new Object[]{d + "#" + f.getName(), f.getInt(null), d}); } catch (Throwable ignored) { }
+                        }
+                    }
+                }
+            }
+            huntSpeed.addLast(speed == null ? "-" : String.valueOf(Math.round(speed)));
+            while (huntSpeed.size() > 20) huntSpeed.removeFirst();
+            for (Object[] h : huntList) {
+                Object v = null;
+                try {
+                    if (h[1] instanceof Method) v = ((Method) h[1]).invoke(h[2]);
+                    else { Double a = feature((String) h[2], (Integer) h[1], false), b2 = feature((String) h[2], (Integer) h[1], true); v = a + "/" + b2; }
+                } catch (Throwable t) { v = "x"; }
+                String key = (String) h[0];
+                java.util.ArrayDeque<String> q = hunt.get(key);
+                if (q == null) { q = new java.util.ArrayDeque<>(); hunt.put(key, q); }
+                q.addLast(String.valueOf(v));
+                while (q.size() > 20) q.removeFirst();
+            }
+        } catch (Throwable ignored) { }
+    }
+    /** The getters that changed in the last ~40 s, oldest -> newest, with speed for comparison. */
+    String huntReport() { synchronized (hunt) { return huntReport0(); } }
+    private String huntReport0() {
+        StringBuilder b = new StringBuilder("power hunt (every 2 s, oldest first)\nspeed: " + String.join(" ", huntSpeed) + "\n");
+        int still = 0;
+        for (java.util.Map.Entry<String, java.util.ArrayDeque<String>> e : new java.util.ArrayList<>(hunt.entrySet())) {
+            java.util.HashSet<String> u = new java.util.HashSet<>(e.getValue());
+            if (u.size() <= 1) { still++; continue; }
+            b.append(e.getKey()).append(": ").append(String.join(" ", e.getValue())).append('\n');
+        }
+        b.append(still).append(" other readings didn't change\n");
+        return b.toString();
+    }
 
     // Engine-device feature ids for the motors (Overdrive's BydFeatureIds, MIT). The motor device
     // itself is a stub on the Shark ("RuntimeException: Stub!"), so power comes from these.
@@ -227,6 +296,7 @@ final class CarData {
             put(o, "avgFuel", num("statistic", "getTotalFuelConPHMValue"), 0, 40);
             // Driving
             put(o, "speed", num("speed", "getCurrentSpeed"), 0, 300);
+            huntStep(num("speed", "getCurrentSpeed"));
             put(o, "gear", num("gearbox", "getGearboxAutoModeLevel"), 1, 6);
             put(o, "energyMode", num("energy", "getEnergyMode"), 0, 10);
             // Drive mode: setting.getDriveMode() uses 1 Normal, 2 Eco, 3 Sport, 4 Snow, 5 Mud, 6 Sand
@@ -247,8 +317,9 @@ final class CarData {
             if (motor == null && okRpm && okNm) {
                 // P = torque x speed. Only the front motor's torque is readable: an estimate,
                 // but its sign shows regen (negative) correctly.
+                // Not used for the screen any more: it read +7 kW while the car showed -51 kW of regen
+                // (2026-11-23). The app estimates from speed changes until the hunt finds the real signal.
                 est = fNm * fRpm / 9549.0;
-                motor = est;
             }
             powerLine = "power: motor dev " + num("motor", "getMotorPower") + "  engine " + engRaw
                     + "  front " + fRpm + " rpm " + fNm + " Nm  rear " + rRpm + " rpm  est " + (est == null ? "-" : String.format(java.util.Locale.ROOT, "%.1f kW", est));
