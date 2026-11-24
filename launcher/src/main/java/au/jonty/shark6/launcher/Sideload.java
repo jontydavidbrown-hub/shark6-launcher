@@ -262,18 +262,17 @@ final class Sideload {
         new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(c, m, Toast.LENGTH_LONG).show());
     }
 
-    // 0.59 probe: where does CarPlay's map for the instrument cluster go? Looking for a second display or surface we could capture.
+    // 0.73 probe: can we draw on the instrument cluster? SharkLab (github.com/JErazo7/byd-cluster-dashboard) takes the
+    // cluster on a BYD Shark through the AutoContainer binder + the "fission" virtual display. Read-only checks.
     static final String PROBE =
-            "echo '== displays'; dumpsys display 2>&1 | grep -E 'DisplayDeviceInfo|mDisplayId|uniqueId|type |FLAG' | head -60;"
-            + "echo; echo '== window displays'; dumpsys window displays 2>&1 | grep -E 'Display: |mDisplayId|displayId|name=' | head -40;"
-            + "echo; echo '== surfaceflinger displays'; dumpsys SurfaceFlinger --display-id 2>&1 | head -20;"
-            + "echo; echo '== surfaces (carplay, cluster, map, virtual)'; dumpsys SurfaceFlinger 2>&1 | grep -i -E 'carplay|cluster|navi|map|virtual|projection|Display ' | head -100;"
-            + "echo; echo '== carplay services'; dumpsys activity services com.ts 2>&1 | grep -E 'ServiceRecord|intent=|app=' | head -60;"
-            + "echo; echo '== cluster package'; dumpsys package com.ts.appservice.cluster 2>&1 | grep -E 'Action:|Service\\{|permission|Activity' | head -40;"
-            + "echo; echo '== log: video, cluster, navigation'; logcat -d -v time -t 20000 2>&1 | grep -i -E 'altvideo|alternate|secondvideo|cluster|navi|h264|avc|decoder|virtualdisplay|surface' | grep -i -E 'carplay|cluster|ts\\.|navi|virtual' | tail -150;"
-            + "for p in com.ts.carplay com.ts.carplay.app com.ts.appservice.cluster com.ts.qnxapp; do"
-            + " echo; echo \"== log of $p\"; for id in $(pidof $p); do logcat -d -v time --pid=$id -t 6000 2>&1 | tail -100; done; done;"
-            + "echo; echo '== video devices'; ls /dev 2>&1 | grep -i -E 'video|disp|fb|ipu|vpu' | head -30";
+            "echo '== build'; getprop ro.build.version.release; getprop ro.build.display.id; getprop ro.product.model; getprop ro.product.device;"
+            + "echo; echo '== container_comm_cfg.json'; cat /system/etc/container_comm_cfg.json 2>&1 | head -80;"
+            + "echo; echo '== container services'; service list 2>&1 | grep -i -E 'container|cluster|fission|projection|xdja|instrument' | head -30;"
+            + "echo; echo '== packages'; pm list packages 2>&1 | grep -i -E 'xdja|cluster|qnx|fission|instrument|meter|dash' | head -40;"
+            + "echo; echo '== fission binaries'; ls /system/bin /system/xbin /vendor/bin 2>/dev/null | grep -i -E 'fission|container|cluster' | head;"
+            + "echo; echo '== displays'; dumpsys display 2>&1 | grep -E 'DisplayDeviceInfo|mDisplayId' | head -20;"
+            + "echo; echo '== container etc files'; ls /system/etc 2>&1 | grep -i -E 'container|fission|cluster|xdja' | head -20;"
+            + "echo; echo '== xdja log'; logcat -d -v time -t 20000 2>&1 | grep -i -E 'xdja|AutoContainer|fission|ScreenProjection' | tail -60";
 
     private static final String PAGE = "<!doctype html><html><head><meta charset=utf-8>"
             + "<meta name=viewport content='width=device-width,initial-scale=1'><title>Send to Shark 6</title>"
